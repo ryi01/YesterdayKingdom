@@ -7,27 +7,24 @@
 #include "Attacker.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE(MinimalAPI, NotBlueprintable)
+UINTERFACE(MinimalAPI, Blueprintable)
 class UAttacker : public UInterface
 {
 	GENERATED_BODY()
 };
 
-/**
- * 
- */
 class YESTERDAYKINGDOM_API IAttacker
 {
 	GENERATED_BODY()
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	UFUNCTION( BlueprintCallable, Category = "Attacker" )
-	virtual void BeginAttackTrace() = 0;
-	UFUNCTION( BlueprintCallable, Category = "Attacker" )
-	virtual void DoAttackTrace() = 0;
-	UFUNCTION( BlueprintCallable, Category = "Attacker" )
-	virtual void EndAttackTrace() = 0;
-	UFUNCTION( BlueprintCallable, Category = "Attacker" )
-	virtual void CheckCombo() = 0;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void BeginAttackTrace();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void DoAttackTrace();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void EndAttackTrace();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void CheckCombo();
 };

@@ -133,23 +133,27 @@ void ABaseCharacter::HandleDeath_Implementation()
 	}
 }
 
-void ABaseCharacter::BeginAttackTrace()
+void ABaseCharacter::BeginAttackTrace_Implementation()
 {
+	IAttacker::BeginAttackTrace_Implementation();
 	if (CombatBaseComponent) CombatBaseComponent->BeginAttackTrace();
 }
 
-void ABaseCharacter::DoAttackTrace()
+void ABaseCharacter::DoAttackTrace_Implementation()
 {
+	IAttacker::DoAttackTrace_Implementation();
 	if (CombatBaseComponent) CombatBaseComponent->DoAttackTrace();
 }
 
-void ABaseCharacter::EndAttackTrace()
+void ABaseCharacter::EndAttackTrace_Implementation()
 {
+	IAttacker::EndAttackTrace_Implementation();
 	if (CombatBaseComponent) CombatBaseComponent->EndAttackTrace();
 }
 
-void ABaseCharacter::CheckCombo()
+void ABaseCharacter::CheckCombo_Implementation()
 {
+	IAttacker::CheckCombo_Implementation();
 	if (CombatBaseComponent) CombatBaseComponent->CheckCombo();
 }
 

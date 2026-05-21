@@ -59,10 +59,10 @@ public:
 	// ========================================================
 	// Attacker Interface
 	// ========================================================
-	virtual void BeginAttackTrace() override;
-	virtual void DoAttackTrace() override;
-	virtual void EndAttackTrace() override;
-	virtual void CheckCombo() override;
+	virtual void BeginAttackTrace_Implementation() override;
+	virtual void DoAttackTrace_Implementation() override;
+	virtual void EndAttackTrace_Implementation() override;
+	virtual void CheckCombo_Implementation() override;
 	
 	// ========================================================
 	// Getter 
