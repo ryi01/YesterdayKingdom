@@ -2,14 +2,19 @@
 
 
 #include "EnemyNomal.h"
+
 #include "EnemyDefinition.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "EnemyNomalAIController.h"
+
+#include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AEnemyNomal::AEnemyNomal()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	OnAttackMontageEnded.BindUObject(this, &AEnemyNomal::AttackMontageEnded);
 
 	AIControllerClass = AEnemyNomalAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
@@ -51,34 +56,73 @@ void AEnemyNomal::InitializeFromDefinition()
 	InitializeWeaponRoot();
 }
 
-void AEnemyNomal::PlayAttackMontage()
+void AEnemyNomal::DoAIComboAttack()
 {
+	if (bIsAttacking)
+	{
+		return;
+	}
+
 	if (!EnemyDefinition || !EnemyDefinition->AttackMontage)
 	{
+		OnAttackCompleted.ExecuteIfBound();
 		return;
 	}
 
-	PlayAnimMontage(EnemyDefinition->AttackMontage);
+	bIsAttacking = true;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		bIsAttacking = false;
+		OnAttackCompleted.ExecuteIfBound();
+		return;
+	}
+
+	const float MontageLength = AnimInstance->Montage_Play(
+		EnemyDefinition->AttackMontage,
+		1.0f,
+		EMontagePlayReturnType::MontageLength,
+		0.0f,
+		true
+	);
+
+	if (MontageLength > 0.0f)
+	{
+		AnimInstance->Montage_SetEndDelegate(
+			OnAttackMontageEnded,
+			EnemyDefinition->AttackMontage
+		);
+	}
+	else
+	{
+		bIsAttacking = false;
+		OnAttackCompleted.ExecuteIfBound();
+	}
 }
 
-void AEnemyNomal::PlayHitMontage()
+void AEnemyNomal::DoAIChargedAttack()
 {
-	if (!EnemyDefinition || !EnemyDefinition->HitMontage)
-	{
-		return;
-	}
-
-	PlayAnimMontage(EnemyDefinition->HitMontage);
+	// 아직 차지 공격 DA가 없으므로 임시로 일반 공격 처리
+	// 나중에 UEnemyDefinition에 ChargedAttackMontage를 추가하면 여기만 교체
+	DoAIComboAttack();
 }
 
-void AEnemyNomal::PlayDeathMontage()
+void AEnemyNomal::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (!EnemyDefinition || !EnemyDefinition->DeathMontage)
-	{
-		return;
-	}
+	bIsAttacking = false;
 
-	PlayAnimMontage(EnemyDefinition->DeathMontage);
+	OnAttackCompleted.ExecuteIfBound();
+}
+
+const FVector& AEnemyNomal::GetLastDangerLocation() const
+{
+	return LastDangerLocation;
+}
+
+float AEnemyNomal::GetLastDangerTime() const
+{
+	return LastDangerTime;
 }
 
 void AEnemyNomal::ApplyDamage_Implementation(
@@ -97,11 +141,40 @@ void AEnemyNomal::NotifyDamage_Implementation(
 )
 {
 	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+
+	if (DamageSource && DamageSource->ActorHasTag(TEXT("Player")))
+	{
+		LastDangerLocation = DamageLocation;
+
+		if (UWorld* World = GetWorld())
+		{
+			LastDangerTime = World->GetTimeSeconds();
+		}
+	}
+
+	if (EnemyDefinition && EnemyDefinition->HitMontage)
+	{
+		PlayAnimMontage(EnemyDefinition->HitMontage);
+	}
 }
 
 void AEnemyNomal::HandleDeath_Implementation()
 {
+	OnEnemyDied.Broadcast();
+
+	if (EnemyDefinition && EnemyDefinition->DeathMontage)
+	{
+		PlayAnimMontage(EnemyDefinition->DeathMontage);
+	}
+
 	Super::HandleDeath_Implementation();
+}
+
+void AEnemyNomal::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	OnEnemyLanded.ExecuteIfBound();
 }
 
 void AEnemyNomal::BeginAttackTrace_Implementation()

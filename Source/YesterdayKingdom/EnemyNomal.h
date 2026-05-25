@@ -7,6 +7,11 @@
 #include "EnemyNomal.generated.h"
 
 class UEnemyDefinition;
+class UAnimMontage;
+
+DECLARE_DELEGATE(FOnEnemyAttackCompleted);
+DECLARE_DELEGATE(FOnEnemyLanded);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyDied);
 
 UCLASS()
 class YESTERDAYKINGDOM_API AEnemyNomal : public ABaseCharacter
@@ -18,14 +23,33 @@ public:
 
 	UEnemyDefinition* GetEnemyDefinition() const { return EnemyDefinition; }
 
-	UFUNCTION(BlueprintCallable)
-	void PlayAttackMontage();
+	bool bIsAttacking = false;
 
-	UFUNCTION(BlueprintCallable)
-	void PlayHitMontage();
+	FOnMontageEnded OnAttackMontageEnded;
+	FOnEnemyAttackCompleted OnAttackCompleted;
+	FOnEnemyLanded OnEnemyLanded;
 
-	UFUNCTION(BlueprintCallable)
-	void PlayDeathMontage();
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnEnemyDied OnEnemyDied;
+
+	FVector LastDangerLocation = FVector::ZeroVector;
+	float LastDangerTime = -1000.f;
+
+	void DoAIComboAttack();
+
+	// 차지 공격은 아직 미사용이면 일단 선언만 유지
+	void DoAIChargedAttack();
+
+	void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	const FVector& GetLastDangerLocation() const;
+	float GetLastDangerTime() const;
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void Landed(const FHitResult& Hit) override;
+
+	void InitializeFromDefinition();
 
 	virtual void ApplyDamage_Implementation(
 		float Damage,
@@ -44,11 +68,6 @@ public:
 	virtual void BeginAttackTrace_Implementation() override;
 	virtual void DoAttackTrace_Implementation() override;
 	virtual void EndAttackTrace_Implementation() override;
-
-protected:
-	virtual void BeginPlay() override;
-
-	void InitializeFromDefinition();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Data")
