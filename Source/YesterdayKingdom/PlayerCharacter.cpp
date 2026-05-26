@@ -2,6 +2,9 @@
 
 
 #include "PlayerCharacter.h"
+
+#include "BaseStatComponent.h"
+#include "CombatBaseComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -10,21 +13,29 @@
 #include "InputActionValue.h"
 
 
+void APlayerCharacter::CheckCombo_Implementation(EAttackType AttackType)
+{
+}
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	CharacterOwner = Cast<ACharacter>(GetOwner());
-	if (CharacterOwner)
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		MoveComp = CharacterOwner->GetCharacterMovement();
-		if (MoveComp)
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 		{
-			MoveComp->bOrientRotationToMovement = true;
-			MoveComp->RotationRate = FRotator(0.0f, RotateSpeed, 0.0f);
-			MoveComp->MaxWalkSpeed = NormalSpeed;
-			CharacterOwner->bUseControllerRotationYaw = false;
+			Subsystem->AddMappingContext(InputMappingContext, 0);
 		}
+	}
+	
+	MoveComp = GetCharacterMovement();
+	if (MoveComp)
+	{
+		//MoveComp->MaxWalkSpeed = GetStatComponent()->GetMovespeed();
+		MoveComp->JumpZVelocity = JumpZPower;
+		MoveComp->bOrientRotationToMovement = true;
 	}
 }
 
@@ -41,23 +52,28 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	// 움직임 화면시선처리 
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::StopJumping);
+	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::DoJump);
+	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoJumpStop);
+	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoComboAttack);
+	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoLightAttack);
+	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoHeavyAttack);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
 	
-	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator Rotation = GetController()->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
+		
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-	
-	AddMovementInput(ForwardDirection, MovementVector.X);
-	AddMovementInput(RightDirection, MovementVector.Y);
-	
+		
+	UE_LOG(LogTemp, Warning, TEXT("Moving"));
+		
+	AddMovementInput(ForwardDirection, MovementVector.Y);
+	AddMovementInput(RightDirection, MovementVector.X);
+	UE_LOG(LogTemp, Warning, TEXT("Move Value: %s"), *MovementVector.ToString());
 }
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
@@ -68,14 +84,16 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(-LookAxisVector.Y);
 }
 
-void APlayerCharacter::Jump(const FInputActionValue& Value)
+void APlayerCharacter::DoJump()
 {
-	if (CharacterOwner) CharacterOwner->Jump();
+	Jump();
+	UE_LOG(LogTemp, Warning, TEXT("Jump"));
 }
 
-void APlayerCharacter::JumpStop(const FInputActionValue& Value)
+void APlayerCharacter::DoJumpStop()
 {
-	if (CharacterOwner) CharacterOwner->StopJumping();
+	StopJumping();
+	UE_LOG(LogTemp, Warning, TEXT("JumpStop"));
 }
 
 void APlayerCharacter::Dash(const FInputActionValue& Value)
@@ -85,11 +103,46 @@ void APlayerCharacter::Dash(const FInputActionValue& Value)
 
 void APlayerCharacter::DashStop(const FInputActionValue& Value)
 {
-	if (MoveComp) MoveComp->MaxWalkSpeed = NormalSpeed;
+	if (MoveComp) MoveComp->MaxWalkSpeed = 600.f;
+}
+
+void APlayerCharacter::DoComboAttack(const FInputActionValue& Value)
+{
+	IAttacker::Execute_CheckCombo(this);
+}
+
+void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
+{
+	bIsHeavyAttack = false;
+	IAttacker::Execute_CheckCombo(this);
+}
+
+void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
+{
+	bIsHeavyAttack = true;
+	IAttacker::Execute_CheckCombo(this);
 }
 
 void APlayerCharacter::CheckCombo_Implementation()
 {
 	Super::CheckCombo_Implementation();
+	
+	FString AttackType = bIsHeavyAttack ? TEXT("Heavy") : TEXT("Light");
+	UE_LOG(LogTemp, Warning, TEXT("Player %s Attack Checked! Index: %d"), *AttackType, AttackIndex);
+	
+	bIsAttacking = true;
+	
+	if (CombatBaseComponent) 
+	{
+		CombatBaseComponent->CheckCombo();
+	}
+	
+	if (ComboMontages.IsValidIndex(AttackIndex))
+	{
+		UAnimMontage* SelectedMontage = ComboMontages[AttackIndex];
+		
+		PlayAnimMontage(SelectedMontage);
+		
+		AttackIndex = (AttackIndex + 1) % ComboMontages.Num();
+	}
 }
-

@@ -12,6 +12,15 @@ struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
 
+UENUM(BlueprintType)
+enum class EAttackType : uint8
+{
+	None	UMETA(DisplayName = "None"),
+	Light	UMETA(DisplayName = "Light"),
+	Heavy	UMETA(DisplayName = "Heavy"),
+	Combo	UMETA(DisplayName = "Combo"),
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
 {
@@ -36,36 +45,64 @@ public:
 	// --------------------------------------------------------------------------------------------- //
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float NormalSpeed;
+	float JumpZPower = 500.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float DashSpeed;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float RotateSpeed;
+	float DashSpeed = 900.f;
+	
+	// --------------------------------------------------------------------------------------------- //
+	// 공격
+	// --------------------------------------------------------------------------------------------- //
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> AttackAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> LightAttackAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> HeavyAttackAction;
+	
+	virtual void CheckCombo_Implementation() override;
+	
+	void DoComboAttack(const FInputActionValue& Value);
+	void DoLightAttack(const FInputActionValue& Value);
+	void DoHeavyAttack(const FInputActionValue& Value);
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bIsHeavyAttack = false;
+	
+	// --------------------------------------------------------------------------------------------- //
+	// --------------------------------------------------------------------------------------------- //
+	
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TArray<UAnimMontage*> ComboMontages;
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void CheckCombo(EAttackType AttackType);
 	
 protected:
 	virtual void BeginPlay() override;
-	
-	// 플레이어 캐릭터 액터 참조
-	UPROPERTY()
-	ACharacter* CharacterOwner;
 	
 	// 캐릭터 이동 컴포넌트 참조
 	UPROPERTY()
 	UCharacterMovementComponent* MoveComp;
 	
-public:
-	void Move(const FInputActionValue& Value);
-	void Look(const FInputActionValue& Value);
-	void Jump(const FInputActionValue& Value);
-	void Dash(const FInputActionValue& Value);
-	void JumpStop(const FInputActionValue& Value);
-	void DashStop(const FInputActionValue& Value);
-	
-	virtual void CheckCombo_Implementation() override;
-	
 	UPROPERTY(VisibleAnywhere, Category = "Pawn")
-	bool IsAttacking = false;
+	bool bIsAttacking = false;
 	
 	UPROPERTY()
 	int32 AttackIndex = 0;
+	
+
+	
+public:
+	// --------------------------------------------------------------------------------------------- //
+	// 기본 이동
+	// --------------------------------------------------------------------------------------------- //
+	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
+	void DoJump();
+	void Dash(const FInputActionValue& Value);
+	void DoJumpStop();
+	void DashStop(const FInputActionValue& Value);
+	
 };
