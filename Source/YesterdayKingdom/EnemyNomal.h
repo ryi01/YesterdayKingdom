@@ -20,10 +20,16 @@ class YESTERDAYKINGDOM_API AEnemyNomal : public ABaseCharacter
 
 public:
 	AEnemyNomal();
-
+	
 	UEnemyDefinition* GetEnemyDefinition() const { return EnemyDefinition; }
 
 	bool bIsAttacking = false;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "EnemyNomal|Stat")
+	float GetCurrentHP() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "EnemyNomal|Stat")
+	bool IsDead() const;
 
 	FOnMontageEnded OnAttackMontageEnded;
 	FOnEnemyAttackCompleted OnAttackCompleted;

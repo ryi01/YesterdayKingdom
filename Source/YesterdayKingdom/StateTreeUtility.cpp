@@ -321,10 +321,3 @@ EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext
 
 	return EStateTreeRunStatus::Running;
 }
-
-FText FStateTreeGetPlayerInfoTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
-{
-	return FText::FromString("<b>Get Player Info</b>");
-}
-
-

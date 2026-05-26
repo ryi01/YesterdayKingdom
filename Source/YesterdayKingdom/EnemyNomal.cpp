@@ -2,10 +2,9 @@
 
 
 #include "EnemyNomal.h"
-
 #include "EnemyDefinition.h"
 #include "EnemyNomalAIController.h"
-
+#include "BaseStatComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -44,7 +43,7 @@ void AEnemyNomal::InitializeFromDefinition()
 
 		if (EnemyDefinition->AnimBP)
 		{
-			MeshComp->SetAnimInstanceClass(EnemyDefinition->AnimBP);
+			MeshComp->SetAnimInstanceClass(EnemyDefinition->AnimBP); 
 		}
 	}
 
@@ -190,4 +189,24 @@ void AEnemyNomal::DoAttackTrace_Implementation()
 void AEnemyNomal::EndAttackTrace_Implementation()
 {
 	Super::EndAttackTrace_Implementation();
+}
+
+float AEnemyNomal::GetCurrentHP() const
+{
+	if (!GetStatComponent())
+	{
+		return 0.f;
+	}
+
+	return GetStatComponent()->GetCurrentHP();
+}
+
+bool AEnemyNomal::IsDead() const
+{
+	if (!GetStatComponent())
+	{
+		return true;
+	}
+
+	return GetStatComponent()->IsDead();
 }
