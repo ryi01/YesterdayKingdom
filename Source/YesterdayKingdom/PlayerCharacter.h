@@ -12,15 +12,6 @@ struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
 
-UENUM(BlueprintType)
-enum class EAttackType : uint8
-{
-	None	UMETA(DisplayName = "None"),
-	Light	UMETA(DisplayName = "Light"),
-	Heavy	UMETA(DisplayName = "Heavy"),
-	Combo	UMETA(DisplayName = "Combo"),
-};
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
 {
@@ -42,6 +33,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> JumpAction;
 	
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> AttackAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> LightAttackAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> HeavyAttackAction;
+	
 	// --------------------------------------------------------------------------------------------- //
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -52,18 +52,11 @@ public:
 	// --------------------------------------------------------------------------------------------- //
 	// 공격
 	// --------------------------------------------------------------------------------------------- //
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Input")
-	TObjectPtr<class UInputAction> AttackAction;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	TObjectPtr<class UInputAction> LightAttackAction;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	TObjectPtr<class UInputAction> HeavyAttackAction;
 	
 	virtual void CheckCombo_Implementation() override;
+	virtual void Charged_Implementation();
 	
-	void DoComboAttack(const FInputActionValue& Value);
+	void DoChargedAttack(const FInputActionValue& Value);
 	void DoLightAttack(const FInputActionValue& Value);
 	void DoHeavyAttack(const FInputActionValue& Value);
 	
@@ -76,15 +69,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TArray<UAnimMontage*> ComboMontages;
 	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void CheckCombo(EAttackType AttackType);
-	
 protected:
 	virtual void BeginPlay() override;
 	
 	// 캐릭터 이동 컴포넌트 참조
 	UPROPERTY()
-	UCharacterMovementComponent* MoveComp;
+	TObjectPtr<UCharacterMovementComponent> MoveComp;
 	
 	UPROPERTY(VisibleAnywhere, Category = "Pawn")
 	bool bIsAttacking = false;

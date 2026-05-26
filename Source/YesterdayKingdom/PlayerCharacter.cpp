@@ -13,10 +13,6 @@
 #include "InputActionValue.h"
 
 
-void APlayerCharacter::CheckCombo_Implementation(EAttackType AttackType)
-{
-}
-
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -54,7 +50,7 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::DoJump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoJumpStop);
-	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoComboAttack);
+	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoChargedAttack);
 	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoLightAttack);
 	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoHeavyAttack);
 }
@@ -106,21 +102,23 @@ void APlayerCharacter::DashStop(const FInputActionValue& Value)
 	if (MoveComp) MoveComp->MaxWalkSpeed = 600.f;
 }
 
-void APlayerCharacter::DoComboAttack(const FInputActionValue& Value)
+void APlayerCharacter::DoChargedAttack(const FInputActionValue& Value)
 {
-	IAttacker::Execute_CheckCombo(this);
+	IAttacker::Execute_ChargeCombo(this);
 }
 
 void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 {
 	bIsHeavyAttack = false;
 	IAttacker::Execute_CheckCombo(this);
+	UE_LOG(LogTemp, Warning, TEXT("LightAttack"));
 }
 
 void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 {
 	bIsHeavyAttack = true;
 	IAttacker::Execute_CheckCombo(this);
+	UE_LOG(LogTemp, Warning, TEXT("HeavyAttack"));
 }
 
 void APlayerCharacter::CheckCombo_Implementation()
@@ -145,4 +143,13 @@ void APlayerCharacter::CheckCombo_Implementation()
 		
 		AttackIndex = (AttackIndex + 1) % ComboMontages.Num();
 	}
+}
+
+void APlayerCharacter::Charged_Implementation()
+{
+	if (CombatBaseComponent) 
+	{
+		CombatBaseComponent->CheckCombo();
+	}
+	UE_LOG(LogTemp, Warning, TEXT("ChargeAttack"));
 }
