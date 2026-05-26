@@ -2,10 +2,31 @@
 
 
 #include "PlayerCharacter.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
+#include "InputActionValue.h"
 
+
+void APlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	CharacterOwner = Cast<ACharacter>(GetOwner());
+	if (CharacterOwner)
+	{
+		MoveComp = CharacterOwner->GetCharacterMovement();
+		if (MoveComp)
+		{
+			MoveComp->bOrientRotationToMovement = true;
+			MoveComp->RotationRate = FRotator(0.0f, RotateSpeed, 0.0f);
+			MoveComp->MaxWalkSpeed = NormalSpeed;
+			CharacterOwner->bUseControllerRotationYaw = false;
+		}
+	}
+}
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -36,6 +57,7 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 	
 	AddMovementInput(ForwardDirection, MovementVector.X);
 	AddMovementInput(RightDirection, MovementVector.Y);
+	
 }
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
@@ -46,32 +68,28 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(-LookAxisVector.Y);
 }
 
+void APlayerCharacter::Jump(const FInputActionValue& Value)
+{
+	if (CharacterOwner) CharacterOwner->Jump();
+}
+
+void APlayerCharacter::JumpStop(const FInputActionValue& Value)
+{
+	if (CharacterOwner) CharacterOwner->StopJumping();
+}
+
+void APlayerCharacter::Dash(const FInputActionValue& Value)
+{
+	if (MoveComp) MoveComp->MaxWalkSpeed = DashSpeed;
+}
+
+void APlayerCharacter::DashStop(const FInputActionValue& Value)
+{
+	if (MoveComp) MoveComp->MaxWalkSpeed = NormalSpeed;
+}
+
 void APlayerCharacter::CheckCombo_Implementation()
 {
 	Super::CheckCombo_Implementation();
-	
-	FHitResult HitResult;
-	FCollisionQueryParams Params(NAME_None, false, this);
-	
-	float AttackRange = 100.0f;
-	float AttackRadius = 50.0f;
-	
-	bool bResult = GetWorld()->SweepSingleByChannel(
-		OUT HitResult,
-		GetActorLocation(),
-		GetActorLocation() + GetActorForwardVector() * AttackRange,
-		FQuat::Identity,
-		ECollisionChannel::ECC_EngineTraceChannel2,
-		FCollisionShape::MakeSphere(AttackRadius),
-		Params);
-	
-	FVector Vector = GetActorForwardVector() * AttackRange;
-	FVector Center = GetActorLocation() + Vector * 0.5f;
-	float HalfHeight = AttackRange * 0.5f + AttackRadius;
-	FQuat Rotation = FRotationMatrix::MakeFromZ(Vector).ToQuat();
-	if (bResult)
-	{
-		FColor Color = FColor::Green;
-	}
-	
 }
+
