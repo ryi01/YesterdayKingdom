@@ -6,6 +6,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "BaseCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 UCombatBaseComponent::UCombatBaseComponent()
 {
@@ -34,7 +35,7 @@ void UCombatBaseComponent::DoAttackTrace()
 	
 	TArray<FHitResult> HitResults;
 	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(OwnerCharacter);
+	Params.AddIgnoredActor(OwnerCharacter.Get());
 	// 플레이어 기준으로 sphere를 만들어 피격 대상 확인
 	const bool bHit = GetWorld()->SweepMultiByChannel(HitResults, Start, End, FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(TraceRadius), Params);
 #if ENABLE_DRAW_DEBUG
@@ -83,6 +84,7 @@ void UCombatBaseComponent::CheckCombo()
 {
 }
 
+
 // 피격당한 대상이 무엇인지 판별하는 함수
 bool UCombatBaseComponent::IsValidHitActor(AActor* HitActor) const
 {
@@ -100,8 +102,59 @@ bool UCombatBaseComponent::IsValidHitActor(AActor* HitActor) const
 void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult)
 {
 	if (!HitActor || !OwnerCharacter) return;
+	const FAttackDataRow* AttackData = GetCurrentAttackData();
+	const float Damage = AttackData ? AttackData->Damage : DefaultDamage;
 	const FVector DamageImpulse = OwnerCharacter->GetActorForwardVector();
-	IDamagable::Execute_ApplyDamage(HitActor, DefaultDamage, OwnerCharacter, HitResult.ImpactPoint, DamageImpulse);
+	IDamagable::Execute_ApplyDamage(HitActor, Damage, OwnerCharacter.Get(), HitResult.ImpactPoint, DamageImpulse);
+	if (AttackData)
+	{
+		ApplyHitFeedback(AttackData->HitFeedback, HitActor);
+	}
 }
 
+// 카메라 쉐이크 적용
+void UCombatBaseComponent::ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor)
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+	APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
+	if (Feedback.CameraShake && PC)
+	{
+		PC->ClientStartCameraShake(Feedback.CameraShake, Feedback.ShakeScale);
+	}
+	const FVector HitLocation = HitActor ? HitActor->GetActorLocation() : OwnerCharacter->GetActorLocation();
+	if (Feedback.HitEffect)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(World, Feedback.HitEffect, HitLocation);
+	}
+	if (Feedback.HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(World, Feedback.HitSound, HitLocation);
+	}
+	if (Feedback.bUseHitStop && Feedback.HitStopDuration > 0.f)
+	{
+		World->GetTimerManager().ClearTimer(HitStopTimerHandle);
+		UGameplayStatics::SetGlobalTimeDilation(World, Feedback.HitStopTimeScale);
+		World->GetTimerManager().SetTimer(HitStopTimerHandle, this, &UCombatBaseComponent::ResetHitStop, Feedback.HitStopDuration, false);
+	}
+}
+
+void UCombatBaseComponent::ResetHitStop()
+{
+	if (UWorld* World = GetWorld())
+	{
+		UGameplayStatics::SetGlobalTimeDilation(World, 1.f);
+	}
+}
+void UCombatBaseComponent::SetCurrentAttack(FName AttackRowName)
+{
+	CurrentAttackRowName = AttackRowName;
+}
+
+const FAttackDataRow* UCombatBaseComponent::GetCurrentAttackData() const
+{
+	if (!AttackDataTable) return nullptr;
+	if (CurrentAttackRowName.IsNone()) return nullptr;
+	return AttackDataTable->FindRow<FAttackDataRow>(CurrentAttackRowName, TEXT("AttackData"));
+}
 

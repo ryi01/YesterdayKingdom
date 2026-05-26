@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "CommonEnumTypes.h" 
 #include "CombatBaseComponent.generated.h"
 
 class ABaseCharacter;
+class UDataTable;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API UCombatBaseComponent : public UActorComponent
@@ -20,7 +22,7 @@ protected:
 	bool bIsAttackTracing = false;
 	
 	UPROPERTY()
-	TSet<TObjectPtr<AActor>> HitActors;
+	TSet<TWeakObjectPtr<AActor>> HitActors;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Trace")
 	float TraceDistance = 180.f;
@@ -33,14 +35,27 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Damage")
 	float DefaultDamage = 10.f;
+	
+	//===============================================================================
+	// 공격 애니메이션 DT
+	//===============================================================================
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Data")
+	TObjectPtr<UDataTable> AttackDataTable;
 
+	UPROPERTY(VisibleInstanceOnly, Category="Combat|Runtime")
+	FName CurrentAttackRowName;
+
+	FTimerHandle HitStopTimerHandle;
+	
 public:	
 	// Sets default values for this component's properties
 	UCombatBaseComponent();
 protected:
 	virtual bool IsValidHitActor(AActor* HitActor) const;
 	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
-
+	const FAttackDataRow* GetCurrentAttackData() const;
+	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
+	void ResetHitStop();
 public:	
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -54,4 +69,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void CheckCombo();
+	
+	void SetCurrentAttack(FName AttackRowName);
+	
 };

@@ -39,6 +39,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UAnimInstance> AnimBP;
 	
+	// 보상
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
+	int32 GoldReward = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
+	int32 ExpReward = 0;
+	
 	// AI
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStateTree> StateTree;
