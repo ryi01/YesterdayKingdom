@@ -82,6 +82,7 @@ void UCombatBaseComponent::EndAttackTrace()
 
 void UCombatBaseComponent::CheckCombo()
 {
+	
 }
 
 
