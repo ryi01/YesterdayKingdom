@@ -6,11 +6,17 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "BaseCharacter.h"
+#include "Animation/AnimMontage.h"
+#include "CommonEnumTypes.h"
 #include "Kismet/GameplayStatics.h"
 
 UCombatBaseComponent::UCombatBaseComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UCombatBaseComponent::PlayCurrentAttackMontage()
+{
 }
 
 // Called when the game starts
@@ -150,6 +156,11 @@ void UCombatBaseComponent::ResetHitStop()
 void UCombatBaseComponent::SetCurrentAttack(FName AttackRowName)
 {
 	CurrentAttackRowName = AttackRowName;
+}
+
+void UCombatBaseComponent::RequestAttack(FName AttackRowName)
+{
+	
 }
 
 const FAttackDataRow* UCombatBaseComponent::GetCurrentAttackData() const

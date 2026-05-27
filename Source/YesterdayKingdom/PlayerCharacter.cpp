@@ -11,8 +11,13 @@
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
 #include "InputActionValue.h"
+#include "PlayerCombatComponent.h"
 
 
+APlayerCharacter::APlayerCharacter()
+{
+	CombatBaseComponent = CreateDefaultSubobject<UPlayerCombatComponent>(TEXT("CombatComponent"));
+}
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -29,16 +34,12 @@ void APlayerCharacter::BeginPlay()
 	MoveComp = GetCharacterMovement();
 	if (MoveComp)
 	{
-		//MoveComp->MaxWalkSpeed = GetStatComponent()->GetMovespeed();
+		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
 		MoveComp->JumpZVelocity = JumpZPower;
 		MoveComp->bOrientRotationToMovement = true;
 	}
 }
 
-APlayerCharacter::APlayerCharacter()
-{
-	// 무기 mesh 생성
-}
 
 void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
@@ -67,11 +68,8 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		
-	UE_LOG(LogTemp, Warning, TEXT("Moving"));
-		
 	AddMovementInput(ForwardDirection, MovementVector.Y);
 	AddMovementInput(RightDirection, MovementVector.X);
-	UE_LOG(LogTemp, Warning, TEXT("Move Value: %s"), *MovementVector.ToString());
 }
 
 void APlayerCharacter::Look(const FInputActionValue& Value)
@@ -85,25 +83,21 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 void APlayerCharacter::DoJump()
 {
 	Jump();
-	UE_LOG(LogTemp, Warning, TEXT("Jump"));
 }
 
 void APlayerCharacter::DoJumpStop()
 {
 	StopJumping();
-	UE_LOG(LogTemp, Warning, TEXT("JumpStop"));
 }
 
 void APlayerCharacter::DoDash(const FInputActionValue& Value)
 {
-	if (MoveComp) MoveComp->MaxWalkSpeed = DashSpeed;
-	UE_LOG(LogTemp, Warning, TEXT("Dash Start"));
+	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetRunSpeed();
 }
 
 void APlayerCharacter::DoDashStop(const FInputActionValue& Value)
 {
-	if (MoveComp) MoveComp->MaxWalkSpeed = 600.f; // 임시로 600 설정
-	UE_LOG(LogTemp, Warning, TEXT("Dash Stop"));
+	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed(); // 임시로 600 설정
 }
 
 void APlayerCharacter::DoChargedAttack()
@@ -119,26 +113,12 @@ void APlayerCharacter::DoChargedAttack()
 
 void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 {
-	bIsHeavyAttack = false;
-	IAttacker::Execute_CheckCombo(this);
-	
-	if (LightAttackMontage)
-	{
-		PlayAnimMontage(LightAttackMontage);
-	}
-	UE_LOG(LogTemp, Warning, TEXT("LightAttack Montage Played"));
+	if (CombatBaseComponent)  CombatBaseComponent->RequestAttack(TEXT("LightAttack"));
 }
 
 void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 {
-	bIsHeavyAttack = true;
-	IAttacker::Execute_CheckCombo(this);
-	
-	if (HeavyAttackMontage)
-	{
-		PlayAnimMontage(HeavyAttackMontage);
-	}
-		UE_LOG(LogTemp, Warning, TEXT("HeavyAttack Montage Played"));
+	if (CombatBaseComponent)  CombatBaseComponent->RequestAttack(TEXT("HeavyAttack"));
 }
 
 void APlayerCharacter::CheckCombo_Implementation()

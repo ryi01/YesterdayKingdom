@@ -66,7 +66,6 @@ ABaseCharacter::ABaseCharacter()
 	// Components
 	// ========================================================
 	StatComponent = CreateDefaultSubobject<UBaseStatComponent>(TEXT("StatComponent"));
-	CombatBaseComponent = CreateDefaultSubobject<UCombatBaseComponent>(TEXT("CombatBaseComponent"));
 	
 	// ========================================================
 	// 무기 루트

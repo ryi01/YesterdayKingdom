@@ -3,6 +3,8 @@
 
 #include "PlayerCombatComponent.h"
 
+#include "BaseCharacter.h"
+
 void UPlayerCombatComponent::BeginAttackTrace()
 {
 	Super::BeginAttackTrace();
@@ -33,4 +35,12 @@ void UPlayerCombatComponent::CheckCombo()
 		
 		AttackIndex = (AttackIndex + 1) % ComboMontages.Num();
 	}
+}
+
+void UPlayerCombatComponent::RequestAttack(FName AttackRowName)
+{
+	Super::RequestAttack(AttackRowName);
+	const FAttackDataRow* AttackData = GetCurrentAttackData();
+	if (!AttackData || !AttackData->Montage || !OwnerCharacter) return;
+	OwnerCharacter->PlayAnimMontage(AttackData->Montage.Get());
 }

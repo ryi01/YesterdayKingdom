@@ -51,11 +51,13 @@ public:
 	// Sets default values for this component's properties
 	UCombatBaseComponent();
 protected:
+	virtual void PlayCurrentAttackMontage();
 	virtual bool IsValidHitActor(AActor* HitActor) const;
 	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
 	const FAttackDataRow* GetCurrentAttackData() const;
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
 	void ResetHitStop();
+	
 public:	
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -72,4 +74,6 @@ public:
 	
 	void SetCurrentAttack(FName AttackRowName);
 	
+	UFUNCTION(BlueprintCallable, Category="Combat")
+	virtual void RequestAttack(FName AttackRowName);
 };

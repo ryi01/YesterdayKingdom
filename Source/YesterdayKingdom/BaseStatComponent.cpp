@@ -154,9 +154,14 @@ float UBaseStatComponent::GetDefense() const
 	return Defense;
 }
 
-float UBaseStatComponent::GetMovespeed() const
+float UBaseStatComponent::GetMoveSpeed() const
 {
 	return MoveSpeed;
+}
+
+float UBaseStatComponent::GetRunSpeed() const
+{
+	return RunSpeed;
 }
 
 float UBaseStatComponent::GetCurrentStun() const

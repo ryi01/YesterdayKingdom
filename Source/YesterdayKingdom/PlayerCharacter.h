@@ -46,14 +46,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> HeavyAttackAction;
 	
-	
-	
 	// --------------------------------------------------------------------------------------------- //
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float JumpZPower = 500.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float DashSpeed = 900.f;
 	
 	// --------------------------------------------------------------------------------------------- //
 	// 공격
@@ -97,8 +93,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* ChargedAttackMontage;
-	
-
 	
 public:
 	// --------------------------------------------------------------------------------------------- //
