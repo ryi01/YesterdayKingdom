@@ -9,6 +9,7 @@
 
 #include "StateTreeUtility.generated.h"
 
+class ABaseCharacter;
 class ACharacter;
 class AAIController;
 class AEnemyNomal;
@@ -21,7 +22,7 @@ struct FStateTreeCharacterGroundedConditionInstanceData
 
 	// 관련 캐릭터 참조
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ACharacter> Character;
+	TObjectPtr<ABaseCharacter> Character;
 
 	// 공중에 떠있는지를 체크하는 상태 옵션
 	UPROPERTY(EditAnywhere, Category = "Condition")
@@ -344,11 +345,11 @@ struct FStateTreeGetPlayerInfoInstanceData
 
 	// AI 캐릭터 참조
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ACharacter> Character;
+	TObjectPtr<ABaseCharacter> Character;
 
 	// 플레이어 캐릭터 참조
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<ACharacter> TargetPlayerCharacter;
+	TObjectPtr<ABaseCharacter> TargetPlayerCharacter;
 
 	// 플레이어 위치
 	UPROPERTY(VisibleAnywhere)
@@ -357,6 +358,18 @@ struct FStateTreeGetPlayerInfoInstanceData
 	// 플레이어와의 거리
 	UPROPERTY(VisibleAnywhere)
 	float DistanceToTarget = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere)
+	bool IsDead;
+	
+	UPROPERTY(VisibleAnywhere)
+	bool IsStunned = false;
+	
+	UPROPERTY(VisibleAnywhere)
+	float DetectRange = 0.f;
+
+	UPROPERTY(VisibleAnywhere)
+	float AttackRange = 0.f;
 };
 
 // 플레이어 정보 구하기 (글로벌 테스크)

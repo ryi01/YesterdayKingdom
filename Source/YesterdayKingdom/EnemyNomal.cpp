@@ -207,6 +207,6 @@ bool AEnemyNomal::IsDead() const
 	{
 		return true;
 	}
-
+    
 	return GetStatComponent()->IsDead();
 }

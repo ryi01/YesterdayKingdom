@@ -10,6 +10,8 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
+#include "BaseStatComponent.h"
+#include "EnemyDefinition.h"
 #include "EnemyNomal.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -297,14 +299,13 @@ FText FStateTreeSetCharacterSpeedTask::GetDescription(const FGuid& ID, FStateTre
 	return FText::FromString("<b>Set Character Speed</b>");
 }
 
-// 플레이어 정보 불러오기 테스크 진행 이벤트
 EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
 	// 플레이어 참조
 	InstanceData.TargetPlayerCharacter =
-		Cast<ACharacter>(UGameplayStatics::GetPlayerPawn(InstanceData.Character, 0));
+		Cast<ABaseCharacter>(UGameplayStatics::GetPlayerPawn(InstanceData.Character, 0));
 
 	// 타겟 플레이어가 존재한다면
 	if (InstanceData.TargetPlayerCharacter)
@@ -318,6 +319,25 @@ EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext
 		InstanceData.TargetPlayerLocation,
 		InstanceData.Character->GetActorLocation()
 	);
+	
+	// AI 캐릭터 죽었는지 확인
+	InstanceData.IsDead = InstanceData.Character->GetStatComponent()->IsDead();
+	// AI 캐릭터가 스턴에 걸렸는지 확인
+	InstanceData.IsStunned = InstanceData.Character->GetStatComponent()->IsStunned();
+	
+	if (AEnemyNomal* EnemyNomal = Cast<AEnemyNomal>(InstanceData.Character))
+	{
+		if (UEnemyDefinition* Definition = EnemyNomal->GetEnemyDefinition())
+		{
+			InstanceData.DetectRange = Definition->DetectRange;
+			InstanceData.AttackRange = Definition->AttackRange;
+		}
+	}
 
 	return EStateTreeRunStatus::Running;
+}
+
+FText FStateTreeGetPlayerInfoTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
+{
+	return FText::FromString("<b>Get Player Info</b>");
 }
