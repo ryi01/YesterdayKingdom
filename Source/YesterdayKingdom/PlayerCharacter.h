@@ -32,15 +32,21 @@ public:
 	//점프 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> JumpAction;
+	// 대쉬 매핑
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> DashAction;
 	
+	// Charge Attack 매핑
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> AttackAction;
-	
+	// Light Attack 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> LightAttackAction;
-	
+	// Heavy Attack 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> HeavyAttackAction;
+	
+	
 	
 	// --------------------------------------------------------------------------------------------- //
 	
@@ -56,7 +62,7 @@ public:
 	virtual void CheckCombo_Implementation() override;
 	virtual void Charged_Implementation();
 	
-	void DoChargedAttack(const FInputActionValue& Value);
+	void DoChargedAttack();
 	void DoLightAttack(const FInputActionValue& Value);
 	void DoHeavyAttack(const FInputActionValue& Value);
 	
@@ -82,6 +88,16 @@ protected:
 	UPROPERTY()
 	int32 AttackIndex = 0;
 	
+	// --- 애니메이션 몽타주 변수 ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* LightAttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* HeavyAttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* ChargedAttackMontage;
+	
 
 	
 public:
@@ -91,8 +107,8 @@ public:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void DoJump();
-	void Dash(const FInputActionValue& Value);
+	void DoDash(const FInputActionValue& Value);
 	void DoJumpStop();
-	void DashStop(const FInputActionValue& Value);
+	void DoDashStop(const FInputActionValue& Value);
 	
 };

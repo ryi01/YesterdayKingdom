@@ -50,6 +50,8 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::DoJump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoJumpStop);
+	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &APlayerCharacter::DoDash);
+	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoDashStop);
 	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoChargedAttack);
 	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoLightAttack);
 	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoHeavyAttack);
@@ -92,33 +94,51 @@ void APlayerCharacter::DoJumpStop()
 	UE_LOG(LogTemp, Warning, TEXT("JumpStop"));
 }
 
-void APlayerCharacter::Dash(const FInputActionValue& Value)
+void APlayerCharacter::DoDash(const FInputActionValue& Value)
 {
 	if (MoveComp) MoveComp->MaxWalkSpeed = DashSpeed;
+	UE_LOG(LogTemp, Warning, TEXT("Dash Start"));
 }
 
-void APlayerCharacter::DashStop(const FInputActionValue& Value)
+void APlayerCharacter::DoDashStop(const FInputActionValue& Value)
 {
-	if (MoveComp) MoveComp->MaxWalkSpeed = 600.f;
+	if (MoveComp) MoveComp->MaxWalkSpeed = 600.f; // 임시로 600 설정
+	UE_LOG(LogTemp, Warning, TEXT("Dash Stop"));
 }
 
-void APlayerCharacter::DoChargedAttack(const FInputActionValue& Value)
+void APlayerCharacter::DoChargedAttack()
 {
 	IAttacker::Execute_ChargeCombo(this);
+	
+	if (ChargedAttackMontage)
+	{
+		PlayAnimMontage(ChargedAttackMontage);
+	}
+		UE_LOG(LogTemp, Warning, TEXT("ChargeAttack Montage Played"));
 }
 
 void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 {
 	bIsHeavyAttack = false;
 	IAttacker::Execute_CheckCombo(this);
-	UE_LOG(LogTemp, Warning, TEXT("LightAttack"));
+	
+	if (LightAttackMontage)
+	{
+		PlayAnimMontage(LightAttackMontage);
+	}
+	UE_LOG(LogTemp, Warning, TEXT("LightAttack Montage Played"));
 }
 
 void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 {
 	bIsHeavyAttack = true;
 	IAttacker::Execute_CheckCombo(this);
-	UE_LOG(LogTemp, Warning, TEXT("HeavyAttack"));
+	
+	if (HeavyAttackMontage)
+	{
+		PlayAnimMontage(HeavyAttackMontage);
+	}
+		UE_LOG(LogTemp, Warning, TEXT("HeavyAttack Montage Played"));
 }
 
 void APlayerCharacter::CheckCombo_Implementation()
@@ -151,5 +171,4 @@ void APlayerCharacter::Charged_Implementation()
 	{
 		CombatBaseComponent->CheckCombo();
 	}
-	UE_LOG(LogTemp, Warning, TEXT("ChargeAttack"));
 }
