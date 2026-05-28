@@ -27,4 +27,8 @@ public:
 	void EndAttackTrace();
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void CheckCombo();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void ChargeCombo();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void ClearAttackAnimation();
 };

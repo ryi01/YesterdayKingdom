@@ -9,6 +9,7 @@
 #pragma region Delegate
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHPChanged, float, CurrentHP, float, MaxHP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSTChanged, float, CurrentST, float, MaxST);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMPChanged, float, CurrentMP, float, MaxMP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStunChanged, float, CurrentStun, float, MaxStun);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStunned);
@@ -35,11 +36,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float CurrentST = 100.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
+	float MaxMP = 100.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
+	float CurrentMP = 100.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float Attack = 10.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float Defense = 5.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float MoveSpeed = 450.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
+	float RunSpeed = 800.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float MaxStun = 50.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
@@ -66,6 +73,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Stat")
 	FOnSTChanged OnSTChanged;
 	UPROPERTY(BlueprintAssignable, Category = "Stat")
+	FOnMPChanged OnMPChanged;
+	UPROPERTY(BlueprintAssignable, Category = "Stat")
 	FOnStunChanged OnStunChanged;
 	UPROPERTY(BlueprintAssignable, Category = "Stat")
 	FOnDead OnDead;
@@ -85,6 +94,10 @@ public:
 	bool ConsumeST(float Amount);
 	UFUNCTION(BlueprintCallable)
 	void RecoverST(float Amount);
+	UFUNCTION(BlueprintCallable)
+	bool ConsumeMP(float Amount);
+	UFUNCTION(BlueprintCallable)
+	void RecoverMP(float Amount);
 	UFUNCTION(BlueprintCallable)
 	void AddStun(float Amount);
 	UFUNCTION(BlueprintCallable)
@@ -107,11 +120,17 @@ public:
 	UFUNCTION(BlueprintPure)
 	float GetMaxST() const;
 	UFUNCTION(BlueprintPure)
+	float GetCurrentMP() const;
+	UFUNCTION(BlueprintPure)
+	float GetMaxMP() const;
+	UFUNCTION(BlueprintPure)
 	float GetAttack() const;
 	UFUNCTION(BlueprintPure)
 	float GetDefense() const;
 	UFUNCTION(BlueprintPure)
-	float GetMovespeed() const;
+	float GetMoveSpeed() const;
+	UFUNCTION(BlueprintPure)
+	float GetRunSpeed() const;
 	UFUNCTION(BlueprintPure)
 	float GetCurrentStun() const;
 };

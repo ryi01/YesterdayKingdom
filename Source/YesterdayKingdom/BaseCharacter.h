@@ -19,7 +19,7 @@ class YESTERDAYKINGDOM_API ABaseCharacter : public ACharacter, public IDamagable
 
 public:
 	// Sets default values for this character's properties
-	ABaseCharacter();
+	ABaseCharacter(const FObjectInitializer& ObjectInitializer);
 
 protected:
 	// 스테이터스 컴포넌트
@@ -63,6 +63,7 @@ public:
 	virtual void DoAttackTrace_Implementation() override;
 	virtual void EndAttackTrace_Implementation() override;
 	virtual void CheckCombo_Implementation() override;
+	virtual void ClearAttackAnimation_Implementation() override;
 	
 	// ========================================================
 	// Getter 

@@ -1,0 +1,82 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "PlayerCombatComponent.h"
+
+#include "BaseCharacter.h"
+#include "Engine/OverlapResult.h"
+
+void UPlayerCombatComponent::FaceBestTarget()
+{
+	AActor* Target = FindBestTarget();
+	if (!OwnerCharacter || !Target) return;
+	
+	FVector ToTarget = Target->GetActorLocation() - OwnerCharacter->GetActorLocation();
+	ToTarget.Z = 0.f;
+	
+	if (ToTarget.IsNearlyZero()) return;
+	const FRotator TargetRot = ToTarget.Rotation();
+	OwnerCharacter->SetActorRotation(TargetRot);
+}
+
+AActor* UPlayerCombatComponent::FindBestTarget()
+{
+	if (!OwnerCharacter) return nullptr;
+
+	TArray<FOverlapResult> Overlaps;
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(OwnerCharacter.Get());
+	const FVector Origin = OwnerCharacter->GetActorLocation();
+	
+	const bool bHit = GetWorld()->OverlapMultiByChannel(Overlaps, Origin, FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(500.f), Params);
+	if (!bHit) return nullptr;
+	AActor* BestTarget = nullptr;
+	float BestScore = -9999.f;
+
+	const FVector Forward = OwnerCharacter->GetActorForwardVector();
+	
+	for (const FOverlapResult& Result : Overlaps)
+	{
+		AActor* Target = Result.GetActor();
+		if (!Target || Target == OwnerCharacter.Get()) continue;
+		if (!Target->GetClass()->ImplementsInterface(UDamagable::StaticClass())) continue;
+		
+		FVector ToTarget = Target->GetActorLocation() - Origin;
+		ToTarget.Z = 0.f;
+		
+		const float Distance = ToTarget.Size();
+		const FVector Direction = ToTarget.GetSafeNormal();
+		
+		// 플레이어의 정면 위치를 확인후 
+		const float Dot = FVector::DotProduct(Forward, Direction);
+		if (Dot < 0.5f) continue;
+		
+		// Dot * 2.f : 앞이면 2점 옆이면 1점 뒤면 0점을 부여
+		// Distance / 500.f : 거리 확인
+		const float Score = Dot * 2.f - Distance / 500.f;
+		// 종합 점수에 따라 target을 갱신 
+		if (Score > BestScore)
+		{
+			BestScore = Score;
+			BestTarget = Target;
+		}
+	}
+	return BestTarget;
+}
+
+void UPlayerCombatComponent::BeginAttackTrace()
+{
+	// 위치 보정
+	FaceBestTarget();
+	Super::BeginAttackTrace();
+}
+
+void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
+{
+	if (!PlayerAttackRows.Contains(AttackType)) return;
+	const FName AttackRowName = PlayerAttackRows[AttackType];
+	if (AttackRowName.IsNone()) return;
+	
+	RequestAttackByRow(AttackRowName);
+}
