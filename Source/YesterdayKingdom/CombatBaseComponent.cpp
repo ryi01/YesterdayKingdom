@@ -71,13 +71,12 @@ void UCombatBaseComponent::ResetAttackState()
 	
 	HitActors.Empty();
 }
-
 //=====================================================================================================
 // 공격 관련 함수
 //=====================================================================================================
 void UCombatBaseComponent::CheckCombo()
 {
-	if (!bComboInputBuffered) return;
+	if (!bAutoCombo && !bComboInputBuffered) return;
 	bComboInputBuffered = false;
 	
 	JumpToNextAttackSection();
@@ -270,4 +269,8 @@ const FAttackNodeData* UCombatBaseComponent::GetCurrentAttackNodeData() const
 	if (!AttackDataRow || !AttackDataRow->Nodes.IsValidIndex(CurrentAttackNodeIndex)) return nullptr;
 	return &AttackDataRow->Nodes[CurrentAttackNodeIndex];
 }
-
+// 적 전용 dt 셋팅 
+void UCombatBaseComponent::SetAttackDataTable(UDataTable* NewTable)
+{
+	AttackDataTable = NewTable;
+}
