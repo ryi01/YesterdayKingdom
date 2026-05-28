@@ -29,4 +29,6 @@ public:
 	void CheckCombo();
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void ChargeCombo();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void ClearAttackAnimation();
 };

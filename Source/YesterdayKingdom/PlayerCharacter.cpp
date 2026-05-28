@@ -13,16 +13,15 @@
 #include "InputActionValue.h"
 #include "PlayerCombatComponent.h"
 
-
-APlayerCharacter::APlayerCharacter()
+APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
+: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerCombatComponent>(TEXT("CombatComponent")))
 {
-	CombatBaseComponent = CreateDefaultSubobject<UPlayerCombatComponent>(TEXT("CombatComponent"));
 }
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
@@ -35,11 +34,9 @@ void APlayerCharacter::BeginPlay()
 	if (MoveComp)
 	{
 		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
-		MoveComp->JumpZVelocity = JumpZPower;
 		MoveComp->bOrientRotationToMovement = true;
 	}
 }
-
 
 void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
@@ -49,11 +46,17 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	// 움직임 화면시선처리 
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Look);
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacter::DoJump);
-	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoJumpStop);
+	
+	// 인터렉션
+	EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Started, this, &APlayerCharacter::Interaction);
+	
+	// 대쉬
 	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &APlayerCharacter::DoDash);
 	EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoDashStop);
-	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoChargedAttack);
+	
+	// 공격
+	EnhancedInputComponent->BindAction(ChargeAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoChargedAttack);
+	EnhancedInputComponent->BindAction(ChargeAttackAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoChargeRelease);
 	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoLightAttack);
 	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoHeavyAttack);
 }
@@ -77,77 +80,54 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 	
 	AddControllerYawInput(LookAxisVector.X);
-	AddControllerPitchInput(-LookAxisVector.Y);
+	AddControllerPitchInput(LookAxisVector.Y);
 }
 
-void APlayerCharacter::DoJump()
+void APlayerCharacter::Interaction()
 {
-	Jump();
 }
 
-void APlayerCharacter::DoJumpStop()
-{
-	StopJumping();
-}
-
-void APlayerCharacter::DoDash(const FInputActionValue& Value)
+void APlayerCharacter::DoDash()
 {
 	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetRunSpeed();
 }
 
-void APlayerCharacter::DoDashStop(const FInputActionValue& Value)
+void APlayerCharacter::DoDashStop()
 {
 	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed(); // 임시로 600 설정
 }
 
-void APlayerCharacter::DoChargedAttack()
-{
-	IAttacker::Execute_ChargeCombo(this);
-	
-	if (ChargedAttackMontage)
-	{
-		PlayAnimMontage(ChargedAttackMontage);
-	}
-		UE_LOG(LogTemp, Warning, TEXT("ChargeAttack Montage Played"));
-}
-
 void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 {
-	if (CombatBaseComponent)  CombatBaseComponent->RequestAttack(TEXT("LightAttack"));
+	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
+	{
+		PlayerCombat->RequestAttack(EAttackType::Light);
+	}
 }
 
 void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 {
-	if (CombatBaseComponent)  CombatBaseComponent->RequestAttack(TEXT("HeavyAttack"));
+	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
+	{
+		PlayerCombat->RequestAttack(EAttackType::Heavy);
+	}
+}
+void APlayerCharacter::DoChargedAttack()
+{
+	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
+	{
+		PlayerCombat->RequestAttack(EAttackType::Charge);
+	}
+}
+
+void APlayerCharacter::DoChargeRelease()
+{
+	if (CombatBaseComponent) CombatBaseComponent->ChargedAttack();
 }
 
 void APlayerCharacter::CheckCombo_Implementation()
 {
-	Super::CheckCombo_Implementation();
-	
-	FString AttackType = bIsHeavyAttack ? TEXT("Heavy") : TEXT("Light");
-	UE_LOG(LogTemp, Warning, TEXT("Player %s Attack Checked! Index: %d"), *AttackType, AttackIndex);
-	
-	bIsAttacking = true;
-	
-	if (CombatBaseComponent) 
-	{
-		CombatBaseComponent->CheckCombo();
-	}
-	
-	if (ComboMontages.IsValidIndex(AttackIndex))
-	{
-		UAnimMontage* SelectedMontage = ComboMontages[AttackIndex];
-		
-		PlayAnimMontage(SelectedMontage);
-		
-		AttackIndex = (AttackIndex + 1) % ComboMontages.Num();
-	}
-}
-
-void APlayerCharacter::Charged_Implementation()
-{
-	if (CombatBaseComponent) 
+	if (CombatBaseComponent)
 	{
 		CombatBaseComponent->CheckCombo();
 	}

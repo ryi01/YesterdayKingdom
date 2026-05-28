@@ -18,9 +18,11 @@ class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
 	GENERATED_BODY()
 	
 public:
-	APlayerCharacter();
+	APlayerCharacter(const FObjectInitializer& ObjectInitializer);
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
+	//===============================================================================================
+	// 이동 관련
+	//===============================================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputMappingContext> InputMappingContext;
 	//이동 매핑
@@ -29,16 +31,15 @@ public:
 	//시선 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> LookAction;
-	//점프 매핑
+	// 인터렉션 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
-	TObjectPtr<class UInputAction> JumpAction;
+	TObjectPtr<class UInputAction> InteractionAction;
 	// 대쉬 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> DashAction;
-	
 	// Charge Attack 매핑
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Input")
-	TObjectPtr<class UInputAction> AttackAction;
+	TObjectPtr<class UInputAction> ChargeAttackAction;
 	// Light Attack 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> LightAttackAction;
@@ -46,30 +47,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> HeavyAttackAction;
 	
-	// --------------------------------------------------------------------------------------------- //
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float JumpZPower = 500.f;
-	
-	// --------------------------------------------------------------------------------------------- //
-	// 공격
-	// --------------------------------------------------------------------------------------------- //
+	//===============================================================================================
+	// 공격 관련 함수
+	//===============================================================================================
 	
 	virtual void CheckCombo_Implementation() override;
-	virtual void Charged_Implementation();
 	
 	void DoChargedAttack();
+	void DoChargeRelease();
 	void DoLightAttack(const FInputActionValue& Value);
 	void DoHeavyAttack(const FInputActionValue& Value);
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	bool bIsHeavyAttack = false;
-	
-	// --------------------------------------------------------------------------------------------- //
-	// --------------------------------------------------------------------------------------------- //
-	
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	TArray<UAnimMontage*> ComboMontages;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -78,31 +65,14 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UCharacterMovementComponent> MoveComp;
 	
-	UPROPERTY(VisibleAnywhere, Category = "Pawn")
-	bool bIsAttacking = false;
-	
-	UPROPERTY()
-	int32 AttackIndex = 0;
-	
-	// --- 애니메이션 몽타주 변수 ---
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	UAnimMontage* LightAttackMontage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	UAnimMontage* HeavyAttackMontage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	UAnimMontage* ChargedAttackMontage;
-	
 public:
-	// --------------------------------------------------------------------------------------------- //
-	// 기본 이동
-	// --------------------------------------------------------------------------------------------- //
+	//===============================================================================================
+	// 이동관련
+	//===============================================================================================
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
-	void DoJump();
-	void DoDash(const FInputActionValue& Value);
-	void DoJumpStop();
-	void DoDashStop(const FInputActionValue& Value);
+	void Interaction();
+	void DoDash();
+	void DoDashStop();
 	
 };

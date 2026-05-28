@@ -19,6 +19,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MaxST = 100.f;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float MaxMP = 100.f;
+	
 	// 공격력
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Attack = 10.f;
@@ -29,7 +32,10 @@ public:
 
 	// 이동 속도
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float MoveSpeed = 450.f;
+	float MoveSpeed = 400.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float RunSpeed = 600.f;
 	
 	// 경직 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

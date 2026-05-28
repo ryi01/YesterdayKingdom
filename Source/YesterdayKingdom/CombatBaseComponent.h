@@ -36,14 +36,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Damage")
 	float DefaultDamage = 10.f;
 	
+	UPROPERTY()
+	bool bComboInputBuffered = false;
+	
 	//===============================================================================
-	// 공격 애니메이션 DT
+	// 공격 DT
 	//===============================================================================
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Data")
 	TObjectPtr<UDataTable> AttackDataTable;
 
 	UPROPERTY(VisibleInstanceOnly, Category="Combat|Runtime")
 	FName CurrentAttackRowName;
+	
+	UPROPERTY()
+	int32 CurrentAttackNodeIndex = INDEX_NONE;
 
 	FTimerHandle HitStopTimerHandle;
 	
@@ -51,13 +57,17 @@ public:
 	// Sets default values for this component's properties
 	UCombatBaseComponent();
 protected:
-	virtual void PlayCurrentAttackMontage();
 	virtual bool IsValidHitActor(AActor* HitActor) const;
 	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
 	const FAttackDataRow* GetCurrentAttackData() const;
+	const FAttackNodeData* GetCurrentAttackNodeData() const;
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
 	void ResetHitStop();
 	
+	bool JumpToNextAttackSection();
+	
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 public:	
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -71,9 +81,11 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void CheckCombo();
-	
-	void SetCurrentAttack(FName AttackRowName);
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	virtual void ChargedAttack();
 	
 	UFUNCTION(BlueprintCallable, Category="Combat")
-	virtual void RequestAttack(FName AttackRowName);
+	virtual void RequestAttackByRow(FName AttackRowName);
+	
+	void ResetAttackState();
 };

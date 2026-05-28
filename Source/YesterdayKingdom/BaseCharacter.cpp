@@ -9,7 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
-ABaseCharacter::ABaseCharacter()
+ABaseCharacter::ABaseCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -66,6 +66,7 @@ ABaseCharacter::ABaseCharacter()
 	// Components
 	// ========================================================
 	StatComponent = CreateDefaultSubobject<UBaseStatComponent>(TEXT("StatComponent"));
+	CombatBaseComponent = CreateDefaultSubobject<UCombatBaseComponent>(TEXT("CombatComponent"));
 	
 	// ========================================================
 	// 무기 루트
@@ -154,6 +155,11 @@ void ABaseCharacter::CheckCombo_Implementation()
 {
 	IAttacker::CheckCombo_Implementation();
 	if (CombatBaseComponent) CombatBaseComponent->CheckCombo();
+}
+
+void ABaseCharacter::ClearAttackAnimation_Implementation()
+{
+	if (CombatBaseComponent) CombatBaseComponent->ResetAttackState();
 }
 
 UBaseStatComponent* ABaseCharacter::GetStatComponent() const

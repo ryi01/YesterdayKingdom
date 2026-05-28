@@ -24,7 +24,7 @@ void UBaseStatComponent::BeginPlay()
 
 void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName)
 {
-	if (InStatTable || InRowName.IsNone()) return;
+	if (!InStatTable || InRowName.IsNone()) return;
 	const FCharacterStatRow* StatRow = InStatTable->FindRow<FCharacterStatRow>(InRowName, TEXT("InitializeStat"));
 	if (!StatRow) return;
 	
@@ -40,6 +40,7 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 	Attack = StatRow->Attack;
 	Defense = StatRow->Defense;
 	MoveSpeed = StatRow->MoveSpeed;
+	RunSpeed = StatRow->RunSpeed;
 	
 	MaxStun = StatRow->MaxStun;
 	CurrentStun = 0.f;
@@ -87,6 +88,32 @@ void UBaseStatComponent::RecoverST(float Amount)
 	if (IsDead()) return;
 	CurrentST = FMath::Clamp(CurrentST + Amount, 0.f, MaxST);
 	OnStunChanged.Broadcast(CurrentST, MaxST);
+}
+
+bool UBaseStatComponent::ConsumeMP(float Amount)
+{
+	if (IsDead()) return false;
+	if (CurrentMP < Amount) return false;
+	CurrentMP = FMath::Clamp(CurrentMP - Amount, 0, MaxMP);
+	OnMPChanged.Broadcast(CurrentMP, MaxMP);
+	return true;
+}
+
+void UBaseStatComponent::RecoverMP(float Amount)
+{
+	if (IsDead()) return;
+	CurrentMP = FMath::Clamp(CurrentMP + Amount, 0.f, MaxMP);
+	OnMPChanged.Broadcast(CurrentMP, MaxMP);
+}
+
+float UBaseStatComponent::GetCurrentMP() const
+{
+	return CurrentMP;
+}
+
+float UBaseStatComponent::GetMaxMP() const
+{
+	return MaxMP;
 }
 
 void UBaseStatComponent::AddStun(float Amount)

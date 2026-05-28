@@ -10,6 +10,53 @@
 class UAnimMontage;
 class UStateTree;
 class USkeletalMesh;
+
+USTRUCT(BlueprintType)
+struct FEnemyAttackSet
+{
+	GENERATED_BODY()
+
+	// 일반 공격 / 기본 콤보
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	FName MainAttackRowName;
+
+	// 엘리트용 보조 공격 / 강공격 / 단타 공격
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	FName SubAttackRowName;
+
+	// SubAttack을 사용할 확률
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float SubAttackChance = 0.f;
+};
+
+
+USTRUCT(BlueprintType)
+struct FBossAttackPattern
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	FName AttackRowName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	float Weight = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	float Cooldown = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	float MinRange = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	float MaxRange = 500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	int32 MinPhase = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	int32 MaxPhase = 1;
+};
+
 UCLASS()
 class YESTERDAYKINGDOM_API UEnemyDefinition : public UPrimaryDataAsset
 {
@@ -42,9 +89,8 @@ public:
 	// 보상
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
 	int32 GoldReward = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
-	int32 ExpReward = 0;
+	// 아이템 보상 추가
+	
 	
 	// AI
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -66,12 +112,18 @@ public:
 	float PatrolRadius = 800.f;
 	
 	// 전투
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TObjectPtr<UAnimMontage> AttackMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
+	TObjectPtr<UDataTable> AttackDataTable;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat|Elite")
+	FEnemyAttackSet AttackSet;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat|Boss")
+	TArray<FBossAttackPattern> BossAttackPatterns;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
 	TObjectPtr<UAnimMontage> HitMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;
 };

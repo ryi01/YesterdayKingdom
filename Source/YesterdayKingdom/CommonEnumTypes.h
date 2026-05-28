@@ -11,7 +11,9 @@ class UParticleSystem;
 class USoundBase;
 class UAnimMontage;
 
-// Hit 판정 : 피격 반응 타입 
+//========================================================================================================
+// Hit 판정
+//========================================================================================================
 UENUM(BlueprintType)
 enum class EHitReactionType : uint8
 {
@@ -27,7 +29,9 @@ enum class EHitReactionType : uint8
 	// 강경직
 	Stun		UMETA(DisplayName = "Stun")
 };
-// 전반적인 게임 state
+//========================================================================================================
+// 게임 흐름
+//========================================================================================================
 UENUM(BlueprintType)
 enum class EGameFlowState : uint8
 {
@@ -44,7 +48,9 @@ enum class EGameFlowState : uint8
 	GameOver    UMETA(DisplayName = "Game Over")
 };
 
-// hit시 플레이어에게 주는 카메라 효과
+//========================================================================================================
+// 카메라 효과 관련
+//========================================================================================================
 USTRUCT(BlueprintType)
 struct FHitFeedbackData
 {
@@ -71,20 +77,52 @@ struct FHitFeedbackData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Hit Feedback|Sound")
 	TObjectPtr<USoundBase> HitSound;
 };
+//========================================================================================================
+// 공격 관련
+//========================================================================================================
+UENUM(BlueprintType)
+enum class EAttackType : uint8
+{
+	None,
+	Light,
+	Heavy,
+	Charge,
+	Special,
+	Dash,
+	AOE
+};
+
+USTRUCT(BlueprintType)
+struct FAttackNodeData
+{
+	GENERATED_BODY()
+		
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	int32 NextIndex= INDEX_NONE;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	FName SectionName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	float Damage = 10.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	FHitFeedbackData HitFeedback;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	EHitReactionType HitReactionType = EHitReactionType::Stagger;
+};
 USTRUCT(BlueprintType)
 struct FAttackDataRow : public FTableRowBase
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
+	EAttackType AttackType = EAttackType::None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
 	TObjectPtr<UAnimMontage> Montage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
-	float Damage = 10.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
-	EHitReactionType HitReactionType = EHitReactionType::Stagger;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
-	FHitFeedbackData HitFeedback;
+	
+	UPROPERTY(EditAnywhere)
+	TArray<FAttackNodeData> Nodes;
 };

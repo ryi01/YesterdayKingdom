@@ -15,18 +15,17 @@ class YESTERDAYKINGDOM_API UPlayerCombatComponent : public UCombatBaseComponent
 	GENERATED_BODY()
 	
 protected:
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	TArray<UAnimMontage*> ComboMontages;
-	UPROPERTY()
-	int32 AttackIndex = 0;
+	//===============================================================================================
+	// 공격 관련 DT
+	//===============================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	TMap<EAttackType, FName> PlayerAttackRows;
 	
+	void FaceBestTarget();
+	UFUNCTION()
+	AActor* FindBestTarget();
 public:
 	virtual void BeginAttackTrace();
-	virtual void DoAttackTrace();
-	virtual void EndAttackTrace();
-	virtual void CheckCombo();
 	
-	virtual void RequestAttack(FName AttackRowName) override;
-
-	
+	void RequestAttack(EAttackType AttackType);
 };
