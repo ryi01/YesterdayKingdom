@@ -5,6 +5,7 @@
 #include "StateTreeExecutionContext.h" // Task/Condition 로직 수행을 위한 컨텍스트 객체 모듈 포함
 #include "StateTreeExecutionTypes.h" // StateTree 실행에 필요한 각종 열거형, 구조체, 상태값 모듈 포함
 #include "StateTreeAsyncExecutionContext.h" // 비동기 작업 중 데이터 유효성을 안전하게 검사하는 모듈 포함
+#include "NavigationSystem.h"
 
 #include "Engine/World.h"
 #include "GameFramework/Character.h"

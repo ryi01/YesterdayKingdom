@@ -23,14 +23,24 @@ void AEnemyNomalAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	
+	UE_LOG(LogTemp, Warning, TEXT("AI Possessed: %s"), *GetNameSafe(InPawn));
+	
 	AEnemyNomal* EnemyNomal = Cast<AEnemyNomal>(InPawn);
 	if (!EnemyNomal) return;
 	
 	UEnemyDefinition* EnemyDefinition = EnemyNomal->GetEnemyDefinition();
 	if (!EnemyDefinition || !EnemyDefinition->StateTree) return;
 	
+	if (!EnemyDefinition || !EnemyDefinition->StateTree)
+	{
+		UE_LOG(LogTemp, Error, TEXT("StateTree Missing"));
+		return;
+	}
+	
 	StateTreeAI->SetStateTree(EnemyDefinition->StateTree);
 	StateTreeAI->StartLogic();
+	
+	UE_LOG(LogTemp, Warning, TEXT("StateTree Started"));
 }
 
 void AEnemyNomalAIController::OnUnPossess()

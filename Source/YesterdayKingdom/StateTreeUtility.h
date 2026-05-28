@@ -82,7 +82,7 @@ struct FStateTreeIsInDangerConditionInstanceData
 	UPROPERTY(EditAnywhere, Category = "Parameters", meta = (Units = "s"))
 	float MaxReactionTime = 0.75f;
 
-	UPROPERTY(EditAnywhere, Category = "Parameters", meta = (Units = "s"))
+	UPROPERTY(EditAnywhere, Category = "Parameters", meta = (Units = "degrees"))
 	float DangerSightConAngle = 120.0f; // 180기준 120도 (시선벡터 기준 좌우합 240도)
 };
 
@@ -354,7 +354,7 @@ struct FStateTreeGetPlayerInfoInstanceData
 	// 플레이어 위치
 	UPROPERTY(VisibleAnywhere)
 	FVector TargetPlayerLocation = FVector::ZeroVector;
-
+	
 	// 플레이어와의 거리
 	UPROPERTY(VisibleAnywhere)
 	float DistanceToTarget = 0.0f;
@@ -370,6 +370,7 @@ struct FStateTreeGetPlayerInfoInstanceData
 
 	UPROPERTY(VisibleAnywhere)
 	float AttackRange = 0.f;
+	
 };
 
 // 플레이어 정보 구하기 (글로벌 테스크)

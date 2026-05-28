@@ -17,6 +17,8 @@ AEnemyNomal::AEnemyNomal()
 
 	AIControllerClass = AEnemyNomalAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	
+//CombatBaseComponent = CreateDefaultSubobject<UCombatBaseComponent>(TEXT("CombatBaseComponent"));
 }
 
 void AEnemyNomal::BeginPlay()
