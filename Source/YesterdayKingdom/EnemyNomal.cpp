@@ -5,11 +5,12 @@
 #include "EnemyDefinition.h"
 #include "EnemyNomalAIController.h"
 #include "BaseStatComponent.h"
+#include "CombatBaseComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-AEnemyNomal::AEnemyNomal()
+AEnemyNomal::AEnemyNomal(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
 
@@ -53,53 +54,15 @@ void AEnemyNomal::InitializeFromDefinition()
 	{
 		Movement->MaxWalkSpeed = EnemyDefinition->CombatMoveSpeed;
 	}
-
+	if (CombatBaseComponent) CombatBaseComponent->SetAttackDataTable(EnemyDefinition->AttackDataTable);
 	InitializeWeaponRoot();
 }
 
 void AEnemyNomal::DoAIComboAttack()
 {
-	if (bIsAttacking)
-	{
-		return;
-	}
-
-	if (!EnemyDefinition || !EnemyDefinition->AttackMontage)
-	{
-		OnAttackCompleted.ExecuteIfBound();
-		return;
-	}
-
-	bIsAttacking = true;
-
-	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
-	if (!AnimInstance)
-	{
-		bIsAttacking = false;
-		OnAttackCompleted.ExecuteIfBound();
-		return;
-	}
-
-	const float MontageLength = AnimInstance->Montage_Play(
-		EnemyDefinition->AttackMontage,
-		1.0f,
-		EMontagePlayReturnType::MontageLength,
-		0.0f,
-		true
-	);
-
-	if (MontageLength > 0.0f)
-	{
-		AnimInstance->Montage_SetEndDelegate(
-			OnAttackMontageEnded,
-			EnemyDefinition->AttackMontage
-		);
-	}
-	else
-	{
-		bIsAttacking = false;
-		OnAttackCompleted.ExecuteIfBound();
-	}
+	if (!EnemyDefinition) return;
+	
+	if (CombatBaseComponent) CombatBaseComponent->RequestAttackByRow(EnemyDefinition->AttackSet.MainAttackRowName);
 }
 
 void AEnemyNomal::DoAIChargedAttack()

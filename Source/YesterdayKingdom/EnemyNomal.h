@@ -19,7 +19,7 @@ class YESTERDAYKINGDOM_API AEnemyNomal : public ABaseCharacter
 	GENERATED_BODY()
 
 public:
-	AEnemyNomal();
+	AEnemyNomal(const FObjectInitializer& ObjectInitializer);
 	
 	UEnemyDefinition* GetEnemyDefinition() const { return EnemyDefinition; }
 
