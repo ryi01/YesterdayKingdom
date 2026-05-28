@@ -38,6 +38,9 @@ protected:
 	
 	UPROPERTY()
 	bool bComboInputBuffered = false;
+	// enemy 전용
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Combo")
+	bool bAutoCombo = false;
 	
 	//===============================================================================
 	// 공격 DT
@@ -88,4 +91,5 @@ public:
 	virtual void RequestAttackByRow(FName AttackRowName);
 	
 	void ResetAttackState();
+	void SetAttackDataTable(UDataTable* NewTable);
 };

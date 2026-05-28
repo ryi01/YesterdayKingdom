@@ -34,6 +34,9 @@ public:
 	// 인터렉션 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> InteractionAction;
+	// 인벤토리
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> InventoryAction;
 	// 대쉬 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> DashAction;
@@ -71,8 +74,11 @@ public:
 	//===============================================================================================
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
-	void Interaction();
+	
 	void DoDash();
 	void DoDashStop();
+	
+	void Interaction();
+	void ToggleInventory();
 	
 };

@@ -115,7 +115,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
 	TObjectPtr<UDataTable> AttackDataTable;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat|Elite")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
 	FEnemyAttackSet AttackSet;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat|Boss")
