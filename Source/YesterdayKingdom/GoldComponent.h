@@ -15,7 +15,7 @@ class YESTERDAYKINGDOM_API UGoldComponent : public UActorComponent
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gold")
 	int32 StartGold = 0.f;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gold")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gold")
 	int32 CurrentGold = 0.f;
 public:	
 	// Sets default values for this component's properties

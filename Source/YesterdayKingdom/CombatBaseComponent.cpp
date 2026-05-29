@@ -20,7 +20,6 @@ void UCombatBaseComponent::BeginPlay()
 	Super::BeginPlay();
 	OwnerCharacter = Cast<ABaseCharacter>(GetOwner());
 }
-
 //=====================================================================================================
 // 입력값이 들어오면 실행되는 함수 
 //=====================================================================================================
@@ -92,7 +91,7 @@ bool UCombatBaseComponent::JumpToNextAttackSection()
 {
 	if (!OwnerCharacter) return false;
 	// DT에서 필요한 열 추출
-	const FAttackDataRow* AttackDataRow = GetCurrentAttackData();
+	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentAttackRowName);
 	if (!AttackDataRow || !AttackDataRow->Montage) return false;
 	// 사용되는 Row에서 NodeData 추출
 	const FAttackNodeData* CurrentNode = GetCurrentAttackNodeData();
@@ -245,7 +244,6 @@ void UCombatBaseComponent::ApplyHitFeedback(const FHitFeedbackData& Feedback, AA
 		World->GetTimerManager().SetTimer(HitStopTimerHandle, this, &UCombatBaseComponent::ResetHitStop, Feedback.HitStopDuration, false);
 	}
 }
-
 void UCombatBaseComponent::ResetHitStop()
 {
 	if (UWorld* World = GetWorld())
@@ -256,21 +254,21 @@ void UCombatBaseComponent::ResetHitStop()
 //=====================================================================================================
 // 데이터 테이블 row 빼는 함수
 //=====================================================================================================
-const FAttackDataRow* UCombatBaseComponent::GetCurrentAttackData() const
-{
-	if (!AttackDataTable || CurrentAttackRowName.IsNone()) return nullptr;
-
-	return AttackDataTable->FindRow<FAttackDataRow>(CurrentAttackRowName, TEXT("GetCurrentAttackData"));
-}
-
 const FAttackNodeData* UCombatBaseComponent::GetCurrentAttackNodeData() const
 {
-	const FAttackDataRow* AttackDataRow = GetCurrentAttackData();
+	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentAttackRowName);
 	if (!AttackDataRow || !AttackDataRow->Nodes.IsValidIndex(CurrentAttackNodeIndex)) return nullptr;
 	return &AttackDataRow->Nodes[CurrentAttackNodeIndex];
 }
 // 적 전용 dt 셋팅 
+const FAttackDataRow* UCombatBaseComponent::GetAttackDataByRow(FName AttackRowName) const
+{
+	if (!AttackDataTable || AttackRowName.IsNone()) return nullptr;
+	return  AttackDataTable->FindRow<FAttackDataRow>(AttackRowName, TEXT("GetAttackData"));
+}
+
 void UCombatBaseComponent::SetAttackDataTable(UDataTable* NewTable)
 {
 	AttackDataTable = NewTable;
 }
+

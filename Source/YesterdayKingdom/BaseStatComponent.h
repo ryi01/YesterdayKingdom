@@ -56,6 +56,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	bool bIsStun = false;
 	
+	UPROPERTY()
+	float LastSTConsumeTime = -999.f;
+	UPROPERTY()
+	float LastMPConsumeTime = -999.f;
+	
 public:	
 	// Sets default values for this component's properties
 	UBaseStatComponent();
@@ -133,4 +138,8 @@ public:
 	float GetRunSpeed() const;
 	UFUNCTION(BlueprintPure)
 	float GetCurrentStun() const;
+	UFUNCTION(BlueprintPure)
+	float GetLastSTConsumeTime() const;
+	UFUNCTION(BlueprintPure)
+	float GetLastMPConsumeTime() const;
 };

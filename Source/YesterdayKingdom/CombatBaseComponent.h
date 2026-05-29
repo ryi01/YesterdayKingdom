@@ -62,8 +62,8 @@ public:
 protected:
 	virtual bool IsValidHitActor(AActor* HitActor) const;
 	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
-	const FAttackDataRow* GetCurrentAttackData() const;
 	const FAttackNodeData* GetCurrentAttackNodeData() const;
+	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
 	void ResetHitStop();
 	
@@ -92,4 +92,5 @@ public:
 	
 	void ResetAttackState();
 	void SetAttackDataTable(UDataTable* NewTable);
+
 };
