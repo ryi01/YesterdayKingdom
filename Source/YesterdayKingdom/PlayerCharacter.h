@@ -97,4 +97,7 @@ public:
 	void Interaction();
 	void ToggleInventory();
 	
+	UGoldComponent* GetGoldComponent() const;
+	UInventoryComponent* GetInventoryComponent() const;
+	
 };

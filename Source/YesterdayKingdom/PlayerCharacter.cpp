@@ -117,6 +117,16 @@ void APlayerCharacter::ToggleInventory()
 	UE_LOG(LogTemp, Log, TEXT("Inventory"));	
 }
 
+UGoldComponent* APlayerCharacter::GetGoldComponent() const
+{
+	return GoldComponent;
+}
+
+UInventoryComponent* APlayerCharacter::GetInventoryComponent() const
+{
+	return  InventoryComponent;
+}
+
 void APlayerCharacter::DoDash()
 {
 	if (GetStatComponent()->GetCurrentST() <= 0.f) return;

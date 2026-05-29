@@ -78,4 +78,13 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Data")
 	TObjectPtr<UEnemyDefinition> EnemyDefinition;
+protected:
+	UPROPERTY()
+	TObjectPtr<AActor> LastDamageCauser;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Reward")
+	bool bRewardGiven = false;
+
+protected:
+	void GiveRewardToKiller();
 };

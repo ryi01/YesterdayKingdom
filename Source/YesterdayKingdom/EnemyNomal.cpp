@@ -6,9 +6,13 @@
 #include "EnemyNomalAIController.h"
 #include "BaseStatComponent.h"
 #include "CombatBaseComponent.h"
+#include "GoldComponent.h"
+#include "InventoryComponent.h"
+#include "PlayerCharacter.h"
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+
 
 AEnemyNomal::AEnemyNomal(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -96,6 +100,11 @@ void AEnemyNomal::ApplyDamage_Implementation(
 	const FVector& DamageImpulse
 )
 {
+	if (DamageCauser)
+	{
+		LastDamageCauser = DamageCauser;
+	}
+
 	Super::ApplyDamage_Implementation(Damage, DamageCauser, DamageLocation, DamageImpulse);
 }
 
@@ -154,6 +163,62 @@ void AEnemyNomal::DoAttackTrace_Implementation()
 void AEnemyNomal::EndAttackTrace_Implementation()
 {
 	Super::EndAttackTrace_Implementation();
+}
+
+void AEnemyNomal::GiveRewardToKiller()
+{
+	if (!EnemyDefinition)
+	{
+		return;
+	}
+
+	AActor* Killer = LastDamageCauser.Get();
+	if (!Killer)
+	{
+		return;
+	}
+
+	APlayerCharacter* Player = Cast<APlayerCharacter>(Killer);
+
+	if (!Player && Killer->GetOwner())
+	{
+		Player = Cast<APlayerCharacter>(Killer->GetOwner());
+	}
+
+	if (!Player)
+	{
+		return;
+	}
+
+	if (UGoldComponent* GoldComp = Player->GetGoldComponent())
+	{
+		if (EnemyDefinition->GoldReward > 0)
+		{
+			GoldComp->AddGold(EnemyDefinition->GoldReward);
+		}
+	}
+
+	if (UInventoryComponent* InventoryComp = Player->GetInventoryComponent())
+	{
+		for (const FEnemyItemReward& Reward : EnemyDefinition->ItemRewards)
+		{
+			if (Reward.ItemRowName.IsNone())
+			{
+				continue;
+			}
+
+			if (FMath::FRand() > Reward.DropChance)
+			{
+				continue;
+			}
+
+			const int32 MinCount = FMath::Max(1, Reward.MinCount);
+			const int32 MaxCount = FMath::Max(MinCount, Reward.MaxCount);
+			const int32 DropCount = FMath::RandRange(MinCount, MaxCount);
+
+			InventoryComp->AddItem(Reward.ItemRowName, DropCount);
+		}
+	}
 }
 
 float AEnemyNomal::GetCurrentHP() const
