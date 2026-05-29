@@ -124,5 +124,11 @@ struct FAttackDataRow : public FTableRowBase
 	TObjectPtr<UAnimMontage> Montage;
 	
 	UPROPERTY(EditAnywhere)
+	float StaminaCost = 0.f;
+
+	UPROPERTY(EditAnywhere)
+	float MPCost = 0.f;
+	
+	UPROPERTY(EditAnywhere)
 	TArray<FAttackNodeData> Nodes;
 };

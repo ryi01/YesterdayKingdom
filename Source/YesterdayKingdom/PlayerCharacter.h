@@ -21,6 +21,18 @@ public:
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer);
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	//===============================================================================================
+	// 무기 관련
+	//===============================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	TObjectPtr<class USkeletalMeshComponent> WeaponMesh;
+	//===============================================================================================
+	// 컴포넌트
+	//===============================================================================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UInventoryComponent> InventoryComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UGoldComponent> GoldComponent;
+	//===============================================================================================
 	// 이동 관련
 	//===============================================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
@@ -49,7 +61,11 @@ public:
 	// Heavy Attack 매핑
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> HeavyAttackAction;
-	
+	//===============================================================================================
+	// 자원 소모
+	//===============================================================================================
+	UPROPERTY()
+	bool bIsDashing = false;
 	//===============================================================================================
 	// 공격 관련 함수
 	//===============================================================================================
@@ -62,13 +78,13 @@ public:
 	void DoHeavyAttack(const FInputActionValue& Value);
 	
 protected:
-	virtual void BeginPlay() override;
-	
 	// 캐릭터 이동 컴포넌트 참조
 	UPROPERTY()
 	TObjectPtr<UCharacterMovementComponent> MoveComp;
 	
 public:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	//===============================================================================================
 	// 이동관련
 	//===============================================================================================

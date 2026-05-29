@@ -4,8 +4,12 @@
 #include "PlayerCombatComponent.h"
 
 #include "BaseCharacter.h"
+#include "BaseStatComponent.h"
 #include "Engine/OverlapResult.h"
 
+//===============================================================================================
+// 플레이어 시선 보정
+//===============================================================================================
 void UPlayerCombatComponent::FaceBestTarget()
 {
 	AActor* Target = FindBestTarget();
@@ -18,8 +22,10 @@ void UPlayerCombatComponent::FaceBestTarget()
 	const FRotator TargetRot = ToTarget.Rotation();
 	OwnerCharacter->SetActorRotation(TargetRot);
 }
-
-AActor* UPlayerCombatComponent::FindBestTarget()
+//===============================================================================================
+// 적합한 target 찾기
+//===============================================================================================
+AActor* UPlayerCombatComponent::FindBestTarget() const
 {
 	if (!OwnerCharacter) return nullptr;
 
@@ -64,19 +70,28 @@ AActor* UPlayerCombatComponent::FindBestTarget()
 	}
 	return BestTarget;
 }
-
-void UPlayerCombatComponent::BeginAttackTrace()
+//===============================================================================================
+// 위치 보정을 위해 override
+//===============================================================================================
+void UPlayerCombatComponent::BeginAttackTrace() 
 {
 	// 위치 보정
 	FaceBestTarget();
 	Super::BeginAttackTrace();
 }
-
+//===============================================================================================
+// 플레이어 입력과 연결된 함수
+//===============================================================================================
 void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 {
 	if (!PlayerAttackRows.Contains(AttackType)) return;
 	const FName AttackRowName = PlayerAttackRows[AttackType];
 	if (AttackRowName.IsNone()) return;
+	const FAttackDataRow* AttackData = GetAttackDataByRow(AttackRowName);
+	if (!AttackData) return;
+	
+	if (AttackData->StaminaCost > 0 && !OwnerCharacter->GetStatComponent()->ConsumeST(AttackData->StaminaCost)) return;
+	if (AttackData->MPCost > 0 && !OwnerCharacter->GetStatComponent()->ConsumeMP(AttackData->MPCost)) return;
 	
 	RequestAttackByRow(AttackRowName);
 }

@@ -56,7 +56,29 @@ struct FBossAttackPattern
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	int32 MaxPhase = 1;
 };
+// 아이템 전용 구조체
+USTRUCT(BlueprintType)
+struct FEnemyItemReward
+{
+	GENERATED_BODY()
+	
+	// DT_ItemData의 RowName
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward")
+	FName ItemRowName = NAME_None;
 
+	// 최소 드랍 개수
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward", meta = (ClampMin = "1"))
+	int32 MinCount = 1;
+
+	// 최대 드랍 개수
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward", meta = (ClampMin = "1"))
+	int32 MaxCount = 1;
+
+	// 드랍 확률 0.0 ~ 1.0
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DropChance = 1.0f;
+	
+};
 UCLASS()
 class YESTERDAYKINGDOM_API UEnemyDefinition : public UPrimaryDataAsset
 {
@@ -90,7 +112,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
 	int32 GoldReward = 0;
 	// 아이템 보상 추가
-	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Reward")
+	TArray<FEnemyItemReward> ItemRewards;
 	
 	// AI
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

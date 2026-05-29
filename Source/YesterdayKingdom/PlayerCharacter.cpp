@@ -9,13 +9,23 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "GoldComponent.h"
 #include "InputMappingContext.h"
 #include "InputActionValue.h"
+#include "InventoryComponent.h"
 #include "PlayerCombatComponent.h"
+#include "PlayerDefinition.h"
+#include "PlayerStatComponent.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
-: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerCombatComponent>(TEXT("CombatComponent")))
+: Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerCombatComponent>(TEXT("CombatComponent")).SetDefaultSubobjectClass<UPlayerStatComponent>(TEXT("StatComponent")))
 {
+	PrimaryActorTick.bCanEverTick = true;
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
+	WeaponMesh->SetupAttachment(WeaponRoot);
+	
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+	GoldComponent = CreateDefaultSubobject<UGoldComponent>(TEXT("GoldComponent"));
 }
 
 void APlayerCharacter::BeginPlay()
@@ -36,6 +46,17 @@ void APlayerCharacter::BeginPlay()
 		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
 		MoveComp->bOrientRotationToMovement = true;
 	}
+
+}
+
+void APlayerCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!bIsDashing || !GetStatComponent()) return;
+	UPlayerStatComponent* PlayerStat = Cast<UPlayerStatComponent>(GetStatComponent());
+	if (!PlayerStat || !PlayerStat->GetPlayerDefinition()) return;
+	const float Cost = PlayerStat->GetPlayerDefinition()->DashSTCostPerSecond * DeltaSeconds;
+	if (!GetStatComponent()->ConsumeST(Cost)) DoDashStop();
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -88,21 +109,24 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 
 void APlayerCharacter::Interaction()
 {
-	
+	UE_LOG(LogTemp, Log, TEXT("Interaction"));	
 }
 
 void APlayerCharacter::ToggleInventory()
 {
-	
+	UE_LOG(LogTemp, Log, TEXT("Inventory"));	
 }
 
 void APlayerCharacter::DoDash()
 {
+	if (GetStatComponent()->GetCurrentST() <= 0.f) return;
+	bIsDashing = true;
 	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetRunSpeed();
 }
 
 void APlayerCharacter::DoDashStop()
 {
+	bIsDashing = false;
 	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed(); // 임시로 600 설정
 }
 
