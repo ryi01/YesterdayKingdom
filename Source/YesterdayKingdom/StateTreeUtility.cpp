@@ -300,6 +300,20 @@ FText FStateTreeSetCharacterSpeedTask::GetDescription(const FGuid& ID, FStateTre
 	return FText::FromString("<b>Set Character Speed</b>");
 }
 
+EStateTreeRunStatus FStateTreeGetPlayerInfoTask::EnterState(FStateTreeExecutionContext& Context,
+	const FStateTreeTransitionResult& Transition) const
+{
+	if (Transition.ChangeType == EStateTreeStateChangeType::Changed)
+	{
+		FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+		if (AEnemyNomal* EnemyNormal = Cast<AEnemyNomal>(InstanceData.Character))
+		{
+			InstanceData.EnemyDefinition = EnemyNormal->GetEnemyDefinition();
+		}
+	}
+	return EStateTreeRunStatus::Running;
+}
+
 EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);

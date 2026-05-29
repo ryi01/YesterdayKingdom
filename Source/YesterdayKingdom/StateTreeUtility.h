@@ -351,6 +351,9 @@ struct FStateTreeGetPlayerInfoInstanceData
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<ABaseCharacter> TargetPlayerCharacter;
 
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<class UEnemyDefinition> EnemyDefinition;
+	
 	// 플레이어 위치
 	UPROPERTY(VisibleAnywhere)
 	FVector TargetPlayerLocation = FVector::ZeroVector;
@@ -383,7 +386,8 @@ struct FStateTreeGetPlayerInfoTask : public FStateTreeTaskCommonBase
 	virtual const UStruct* GetInstanceDataType() const override {
 		return FInstanceDataType::StaticStruct();
 	}
-
+	
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 	// 현재 테스크 진행 중 이벤트
 	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
 

@@ -66,6 +66,7 @@ float UBaseStatComponent::ApplyDamage(float Amount)
 	const float FinalDamage = FMath::Max(Amount - Defense, 1.f);
 	CurrentHP = FMath::Clamp(CurrentHP - FinalDamage, 0.f, MaxHP);
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
+	UE_LOG(LogTemp, Warning, TEXT("%s HP : %f"), *GetOwner()->GetName(), CurrentHP);
 	if (CurrentHP <= 0.f)
 	{
 		bIsDead = true;

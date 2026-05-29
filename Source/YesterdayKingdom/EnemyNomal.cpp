@@ -133,6 +133,15 @@ void AEnemyNomal::NotifyDamage_Implementation(
 
 void AEnemyNomal::HandleDeath_Implementation()
 {
+	if (bRewardGiven)
+	{
+		return;
+	}
+
+	bRewardGiven = true;
+
+	GiveRewardToKiller();
+	
 	OnEnemyDied.Broadcast();
 
 	if (EnemyDefinition && EnemyDefinition->DeathMontage)
