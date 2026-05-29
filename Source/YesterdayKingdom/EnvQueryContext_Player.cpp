@@ -9,8 +9,23 @@
 
 void UEnvQueryContext_Player::ProvideContext(FEnvQueryInstance& QueryInstance, FEnvQueryContextData& ContextData) const
 {
-	AActor* PlayerPawn = UGameplayStatics::GetPlayerPawn(QueryInstance.Owner.Get(), 0);
-	check(PlayerPawn);
-	
+	UObject* QuerierObject = QueryInstance.Owner.Get();
+	if (!QuerierObject)
+	{
+		return;
+	}
+
+	UWorld* World = QuerierObject->GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
 	UEnvQueryItemType_Actor::SetContextHelper(ContextData, PlayerPawn);
 }
