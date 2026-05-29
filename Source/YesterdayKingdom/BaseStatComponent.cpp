@@ -21,7 +21,9 @@ void UBaseStatComponent::BeginPlay()
 		InitializeStat(StatDT, StatRowName);
 	}
 }
-
+//===============================================================================
+// 초기화
+//===============================================================================
 void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName)
 {
 	if (!InStatTable || InRowName.IsNone()) return;
@@ -36,6 +38,9 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 	
 	MaxST = StatRow->MaxST;
 	CurrentST = MaxST;
+	
+	MaxMP = StatRow->MaxMP;
+	CurrentMP = MaxMP;
 	
 	Attack = StatRow->Attack;
 	Defense = StatRow->Defense;
@@ -52,7 +57,9 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 	OnSTChanged.Broadcast(CurrentST, MaxST);
 	OnStunChanged.Broadcast(CurrentStun, MaxStun);
 }
-
+//===============================================================================
+// HP 관련
+//===============================================================================
 float UBaseStatComponent::ApplyDamage(float Amount)
 {
 	if (bIsDead) return 0.f;
@@ -73,13 +80,17 @@ void UBaseStatComponent::Heal(float Amount)
 	CurrentHP = FMath::Clamp(CurrentHP + Amount, 0, MaxHP);
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 }
-
+//===============================================================================
+// 스테미나 관련
+//===============================================================================
 bool UBaseStatComponent::ConsumeST(float Amount)
 {
 	if (IsDead()) return false;
 	if (CurrentST < Amount) return false;
 	CurrentST = FMath::Clamp(CurrentST - Amount, 0, MaxST);
-	OnStunChanged.Broadcast(CurrentST, MaxST);
+	LastSTConsumeTime = GetWorld()->GetTimeSeconds();
+	
+	OnSTChanged.Broadcast(CurrentST, MaxST);
 	return true;
 }
 
@@ -87,14 +98,17 @@ void UBaseStatComponent::RecoverST(float Amount)
 {
 	if (IsDead()) return;
 	CurrentST = FMath::Clamp(CurrentST + Amount, 0.f, MaxST);
-	OnStunChanged.Broadcast(CurrentST, MaxST);
+	OnSTChanged.Broadcast(CurrentST, MaxST);
 }
-
+//===============================================================================
+// MP 관련
+//===============================================================================
 bool UBaseStatComponent::ConsumeMP(float Amount)
 {
 	if (IsDead()) return false;
 	if (CurrentMP < Amount) return false;
 	CurrentMP = FMath::Clamp(CurrentMP - Amount, 0, MaxMP);
+	LastMPConsumeTime = GetWorld()->GetTimeSeconds();
 	OnMPChanged.Broadcast(CurrentMP, MaxMP);
 	return true;
 }
@@ -105,17 +119,9 @@ void UBaseStatComponent::RecoverMP(float Amount)
 	CurrentMP = FMath::Clamp(CurrentMP + Amount, 0.f, MaxMP);
 	OnMPChanged.Broadcast(CurrentMP, MaxMP);
 }
-
-float UBaseStatComponent::GetCurrentMP() const
-{
-	return CurrentMP;
-}
-
-float UBaseStatComponent::GetMaxMP() const
-{
-	return MaxMP;
-}
-
+//===============================================================================
+// Stun 관련
+//===============================================================================
 void UBaseStatComponent::AddStun(float Amount)
 {
 	if (bIsDead || bIsStun) return;
@@ -127,7 +133,6 @@ void UBaseStatComponent::AddStun(float Amount)
 		OnStunned.Broadcast();
 	}
 }
-
 void UBaseStatComponent::ResetStun()
 {
 	CurrentStun = 0.f;
@@ -171,6 +176,16 @@ float UBaseStatComponent::GetMaxST() const
 	return MaxST;
 }
 
+float UBaseStatComponent::GetCurrentMP() const
+{
+	return CurrentMP;
+}
+
+float UBaseStatComponent::GetMaxMP() const
+{
+	return MaxMP;
+}
+
 float UBaseStatComponent::GetAttack() const
 {
 	return Attack;
@@ -193,7 +208,17 @@ float UBaseStatComponent::GetRunSpeed() const
 
 float UBaseStatComponent::GetCurrentStun() const
 {
-	return CurrentST;
+	return CurrentStun;
+}
+
+float UBaseStatComponent::GetLastSTConsumeTime() const
+{
+	return LastSTConsumeTime;
+}
+
+float UBaseStatComponent::GetLastMPConsumeTime() const
+{
+	return LastSTConsumeTime;
 }
 #pragma endregion
 
