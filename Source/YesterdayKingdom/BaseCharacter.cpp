@@ -106,14 +106,16 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
 	const FVector& DamageImpulse)
 {
-	IDamagable::ApplyDamage_Implementation(Damage, DamageCauser, DamageLocation, DamageImpulse);
 	if (!StatComponent) return;
-	// 체력 깍는 함수
+
 	StatComponent->ApplyDamage(Damage);
-	// 데미지 확인
-	NotifyDamage(DamageLocation, DamageCauser);
-	// 죽었는지 확인
-	if (StatComponent->IsDead()) HandleDeath();
+
+	IDamagable::Execute_NotifyDamage(this, DamageLocation, DamageCauser);
+
+	if (StatComponent->IsDead())
+	{
+		IDamagable::Execute_HandleDeath(this);
+	}
 }
 
 void ABaseCharacter::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
