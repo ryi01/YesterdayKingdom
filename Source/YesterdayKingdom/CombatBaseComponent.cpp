@@ -6,6 +6,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "BaseCharacter.h"
+#include "BaseStatComponent.h"
 #include "Animation/AnimMontage.h"
 #include "CommonEnumTypes.h"
 #include "Kismet/GameplayStatics.h"
@@ -205,7 +206,15 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 	if (!HitActor || !OwnerCharacter) return;
 	const FAttackNodeData* NodeData = GetCurrentAttackNodeData();
 
-	const float Damage = NodeData ? NodeData->Damage : DefaultDamage;
+	const float BaseDamage = NodeData ? NodeData->Damage : DefaultDamage;
+	
+	float AttackBonus = 0.f;
+	if (UBaseStatComponent* StatComponent = OwnerCharacter->GetStatComponent())
+	{
+		AttackBonus = StatComponent->GetFinalAttack();
+	}
+	
+	const float Damage = BaseDamage + AttackBonus;
 	const FVector DamageImpulse = OwnerCharacter->GetActorForwardVector();
 	
 	IDamagable::Execute_ApplyDamage(HitActor, Damage, OwnerCharacter.Get(), HitResult.ImpactPoint, DamageImpulse);

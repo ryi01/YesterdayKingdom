@@ -61,6 +61,15 @@ protected:
 	UPROPERTY()
 	float LastMPConsumeTime = -999.f;
 	
+	// ========================================================
+	// Equipment Bonus
+	// ========================================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat|Equipment")
+	float EquipmentAttackBonus = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat|Equipment")
+	float EquipmentDefenseBonus = 0.f;
+	
 public:	
 	// Sets default values for this component's properties
 	UBaseStatComponent();
@@ -111,6 +120,15 @@ public:
 	bool IsDead() const;
 	UFUNCTION(BlueprintCallable)
 	bool IsStunned() const;
+	// ========================================================
+	// Equipment Bonus
+	// ========================================================
+	UFUNCTION(BlueprintCallable, Category = "Stat|Equipment")
+	void SetEquipmentBonus(float InAttackBonus, float InDefenseBonus);
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	float GetFinalAttack() const;
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	float GetFinalDefense() const;
 	
 	// ========================================================
 	// Getter 

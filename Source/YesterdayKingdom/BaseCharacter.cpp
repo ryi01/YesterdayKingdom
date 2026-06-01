@@ -107,7 +107,7 @@ void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCaus
 	const FVector& DamageImpulse)
 {
 	if (!StatComponent) return;
-
+	
 	StatComponent->ApplyDamage(Damage);
 
 	IDamagable::Execute_NotifyDamage(this, DamageLocation, DamageCauser);

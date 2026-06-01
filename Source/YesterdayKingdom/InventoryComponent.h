@@ -32,8 +32,7 @@ public:
 	FOnInventoryChanged OnInventoryChanged;
 
 protected:
-	// DT에서 아이템 데이터 찾기
-	const FItemData* GetItemData(FName ItemRowName) const;
+
 
 	// 슬롯 데이터를 UI 표시용 데이터로 변환
 	bool MakeSlotViewData(int32 SlotIndex, FInventorySlotViewData& OutViewData) const;
@@ -67,4 +66,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool IsValidSlotIndex(int32 SlotIndex) const;
+	
+	// DT에서 아이템 데이터 찾기
+	const FItemData* GetItemData(FName ItemRowName) const;
 };
