@@ -108,6 +108,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UAnimInstance> AnimBP;
 	
+	// 무기
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<USkeletalMesh> WeaponMesh;
+	
 	// 보상
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
 	int32 GoldReward = 0;

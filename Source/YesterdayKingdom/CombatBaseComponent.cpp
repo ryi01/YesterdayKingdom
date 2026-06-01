@@ -58,6 +58,7 @@ void UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
 void UCombatBaseComponent::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	ResetAttackState();
+	OnAttackEnded.Broadcast();
 }
 
 void UCombatBaseComponent::ResetAttackState()
