@@ -415,6 +415,8 @@ void UDungeonGeneratorComponent::SpawnFloorTiles()
 	}
 }
 
+
+
 void UDungeonGeneratorComponent::CreateWalls()
 {
 	for (int32 X = 0; X < MapWidth; X++)
@@ -422,23 +424,67 @@ void UDungeonGeneratorComponent::CreateWalls()
 		for (int32 Y = 0; Y < MapHeight; Y++)
 		{
 			if (!IsWalkableTile(X, Y)) continue;
-			if (GetTile(X, Y + 1) == EDungeonTileType::Empty)
+			const bool bN = GetTile(X, Y + 1) == EDungeonTileType::Empty;
+			const bool bS = GetTile(X, Y - 1) == EDungeonTileType::Empty;
+			const bool bE = GetTile(X + 1, Y) == EDungeonTileType::Empty;
+			const bool bW = GetTile(X - 1, Y) == EDungeonTileType::Empty;
+			
+			bool bUsedN = false;
+			bool bUsedS = false;
+			bool bUsedE = false;
+			bool bUsedW = false;
+			
+			// 북동 코너
+			if (bN && bE)
 			{
-				SpawnWallOnEdge(X, Y, FIntPoint(0, 1));
-			}
-			if (GetTile(X, Y - 1) == EDungeonTileType::Empty)
-			{
-				SpawnWallOnEdge(X, Y, FIntPoint(0, -1));
+				SpawnCornerWallOnTile(X, Y, FIntPoint(0, 1), FIntPoint(1, 0));
+				bUsedN = true;
+				bUsedE = true;
 			}
 
-			if (GetTile(X + 1, Y) == EDungeonTileType::Empty)
+			// 남동 코너
+			if (bE && bS)
 			{
-				SpawnWallOnEdge(X, Y, FIntPoint(1, 0));
+				SpawnCornerWallOnTile(X, Y, FIntPoint(1, 0), FIntPoint(0, -1));
+				bUsedE = true;
+				bUsedS = true;
 			}
 
-			if (GetTile(X - 1, Y) == EDungeonTileType::Empty)
+			// 남서 코너
+			if (bS && bW)
 			{
-				SpawnWallOnEdge(X, Y, FIntPoint(-1, 0));
+				SpawnCornerWallOnTile(X, Y, FIntPoint(0, -1), FIntPoint(-1, 0));
+				bUsedS = true;
+				bUsedW = true;
+			}
+
+			// 북서 코너
+			if (bW && bN)
+			{
+				SpawnCornerWallOnTile(X, Y, FIntPoint(-1, 0), FIntPoint(0, 1));
+				bUsedW = true;
+				bUsedN = true;
+			}
+
+			// 코너에 사용되지 않은 edge만 Straight 생성
+			if (bN && !bUsedN)
+			{
+				SpawnWallPiece(X, Y, FIntPoint(0, 1), EDungeonPieceShape::Straight, FRotator::ZeroRotator);
+			}
+
+			if (bS && !bUsedS)
+			{
+				SpawnWallPiece(X, Y, FIntPoint(0, -1), EDungeonPieceShape::Straight, FRotator::ZeroRotator);
+			}
+
+			if (bE && !bUsedE)
+			{
+				SpawnWallPiece(X, Y, FIntPoint(1, 0), EDungeonPieceShape::Straight, FRotator(0.f, 90.f, 0.f));
+			}
+
+			if (bW && !bUsedW)
+			{
+				SpawnWallPiece(X, Y, FIntPoint(-1, 0), EDungeonPieceShape::Straight, FRotator(0.f, 90.f, 0.f));
 			}
 		}
 	}
@@ -671,31 +717,6 @@ FName UDungeonGeneratorComponent::GetRoomTypeRowName(EDungeonRoomType RoomType) 
 	return FName(*NameString);
 }
 
-void UDungeonGeneratorComponent::SpawnWallOnEdge(int32 X, int32 Y, const FIntPoint& Dir)
-{
-	TSubclassOf<AActor> WallClass = GetTileVisualClass(EDungeonVisualTileType::Wall, EDungeonPieceShape::Straight);
-	if (!WallClass) return;
-	FVector Location(X * TileSize, Y * TileSize, 0.f);
-	const float Half = TileSize * 0.5f;
-
-	Location.X += Dir.X * Half;
-	Location.Y += Dir.Y * Half;
-	
-	FRotator Rotation = FRotator::ZeroRotator;
-
-	if (Dir.X != 0)
-	{
-		Rotation = FRotator(0.f, 90.f, 0.f);
-	}
-	
-	AActor* Wall = GetWorld()->SpawnActor<AActor>(WallClass, Location, Rotation);
-
-	if (Wall)
-	{
-		SpawnedDungeonActors.Add(Wall);
-	}
-}
-
 void UDungeonGeneratorComponent::SpawnEnemiesByRoomData()
 {
 	for (const FDungeonRoomInfo& Room : Rooms)
@@ -731,6 +752,61 @@ void UDungeonGeneratorComponent::SpawnDecorationByRoomData()
 				SpawnDecorationAroundPoint(Entry.DecorationClass, Room.Center);
 			}
 		}
+	}
+}
+
+void UDungeonGeneratorComponent::SpawnCornerWallOnTile(int32 X, int32 Y, const FIntPoint& DirA, const FIntPoint& DirB)
+{
+	FRotator Rotation = FRotator::ZeroRotator;
+	if ((DirA == FIntPoint(0, 1) && DirB == FIntPoint(1, 0)) || (DirA == FIntPoint(1, 0) && DirB == FIntPoint(0, 1)))
+	{
+		Rotation = FRotator(0.f, 180.f, 0.f);
+	}
+	else if ((DirA == FIntPoint(1, 0) && DirB == FIntPoint(0, -1)) || (DirA == FIntPoint(0, -1) && DirB == FIntPoint(1, 0)))
+	{
+		Rotation = FRotator(0.f, 90.f, 0.f);
+	}
+	// 남서 코너
+	else if ((DirA == FIntPoint(0, -1) && DirB == FIntPoint(-1, 0)) || (DirA == FIntPoint(-1, 0) && DirB == FIntPoint(0, -1)))
+	{
+		Rotation = FRotator(0.f, 0.f, 0.f);
+	}
+	// 북서 코너
+	else if ((DirA == FIntPoint(-1, 0) && DirB == FIntPoint(0, 1)) || (DirA == FIntPoint(0, 1) && DirB == FIntPoint(-1, 0)))
+	{
+		Rotation = FRotator(0.f, 270.f, 0.f);
+	}
+	SpawnWallPiece(X, Y, FIntPoint::ZeroValue, EDungeonPieceShape::Corner, Rotation);
+}
+
+void UDungeonGeneratorComponent::SpawnWallPiece(int32 X, int32 Y, const FIntPoint& Dir, EDungeonPieceShape Shape, const FRotator& Rotator)
+{
+	TSubclassOf<AActor> WallClass = GetTileVisualClass(EDungeonVisualTileType::Wall, Shape);
+	if (!WallClass || !GetWorld()) return;
+	
+	FVector Location(X * TileSize, Y * TileSize, 0.f);
+	const float Half = TileSize * 0.5f;
+	
+	if (Shape == EDungeonPieceShape::Straight)
+	{
+		Location.X += Dir.X * Half;
+		Location.Y += Dir.Y * Half;
+	}
+	
+	AActor* Wall = GetWorld()->SpawnActor<AActor>(WallClass, Location, Rotator);
+	if (Wall)
+	{
+		SpawnedDungeonActors.Add(Wall);
+
+#if WITH_EDITOR
+		const FString ShapeName = Shape == EDungeonPieceShape::Corner
+			? TEXT("Corner")
+			: TEXT("Straight");
+
+		Wall->SetActorLabel(
+			FString::Printf(TEXT("Wall_%s_%d_%d"), *ShapeName, X, Y)
+		);
+#endif
 	}
 }
 
@@ -795,6 +871,125 @@ const FDungeonDecorationDataRow* UDungeonGeneratorComponent::GetDecorationData(E
 {
 	if (!DungeonDecorationDataTable) return  nullptr;
 	return DungeonDecorationDataTable->FindRow<FDungeonDecorationDataRow>(GetRoomTypeRowName(RoomType),TEXT("DungeonSpawnData"));
+}
+
+EDungeonPieceShape UDungeonGeneratorComponent::GetWallShapeForEdge(int32 X, int32 Y, const FIntPoint& Dir) const
+{
+	// 핵심:
+	// 한 코너를 두 edge에서 동시에 Corner로 만들지 않기 위해
+	// Corner가 되는 방향을 고정한다.
+	//
+	// 북동 코너: 북쪽 edge에서만 Corner
+	// 남동 코너: 동쪽 edge에서만 Corner
+	// 남서 코너: 남쪽 edge에서만 Corner
+	// 북서 코너: 서쪽 edge에서만 Corner
+	
+	// 북/남 edge 벽이면 좌우가 비었는지 확인
+	if (Dir == FIntPoint(0, 1))
+	{
+		const bool bWestEmpty = GetTile(X - 1, Y) == EDungeonTileType::Empty;
+		const bool bEastEmpty = GetTile(X + 1, Y) == EDungeonTileType::Empty;
+
+		if (bWestEmpty || bEastEmpty)
+		{
+			return EDungeonPieceShape::Corner;
+		}
+	}
+
+	// 동/서 edge 벽이면 위아래가 비었는지 확인
+	if (Dir == FIntPoint(1, 0))
+	{
+		const bool bNorthEmpty = GetTile(X, Y + 1) == EDungeonTileType::Empty;
+		const bool bSouthEmpty = GetTile(X, Y - 1) == EDungeonTileType::Empty;
+
+		if (bNorthEmpty || bSouthEmpty)
+		{
+			return EDungeonPieceShape::Corner;
+		}
+	}
+	if (Dir == FIntPoint(0, -1))
+	{
+		const bool bForwardEmpty = GetTile(X, Y - 1) == EDungeonTileType::Empty;
+		const bool bWestEmpty = GetTile(X - 1, Y) == EDungeonTileType::Empty;
+
+		// 남서 코너만 여기서 처리
+		if (bForwardEmpty && bWestEmpty)
+		{
+			return EDungeonPieceShape::Corner;
+		}
+	}
+	// 서쪽 edge
+	if (Dir == FIntPoint(-1, 0))
+	{
+		const bool bForwardEmpty = GetTile(X - 1, Y) == EDungeonTileType::Empty;
+		const bool bNorthEmpty = GetTile(X, Y + 1) == EDungeonTileType::Empty;
+
+		// 북서 코너만 여기서 처리
+		if (bForwardEmpty && bNorthEmpty)
+		{
+			return EDungeonPieceShape::Corner;
+		}
+	}
+
+	return EDungeonPieceShape::Straight;
+}
+
+FDungeonNeighborInfo UDungeonGeneratorComponent::GetWallNeighborInfoForEdge(int32 X, int32 Y,
+	const FIntPoint& Dir) const
+{
+	FDungeonNeighborInfo Info;
+
+	const EDungeonPieceShape Shape = GetWallShapeForEdge(X, Y, Dir);
+
+	if (Shape == EDungeonPieceShape::Straight)
+	{
+		if (Dir == FIntPoint(0, 1) || Dir == FIntPoint(0, -1))
+		{
+			Info.bN = true;
+		}
+		else if (Dir == FIntPoint(1, 0) || Dir == FIntPoint(-1, 0))
+		{
+			Info.bE = true;
+		}
+
+		return Info;
+	}
+
+	// Corner는 위 GetWallShapeForEdge()의 방향 규칙과 동일하게 맞춤
+
+	// 북동 코너
+	if (Dir == FIntPoint(0, 1))
+	{
+		Info.bN = true;
+		Info.bE = true;
+		return Info;
+	}
+
+	// 남동 코너
+	if (Dir == FIntPoint(1, 0))
+	{
+		Info.bE = true;
+		Info.bS = true;
+		return Info;
+	}
+
+	// 남서 코너
+	if (Dir == FIntPoint(0, -1))
+	{
+		Info.bS = true;
+		Info.bW = true;
+		return Info;
+	}
+
+	// 북서 코너
+	if (Dir == FIntPoint(-1, 0))
+	{
+		Info.bW = true;
+		Info.bN = true;
+		return Info;
+	}
+
+	return Info;
 }
 
 // 4방향을 보고 회전값 결정 

@@ -268,9 +268,10 @@ private:
 	// ==============================
 	// Spawn
 	// ==============================
-	void SpawnWallOnEdge(int32 X, int32 Y, const FIntPoint& Dir);
 	void SpawnEnemiesByRoomData();
 	void SpawnDecorationByRoomData();
+	void SpawnCornerWallOnTile(int32 X, int32 Y, const FIntPoint& DirA, const FIntPoint& DirB);
+	void SpawnWallPiece(int32 X, int32 Y, const FIntPoint& Dir, EDungeonPieceShape Shape, const FRotator& Rotator);
 	
 	void SpawnEnemyAroundPoint(TSubclassOf<AActor> EnemyClass, const FVector2D& Point);
 	void SpawnDecorationAroundPoint(TSubclassOf<AActor> DecorationClass, const FVector2D& Point);
@@ -280,6 +281,8 @@ private:
 	const FDungeonEnemySpawnDataRow* GetEnemySpawnData(EDungeonRoomType RoomType) const;
 	const FDungeonDecorationDataRow* GetDecorationData(EDungeonRoomType RoomType) const;
 
+	EDungeonPieceShape GetWallShapeForEdge(int32 X, int32 Y, const FIntPoint& Dir) const;
+	FDungeonNeighborInfo GetWallNeighborInfoForEdge(int32 X, int32 Y, const FIntPoint& Dir) const;
 	FRotator GetRotationByNeighborInfo(const FDungeonNeighborInfo& Info, EDungeonPieceShape Shape) const;
 	
 	FDungeonNeighborInfo GetWalkableNeighborInfo(int32 X, int32 Y) const;
