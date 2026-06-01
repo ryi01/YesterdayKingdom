@@ -56,6 +56,56 @@ struct FBossAttackPattern
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	int32 MaxPhase = 1;
 };
+USTRUCT(BlueprintType)
+struct FEnemyFSMStateTime
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time", meta = (ClampMin = "0.0"))
+	float Min = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time", meta = (ClampMin = "0.0"))
+	float Max = 0.8f;
+	FEnemyFSMStateTime() {}
+	FEnemyFSMStateTime(float InMin, float InMax) : Min(InMin), Max(InMax){}
+	float GetRandomTime() const
+	{
+		return FMath::FRandRange(FMath::Min(Min, Max), FMath::Max(Min, Max));
+	}
+};
+USTRUCT(BlueprintType)
+struct FEnemyFSMTimeConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime IdleTime = FEnemyFSMStateTime(0.3f, 0.8f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime AttackEndDelayTime = FEnemyFSMStateTime(0.2f, 0.5f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime CooldownTime = FEnemyFSMStateTime(0.8f, 1.5f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime BackStepTime = FEnemyFSMStateTime(0.3f, 0.6f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime HitTime = FEnemyFSMStateTime(0.3f, 0.5f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime IntroTime = FEnemyFSMStateTime(1.5f, 1.5f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime PhaseChangeTime = FEnemyFSMStateTime(2.0f, 2.5f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime GroggyTime = FEnemyFSMStateTime(3.0f, 4.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Time")
+	FEnemyFSMStateTime DeathDestroyDelayTime = FEnemyFSMStateTime(2.5f, 3.5f);
+};
+
 // 아이템 전용 구조체
 USTRUCT(BlueprintType)
 struct FEnemyItemReward
@@ -138,6 +188,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float PatrolRadius = 800.f;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI")
+	float ReturnRadius = 1000.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI|FSM")
+	FEnemyFSMTimeConfig FSMTimeConfig;
+	
 	// 전투
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
 	TObjectPtr<UDataTable> AttackDataTable;
@@ -153,4 +209,5 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;
+	
 };

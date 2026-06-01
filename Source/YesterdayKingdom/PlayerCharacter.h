@@ -11,6 +11,8 @@ class UCharacterMovementComponent;
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
+class UPlayerInteractionComponent;
+class UEquipmentComponent;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
@@ -32,6 +34,11 @@ public:
 	TObjectPtr<class UInventoryComponent> InventoryComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UGoldComponent> GoldComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<UPlayerInteractionComponent> InteractionComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment")
+	TObjectPtr<UEquipmentComponent> EquipmentComponent;
+	
 	//===============================================================================================
 	// 이동 관련
 	//===============================================================================================
@@ -69,18 +76,25 @@ public:
 	//===============================================================================================
 	// 공격 관련 함수
 	//===============================================================================================
-	
 	virtual void CheckCombo_Implementation() override;
 	
 	void DoChargedAttack();
 	void DoChargeRelease();
 	void DoLightAttack(const FInputActionValue& Value);
 	void DoHeavyAttack(const FInputActionValue& Value);
+	//===============================================================================================
+	// 인터렉션 관련 
+	//===============================================================================================
+	FTimerHandle InteractionCheckTimerHandle;
 	
 protected:
 	// 캐릭터 이동 컴포넌트 참조
 	UPROPERTY()
 	TObjectPtr<UCharacterMovementComponent> MoveComp;
+	//===============================================================================================
+	// 인터렉션 관련 
+	//===============================================================================================
+	void UpdateInteractionTarget();
 	
 public:
 	virtual void BeginPlay() override;
@@ -99,5 +113,6 @@ public:
 	
 	UGoldComponent* GetGoldComponent() const;
 	UInventoryComponent* GetInventoryComponent() const;
-	
+	UPlayerInteractionComponent* GetInteractionComponent() const;
+	UEquipmentComponent* GetEquipmentComponent() const;
 };

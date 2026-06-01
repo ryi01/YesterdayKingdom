@@ -62,6 +62,23 @@ enum class EPotionBuffType : uint8
 	DefUp   UMETA(DisplayName = "DefUp"),     // 방어력 증가
 	SpeedUp UMETA(DisplayName = "SpeedUp")    // 이동속도 증가
 };
+//===============================================================================================
+// 무기창 전용
+//===============================================================================================
+UENUM(BlueprintType)
+enum class EEquipmentSlotType : uint8
+{
+	None        UMETA(DisplayName = "None"),
+
+	Weapon      UMETA(DisplayName = "Weapon"),
+
+	Helmet      UMETA(DisplayName = "Helmet"),
+	Armor       UMETA(DisplayName = "Armor"),
+	Gloves      UMETA(DisplayName = "Gloves"),
+	Boots       UMETA(DisplayName = "Boots"),
+
+	Accessory   UMETA(DisplayName = "Accessory")
+};
 
 //===============================================================================================
 // 아이템 구조체 
@@ -113,28 +130,34 @@ struct FItemData : public FTableRowBase
 //===============================================================================================
 // 무기 전용
 //===============================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+	EEquipmentSlotType EquipmentSlotType = EEquipmentSlotType::None;
+	
      // 무기 종류 — 공격 애니메이션·사운드 분기에 활용
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
     EWeaponCategory WeaponCategory = EWeaponCategory::None;
 
     // 장착 슬롯 (MainHand / OffHand / BothHands)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
     EWeaponSlot WeaponSlot = EWeaponSlot::None;
 
     // 기본 공격력 수치
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "0"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (ClampMin = "0"))
     int32 AttackPower = 0;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (ClampMin = "0"))
+	int32 DefensePower = 0;
+	
     // 공격 속도 배율 (1.0 = 기본 속도 / 값이 클수록 빠름)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "0.1", ClampMax = "5.0"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (ClampMin = "0.1", ClampMax = "5.0"))
     float AttackSpeed = 1.0f;
 
     // 장착 가능한 요구 캐릭터 레벨
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "1"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment", meta = (ClampMin = "1"))
     int32 RequiredLevel = 1;
 
     // 장착 시 캐릭터 소켓에 붙일 무기 스켈레탈 메시
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
     TObjectPtr<USkeletalMesh> WeaponMesh = nullptr;
 	
 //===============================================================================================

@@ -9,12 +9,14 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "EquipmentComponent.h"
 #include "GoldComponent.h"
 #include "InputMappingContext.h"
 #include "InputActionValue.h"
 #include "InventoryComponent.h"
 #include "PlayerCombatComponent.h"
 #include "PlayerDefinition.h"
+#include "PlayerInteractionComponent.h"
 #include "PlayerStatComponent.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
@@ -26,7 +28,11 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	GoldComponent = CreateDefaultSubobject<UGoldComponent>(TEXT("GoldComponent"));
+	InteractionComponent = CreateDefaultSubobject<UPlayerInteractionComponent>(TEXT("InteractionComponent"));
+	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));
 }
+
+
 
 void APlayerCharacter::BeginPlay()
 {
@@ -46,7 +52,10 @@ void APlayerCharacter::BeginPlay()
 		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
 		MoveComp->bOrientRotationToMovement = true;
 	}
-
+	// 인터렉션 대상 체크
+	GetWorld()->GetTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::UpdateInteractionTarget, 0.1f, true);
+	InventoryComponent->AddItem(TEXT("WP_Sword"), 1);
+	EquipmentComponent->EquipItem(TEXT("WP_Sword"));
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)
@@ -107,26 +116,17 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
-void APlayerCharacter::Interaction()
-{
-	UE_LOG(LogTemp, Log, TEXT("Interaction"));	
-}
-
+//===============================================================================================
+// 인벤토리
+//===============================================================================================
 void APlayerCharacter::ToggleInventory()
 {
 	UE_LOG(LogTemp, Log, TEXT("Inventory"));	
 }
 
-UGoldComponent* APlayerCharacter::GetGoldComponent() const
-{
-	return GoldComponent;
-}
-
-UInventoryComponent* APlayerCharacter::GetInventoryComponent() const
-{
-	return  InventoryComponent;
-}
-
+//===============================================================================================
+// 이동관련
+//===============================================================================================
 void APlayerCharacter::DoDash()
 {
 	if (GetStatComponent()->GetCurrentST() <= 0.f) return;
@@ -139,7 +139,9 @@ void APlayerCharacter::DoDashStop()
 	bIsDashing = false;
 	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed(); // 임시로 600 설정
 }
-
+//===============================================================================================
+// 공격 관련
+//===============================================================================================
 void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 {
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
@@ -174,4 +176,42 @@ void APlayerCharacter::CheckCombo_Implementation()
 	{
 		CombatBaseComponent->CheckCombo();
 	}
+}
+//===============================================================================================
+// 인터렉션 관련
+//===============================================================================================
+void APlayerCharacter::Interaction()
+{
+	if (InteractionComponent)
+	{
+		InteractionComponent->Interact();
+	}	
+}
+void APlayerCharacter::UpdateInteractionTarget()
+{
+	if (InteractionComponent)
+	{
+		InteractionComponent->UpdateInteractTarget();
+	}
+}
+//===============================================================================================
+// 컴포넌트 Getter
+//===============================================================================================
+UGoldComponent* APlayerCharacter::GetGoldComponent() const
+{
+	return GoldComponent;
+}
+
+UInventoryComponent* APlayerCharacter::GetInventoryComponent() const
+{
+	return  InventoryComponent;
+}
+UPlayerInteractionComponent* APlayerCharacter::GetInteractionComponent() const
+{
+	return InteractionComponent;
+}
+
+UEquipmentComponent* APlayerCharacter::GetEquipmentComponent() const
+{
+	return EquipmentComponent;
 }

@@ -153,6 +153,29 @@ bool UBaseStatComponent::IsStunned() const
 {
 	return bIsStun;
 }
+// ========================================================
+// 장비 장착 
+// ========================================================
+void UBaseStatComponent::SetEquipmentBonus(float InAttackBonus, float InDefenseBonus)
+{
+	EquipmentAttackBonus = InAttackBonus;
+	EquipmentDefenseBonus = InDefenseBonus;
+}
+
+float UBaseStatComponent::GetFinalAttack() const
+{
+	return Attack + EquipmentAttackBonus;
+}
+
+float UBaseStatComponent::GetFinalDefense() const
+{
+	return Defense + EquipmentDefenseBonus;
+}
+
+// ========================================================
+// Getter 
+// ========================================================
+
 UDataTable* UBaseStatComponent::GetStatusDT() const
 {
 	return StatDT;

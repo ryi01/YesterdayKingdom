@@ -12,9 +12,6 @@ UGoldComponent::UGoldComponent()
 
 }
 
-
-
-
 // Called when the game starts
 void UGoldComponent::BeginPlay()
 {
