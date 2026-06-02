@@ -10,7 +10,7 @@
 #include "InventoryComponent.h"
 #include "PlayerCharacter.h"
 #include "Animation/AnimInstance.h"
-#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 
@@ -23,9 +23,9 @@ AEnemyNomal::AEnemyNomal(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	AIControllerClass = AEnemyNomalAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	
-	WeaponSocketName = TEXT("Weapon_R_Trail_A");
+	WeaponSocketName = TEXT("katana3");
 	
-	WeaponMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMeshComponent"));
+	WeaponMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMeshComponent"));
 	WeaponMeshComponent->SetupAttachment(GetWeaponRoot());
 	WeaponMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
@@ -78,7 +78,7 @@ void AEnemyNomal::InitializeFromDefinition()
 	
 	if (WeaponMeshComponent && EnemyDefinition->WeaponMesh)
 	{
-		WeaponMeshComponent->SetSkeletalMesh(EnemyDefinition->WeaponMesh);
+		WeaponMeshComponent->SetStaticMesh(EnemyDefinition->WeaponMesh);
 
 		WeaponMeshComponent->AttachToComponent(
 			GetWeaponRoot(),
@@ -192,7 +192,7 @@ void AEnemyNomal::HandleDeath_Implementation()
 	bRewardGiven = true;
 
 	GiveRewardToKiller();
-	
+
 	OnEnemyDied.Broadcast();
 
 	if (EnemyDefinition && EnemyDefinition->DeathMontage)

@@ -32,6 +32,7 @@ public:
 	bool IsDead() const;
 
 	FOnMontageEnded OnAttackMontageEnded;
+	
 	FOnEnemyAttackCompleted OnAttackCompleted;
 	FOnEnemyLanded OnEnemyLanded;
 
@@ -83,7 +84,7 @@ protected:
 	TObjectPtr<UEnemyDefinition> EnemyDefinition;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
-	TObjectPtr<USkeletalMeshComponent> WeaponMeshComponent;
+	TObjectPtr<UStaticMeshComponent> WeaponMeshComponent;
 
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamageCauser;

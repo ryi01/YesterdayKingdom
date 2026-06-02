@@ -9,7 +9,7 @@
 
 class UAnimMontage;
 class UStateTree;
-class USkeletalMesh;
+class UStaticMesh;
 
 USTRUCT(BlueprintType)
 struct FEnemyAttackSet
@@ -160,7 +160,7 @@ public:
 	
 	// 무기
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TObjectPtr<USkeletalMesh> WeaponMesh;
+	TObjectPtr<UStaticMesh> WeaponMesh;
 	
 	// 보상
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
