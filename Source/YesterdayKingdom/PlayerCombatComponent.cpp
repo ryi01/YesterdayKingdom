@@ -6,6 +6,7 @@
 #include "BaseCharacter.h"
 #include "BaseStatComponent.h"
 #include "Engine/OverlapResult.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 //===============================================================================================
 // 플레이어 시선 보정
@@ -70,6 +71,8 @@ AActor* UPlayerCombatComponent::FindBestTarget() const
 	}
 	return BestTarget;
 }
+
+
 //===============================================================================================
 // 위치 보정을 위해 override
 //===============================================================================================
@@ -79,14 +82,21 @@ void UPlayerCombatComponent::BeginAttackTrace()
 	FaceBestTarget();
 	Super::BeginAttackTrace();
 }
+
 //===============================================================================================
 // 플레이어 입력과 연결된 함수
 //===============================================================================================
 void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 {
-	if (!PlayerAttackRows.Contains(AttackType)) return;
-	const FName AttackRowName = PlayerAttackRows[AttackType];
-	if (AttackRowName.IsNone()) return;
+	if (AttackType == EAttackType::Charge)
+	{
+		StartChargeAttack();
+		return;
+	}
+	
+	FName AttackRowName = NAME_None;
+	if (!TryGetAttackRowName(AttackType, AttackRowName)) return;
+	
 	const FAttackDataRow* AttackData = GetAttackDataByRow(AttackRowName);
 	if (!AttackData) return;
 	
@@ -95,3 +105,55 @@ void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 	
 	RequestAttackByRow(AttackRowName);
 }
+void UPlayerCombatComponent::OnChargeAttackStarted()
+{
+	FaceBestTarget();
+}
+
+void UPlayerCombatComponent::OnGuardStarted()
+{
+	Super::OnGuardStarted();
+	if (!OwnerCharacter) return;
+
+	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+	{
+		MoveComp->GetNavAgentPropertiesRef().bCanCrouch = true;
+		MoveComp->MaxWalkSpeedCrouched = OwnerCharacter->GetStatComponent()->GetCrouchMoveSpeed();
+	}
+	OwnerCharacter->Crouch();
+}
+
+void UPlayerCombatComponent::OnGuardEnded()
+{
+	Super::OnGuardEnded();
+	if (!OwnerCharacter) return;
+
+	OwnerCharacter->UnCrouch();
+
+	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = OwnerCharacter->GetStatComponent()->GetMoveSpeed();
+	}
+}
+
+void UPlayerCombatComponent::StartChargeAttack()
+{
+	FName ChargeRowName = NAME_None;
+	if (!TryGetAttackRowName(EAttackType::Charge, ChargeRowName)) return;
+
+	StartChargeAttackByRow(ChargeRowName);
+}
+bool UPlayerCombatComponent::TryGetAttackRowName(EAttackType AttackType, FName& OutRowName) const
+{
+	OutRowName = NAME_None;
+
+	if (!PlayerAttackRows.Contains(AttackType))
+	{
+		return false;
+	}
+
+	OutRowName = PlayerAttackRows[AttackType];
+
+	return !OutRowName.IsNone();
+}
+

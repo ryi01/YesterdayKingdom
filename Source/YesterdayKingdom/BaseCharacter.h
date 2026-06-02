@@ -36,6 +36,12 @@ protected:
 	TObjectPtr<class USceneComponent> WeaponRoot;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName WeaponSocketName = TEXT("Weapon_RSocket");
+	// ========================================================
+	// 패링
+	// ========================================================
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Reaction")
+	TObjectPtr<UAnimMontage> ParriedMontage;
+
 private:
 protected:
 	// ========================================================
@@ -64,6 +70,12 @@ public:
 	virtual void EndAttackTrace_Implementation() override;
 	virtual void CheckCombo_Implementation() override;
 	virtual void ClearAttackAnimation_Implementation() override;
+	
+	// ========================================================
+	// 패링
+	// ========================================================
+	UFUNCTION(BlueprintCallable, Category="Combat|Reaction")
+	void PlayParriedReaction();
 	
 	// ========================================================
 	// Getter 

@@ -14,16 +14,21 @@ class YESTERDAYKINGDOM_API UPlayerStatComponent : public UBaseStatComponent
 {
 	GENERATED_BODY()
 protected:
-//===============================================================================================
-// 회복
-//===============================================================================================
+	//===============================================================================================
+	// 회복
+	//===============================================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Recovery")
 	TObjectPtr<class UPlayerDefinition> PlayerDefinition;
 	
 	FTimerHandle RecoveryTimerHandle;
 
 	void RecoverResources();
+
 public:
 	virtual void BeginPlay() override;
+
+	//===============================================================================================
+	// Getter
+	//===============================================================================================
 	const UPlayerDefinition* GetPlayerDefinition() const;
 };

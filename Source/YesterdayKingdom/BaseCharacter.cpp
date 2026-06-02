@@ -107,10 +107,25 @@ void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCaus
 	const FVector& DamageImpulse)
 {
 	if (!StatComponent) return;
+<<<<<<< Updated upstream
 
 	StatComponent->ApplyDamage(Damage);
+=======
+	float FinalDamage = Damage;
+	if (CombatBaseComponent)
+	{
+		const bool bGuardedOrParried = CombatBaseComponent->TryHandleGuardOrParry(FinalDamage, DamageCauser);
+		if (bGuardedOrParried && FinalDamage <= 0.f) return;
+	}
+	
+	const float AppliedDamage = StatComponent->ApplyDamage(FinalDamage);
 
-	IDamagable::Execute_NotifyDamage(this, DamageLocation, DamageCauser);
+	if (AppliedDamage > 0.f)
+	{
+		IDamagable::Execute_NotifyDamage(this, DamageLocation, DamageCauser);
+	}
+>>>>>>> Stashed changes
+
 
 	if (StatComponent->IsDead())
 	{
@@ -164,6 +179,11 @@ void ABaseCharacter::CheckCombo_Implementation()
 void ABaseCharacter::ClearAttackAnimation_Implementation()
 {
 	if (CombatBaseComponent) CombatBaseComponent->ResetAttackState();
+}
+
+void ABaseCharacter::PlayParriedReaction()
+{
+	if (ParriedMontage) PlayAnimMontage(ParriedMontage);
 }
 
 UBaseStatComponent* ABaseCharacter::GetStatComponent() const

@@ -10,7 +10,6 @@ void UPlayerStatComponent::BeginPlay()
 	Super::BeginPlay();
 	GetWorld()->GetTimerManager().SetTimer(RecoveryTimerHandle, this, &UPlayerStatComponent::RecoverResources, 0.1f, true);
 }
-
 void UPlayerStatComponent::RecoverResources()
 {
 	if (!PlayerDefinition || IsDead()) return;

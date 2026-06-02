@@ -24,9 +24,21 @@ protected:
 	void FaceBestTarget();
 	UFUNCTION()
 	AActor* FindBestTarget() const;
-	
+private:
+	bool TryGetAttackRowName(EAttackType AttackType, FName& OutRowName) const;
+protected:
+	virtual void OnChargeAttackStarted() override;
+	virtual void OnGuardStarted() override;
+	virtual void OnGuardEnded() override;
 public:
 	virtual void BeginAttackTrace() override;
-	
+
+	UFUNCTION(BlueprintCallable, Category="Combat|Player")
 	void RequestAttack(EAttackType AttackType);
+
+	UFUNCTION(BlueprintCallable, Category="Combat|Player")
+	void StartChargeAttack();
+	
+
+	
 };

@@ -56,40 +56,145 @@ protected:
 
 	FTimerHandle HitStopTimerHandle;
 	
+	//===============================================================================
+	// 차지 공격 
+	//===============================================================================
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Charge")
+	bool bIsCharging = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Charge")
+	float ChargeStartTime = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Charge")
+	float CurrentChargeRatio = 1.f;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Charge")
+	FName CurrentChargeRowName = NAME_None;
+	//===============================================================================
+	// 가드 
+	//===============================================================================
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
+	TObjectPtr<UAnimMontage> GuardMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
+	TObjectPtr<UAnimMontage> ParrySuccessMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
+	FName GuardStartSection = TEXT("Guard_start");
+
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
+	FName GuardLoopSection = TEXT("Guard_loop");
+
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
+	FName GuardEndSection = TEXT("Guard_end");
+	
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Guard")
+	bool bIsGuarding = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="Combat|Guard")
+	bool bCanParry = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard")
+	float ParryWindow = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard")
+	float GuardDamageRate = 0.4f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard")
+	float GuardSTCostPerHit = 10.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard")
+	float ParrySTRecover = 10.f;
+
+	FTimerHandle ParryTimerHandle;
+	
 public:	
 	// Sets default values for this component's properties
 	UCombatBaseComponent();
 protected:
+	//=====================================================================================================
+	// 차지 공격
+	//=====================================================================================================
+	virtual void OnChargeAttackStarted();
+	virtual void OnChargeAttackReleased();
+	void UpdateCharge(float DeltaTime);
+	float CalculateChargeRatio(const FAttackDataRow* AttackDataRow) const;
+	//===============================================================================
+	// 가드 
+	//===============================================================================
+	virtual bool CanStartGuard() const;
+
+	virtual void OnGuardStarted();
+	virtual void OnGuardEnded();
+	virtual void OnParrySuccess(AActor* DamageCauser);
+
+	void CloseParryWindow();
+	
+	//=====================================================================================================
+	// 기타 함수
+	//=====================================================================================================
 	virtual bool IsValidHitActor(AActor* HitActor) const;
-	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
 	const FAttackNodeData* GetCurrentAttackNodeData() const;
 	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
+	//=====================================================================================================
+	// Hit시 발생되는 효과
+	//=====================================================================================================
+	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
 	void ResetHitStop();
 	
 	bool JumpToNextAttackSection();
-	
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 public:	
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	//=====================================================================================================
+	// 공격 시 타겟 탐색
+	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void BeginAttackTrace();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void DoAttackTrace();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void EndAttackTrace();
-	
+	//=====================================================================================================
+	// 코모 공격
+	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void CheckCombo();
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	virtual void ChargedAttack();
-	
+	//=====================================================================================================
+	// 차지 공격
+	//=====================================================================================================
+	UFUNCTION(BlueprintCallable, Category="Combat|Charge")
+	virtual bool StartChargeAttackByRow(FName AttackRowName);
+	UFUNCTION(BlueprintCallable, Category="Combat|Charge")
+	virtual void CancelChargeAttack();
+	UFUNCTION(BlueprintCallable, Category = "Combat|Charge")
+	virtual void ReleaseChargeAttack();
+	//===============================================================================
+	// 가드 
+	//===============================================================================
+	UFUNCTION(BlueprintCallable, Category="Combat|Guard")
+	virtual void StartGuard();
+	UFUNCTION(BlueprintCallable, Category="Combat|Guard")
+	virtual void EndGuard();
+	UFUNCTION(BlueprintCallable, Category="Combat|Guard")
+	bool TryHandleGuardOrParry(float& InOutDamage, AActor* DamageCauser);
+	UFUNCTION(BlueprintCallable, Category="Combat|Guard")
+	bool IsGuarding() const;
+	UFUNCTION(BlueprintCallable, Category="Combat|Guard")
+	bool CanParry() const;
+	//=====================================================================================================
+	// AttackRow 탐색
+	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category="Combat")
 	virtual void RequestAttackByRow(FName AttackRowName);
-	
+	//=====================================================================================================
+	// 리셋 및 셋팅
+	//=====================================================================================================
 	void ResetAttackState();
 	void SetAttackDataTable(UDataTable* NewTable);
 
