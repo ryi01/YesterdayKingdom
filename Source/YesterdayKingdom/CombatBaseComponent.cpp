@@ -6,21 +6,35 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "BaseCharacter.h"
-#include "BaseStatComponent.h"
 #include "Animation/AnimMontage.h"
 #include "CommonEnumTypes.h"
 #include "Kismet/GameplayStatics.h"
 
 UCombatBaseComponent::UCombatBaseComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.SetTickFunctionEnable(false);
 }
+
+
+
 // Called when the game starts
 void UCombatBaseComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	OwnerCharacter = Cast<ABaseCharacter>(GetOwner());
 }
+
+void UCombatBaseComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (bIsCharging)
+	{
+		UpdateCharge(DeltaTime);
+	}
+}
+
 //=====================================================================================================
 // 입력값이 들어오면 실행되는 함수 
 //=====================================================================================================
@@ -69,6 +83,13 @@ void UCombatBaseComponent::ResetAttackState()
 	bComboInputBuffered = false;
 	bIsAttackTracing = false;
 	
+	bIsCharging = false;
+	ChargeStartTime = 0.f;
+	CurrentChargeRatio = 1.f;
+	CurrentChargeRowName = NAME_None;
+	
+	SetComponentTickEnabled(false);
+	
 	HitActors.Empty();
 }
 //=====================================================================================================
@@ -81,13 +102,7 @@ void UCombatBaseComponent::CheckCombo()
 	
 	JumpToNextAttackSection();
 }
-void UCombatBaseComponent::ChargedAttack()
-{
-	if (!bComboInputBuffered) return;
 
-	bComboInputBuffered = false;
-	JumpToNextAttackSection();
-}
 bool UCombatBaseComponent::JumpToNextAttackSection()
 {
 	if (!OwnerCharacter) return false;
@@ -121,6 +136,264 @@ bool UCombatBaseComponent::JumpToNextAttackSection()
 	
 	return true;
 }
+//=====================================================================================================
+// 차지 공격 관련 함수
+//=====================================================================================================
+void UCombatBaseComponent::OnChargeAttackStarted()
+{
+}
+
+void UCombatBaseComponent::OnChargeAttackReleased()
+{
+}
+bool UCombatBaseComponent::StartChargeAttackByRow(FName AttackRowName)
+{
+	if (!OwnerCharacter || !AttackDataTable) return false;
+	if (AttackRowName.IsNone()) return false;
+	if (bIsGuarding) return false;
+	
+	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(AttackRowName);
+	if (!AttackDataRow || !AttackDataRow->Montage || AttackDataRow->Nodes.Num() <= 0) return false;
+	
+	if (AttackDataRow->StaminaCost > 0.f)
+	{
+		if (!OwnerCharacter->GetStatComponent() || !OwnerCharacter->GetStatComponent()->ConsumeST(AttackDataRow->StaminaCost)) return false;
+	}
+	if (AttackDataRow->MPCost > 0.f)
+	{
+		if (!OwnerCharacter->GetStatComponent() || !OwnerCharacter->GetStatComponent()->ConsumeMP(AttackDataRow->MPCost)) return false;
+	}
+	
+	bIsCharging = true;
+	ChargeStartTime = GetWorld()->GetTimeSeconds();
+	CurrentChargeRatio = 0.f;
+	CurrentChargeRowName = AttackRowName;
+	
+	SetComponentTickEnabled(true);
+	
+	OnChargeAttackStarted();
+	
+	RequestAttackByRow(AttackRowName);
+	
+	return true;
+}
+
+void UCombatBaseComponent::CancelChargeAttack()
+{
+	if (!OwnerCharacter || !bIsCharging) return;
+	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentChargeRowName);
+
+	if (AttackDataRow && AttackDataRow->Montage)
+	{
+		if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
+		{
+			AnimInstance->Montage_Stop(0.15f, AttackDataRow->Montage);
+		}
+	}
+	
+	bIsCharging = false;
+	ChargeStartTime = 0.f;
+	CurrentChargeRatio = 1.f;
+	CurrentChargeRowName = NAME_None;
+	
+	SetComponentTickEnabled(false);
+	
+	ResetAttackState();
+	
+}
+void UCombatBaseComponent::ReleaseChargeAttack()
+{
+	if (!OwnerCharacter || !bIsCharging) return;
+	if (CurrentChargeRowName.IsNone()) return;
+
+	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentChargeRowName);
+	if (!AttackDataRow || !AttackDataRow->Montage) return;
+
+	CurrentChargeRatio = CalculateChargeRatio(AttackDataRow);
+
+	bIsCharging = false;
+	SetComponentTickEnabled(false);
+
+	OnChargeAttackReleased();
+	
+	JumpToNextAttackSection();
+}
+
+void UCombatBaseComponent::UpdateCharge(float DeltaTime)
+{
+	if (!OwnerCharacter || CurrentChargeRowName.IsNone()) return;
+	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentChargeRowName);
+	if (!AttackDataRow) return;
+
+	UBaseStatComponent* StatComponent = OwnerCharacter->GetStatComponent();
+	if (!StatComponent) return;
+	
+	CurrentChargeRatio = CalculateChargeRatio(AttackDataRow);
+	const float STCost = AttackDataRow->StaminaCost * DeltaTime;
+	const float MPCost = AttackDataRow->MPCost * DeltaTime;
+	
+	if (STCost > 0.f)
+	{
+		if (!StatComponent->ConsumeST(STCost))
+		{
+			if (AttackDataRow->bReleaseWhenChargeResourceEmpty)
+			{
+				ReleaseChargeAttack();
+			}
+			else
+			{
+				CancelChargeAttack();
+			}
+			return;
+		}
+	}
+	if (MPCost > 0.f)
+	{
+		if (!StatComponent->ConsumeMP(MPCost))
+		{
+			if (AttackDataRow->bReleaseWhenChargeResourceEmpty)
+			{
+				ReleaseChargeAttack();
+			}
+			else
+			{
+				CancelChargeAttack();
+			}
+			return;
+		}
+	}
+}
+
+float UCombatBaseComponent::CalculateChargeRatio(const FAttackDataRow* AttackDataRow) const
+{
+	if (!AttackDataRow || !GetWorld()) return 0.f;
+	const float MaxChargeTime = FMath::Max(AttackDataRow->MaxChargeTime, 0.01f);
+	const float HeldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
+	
+	return FMath::Clamp(HeldTime / MaxChargeTime, 0.f, 1.f);
+}
+//=====================================================================================================
+// 가드 관련
+//=====================================================================================================
+void UCombatBaseComponent::StartGuard()
+{
+	if (!CanStartGuard()) return;
+	bIsGuarding = true;
+	bCanParry = true;
+	OnGuardStarted();
+	if (GuardMontage && OwnerCharacter)
+	{
+		OwnerCharacter->PlayAnimMontage(GuardMontage, 1.f, GuardStartSection);
+	}
+	
+	GetWorld()->GetTimerManager().ClearTimer(ParryTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(ParryTimerHandle, this, &UCombatBaseComponent::CloseParryWindow, ParryWindow, false);
+}
+void UCombatBaseComponent::CloseParryWindow()
+{
+	bCanParry = false;
+}
+
+void UCombatBaseComponent::EndGuard()
+{
+	if (!bIsGuarding) return;
+	
+	bIsGuarding = false;
+	bCanParry = false;
+	
+	GetWorld()->GetTimerManager().ClearTimer(ParryTimerHandle);
+	
+	if (GuardMontage && OwnerCharacter)
+	{
+		if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
+		{
+			AnimInstance->Montage_JumpToSection(GuardEndSection, GuardMontage);
+		}
+	}
+
+	OnGuardEnded();
+}
+void UCombatBaseComponent::OnGuardStarted()
+{
+}
+
+void UCombatBaseComponent::OnGuardEnded()
+{
+}
+
+void UCombatBaseComponent::OnParrySuccess(AActor* DamageCauser)
+{
+	if (!OwnerCharacter) return;
+	UE_LOG(LogTemp, Warning, TEXT("Success Parry"));
+	if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
+	{
+		if (GuardMontage)
+		{
+			AnimInstance->Montage_Stop(0.05f, GuardMontage);
+		}
+	}
+
+	if (ParrySuccessMontage)
+	{
+		OwnerCharacter->PlayAnimMontage(ParrySuccessMontage);
+	}
+}
+
+
+bool UCombatBaseComponent::TryHandleGuardOrParry(float& InOutDamage, AActor* DamageCauser)
+{
+	if (!OwnerCharacter || !bIsGuarding) return false;
+	UBaseStatComponent* StatComponent = OwnerCharacter->GetStatComponent();
+	if (!StatComponent) return false;
+	
+	if (bCanParry)
+	{
+		InOutDamage = 0.f;
+		bCanParry = false;
+		bIsGuarding = false;
+		
+		GetWorld()->GetTimerManager().ClearTimer(ParryTimerHandle);
+		if (ParrySTRecover > 0.f) StatComponent->RecoverST(ParrySTRecover);
+		OnParrySuccess(DamageCauser);
+		OnGuardEnded();
+		
+		return true;
+	}
+	
+	if (GuardSTCostPerHit > 0.f)
+	{
+		if (!StatComponent->ConsumeST(GuardSTCostPerHit))
+		{
+			EndGuard();
+			return false;
+		}
+	}
+
+	InOutDamage *= GuardDamageRate;
+
+	return true;
+}
+
+bool UCombatBaseComponent::CanStartGuard() const
+{
+	if (!OwnerCharacter) return false;
+	if (bIsGuarding) return false;
+	if (!CurrentAttackRowName.IsNone()) return false;
+	if (bIsCharging) return false;
+	
+	return true;
+}
+
+bool UCombatBaseComponent::IsGuarding() const
+{
+	return bIsGuarding;
+}
+
+bool UCombatBaseComponent::CanParry() const
+{
+	return bCanParry;
+}
+
 //=====================================================================================================
 // 공격시, 공격 대상 탐지 => 공격을 맞은 대상이 있는가?
 //=====================================================================================================
@@ -206,6 +479,9 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 	if (!HitActor || !OwnerCharacter) return;
 	const FAttackNodeData* NodeData = GetCurrentAttackNodeData();
 
+<<<<<<< Updated upstream
+	const float Damage = NodeData ? NodeData->Damage : DefaultDamage;
+=======
 	const float BaseDamage = NodeData ? NodeData->Damage : DefaultDamage;
 	
 	float AttackBonus = 0.f;
@@ -214,7 +490,17 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 		AttackBonus = StatComponent->GetFinalAttack();
 	}
 	
-	const float Damage = BaseDamage + AttackBonus;
+	float Damage = BaseDamage + AttackBonus;
+	if (!CurrentChargeRowName.IsNone() && CurrentAttackRowName == CurrentChargeRowName)
+	{
+		const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentChargeRowName);
+		if (AttackDataRow)
+		{
+			const float Multiplier = FMath::Lerp(AttackDataRow->MinChargeDamageMultiplier, AttackDataRow->MaxChargeDamageMultiplier, CurrentChargeRatio);
+			Damage *= Multiplier;
+		}
+	}
+>>>>>>> Stashed changes
 	const FVector DamageImpulse = OwnerCharacter->GetActorForwardVector();
 	
 	IDamagable::Execute_ApplyDamage(HitActor, Damage, OwnerCharacter.Get(), HitResult.ImpactPoint, DamageImpulse);

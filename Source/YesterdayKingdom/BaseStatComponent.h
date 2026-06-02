@@ -48,6 +48,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float RunSpeed = 800.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
+	float CrouchSpeed = 350.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float MaxStun = 50.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float CurrentStun = 0.f;
@@ -60,7 +62,17 @@ protected:
 	float LastSTConsumeTime = -999.f;
 	UPROPERTY()
 	float LastMPConsumeTime = -999.f;
-	
+
+	// ========================================================
+	// 버프 관련
+	// ========================================================
+	UPROPERTY(BlueprintReadOnly, Category="Stat|Buff")
+	float BuffAttackBonus = 0.f;
+
+	// 방어력 버프
+	UPROPERTY(BlueprintReadOnly, Category="Stat|Buff")
+	float BuffDefenseBonus = 0.f;
+
 	// ========================================================
 	// Equipment Bonus
 	// ========================================================
@@ -69,6 +81,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat|Equipment")
 	float EquipmentDefenseBonus = 0.f;
+
 	
 public:	
 	// Sets default values for this component's properties
@@ -120,6 +133,25 @@ public:
 	bool IsDead() const;
 	UFUNCTION(BlueprintCallable)
 	bool IsStunned() const;
+
+	// ========================================================
+	// 버프 관련
+	// ========================================================
+	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
+	void AddBuffAttack(float Value);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
+	void AddBuffDefense(float Value);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
+	void ClearBuffAttack();
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
+	void ClearBuffDefense();
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
+	void ClearAllBuffStats();
+	
 	// ========================================================
 	// Equipment Bonus
 	// ========================================================
@@ -152,6 +184,8 @@ public:
 	float GetDefense() const;
 	UFUNCTION(BlueprintPure)
 	float GetMoveSpeed() const;
+	UFUNCTION(BlueprintPure)
+	float GetCrouchMoveSpeed() const;
 	UFUNCTION(BlueprintPure)
 	float GetRunSpeed() const;
 	UFUNCTION(BlueprintPure)

@@ -13,6 +13,7 @@ enum class EEnemyFSMStateType : uint8
 	None            UMETA(DisplayName = "None"),
 
 	Idle            UMETA(DisplayName = "Idle"),
+	Patrol          UMETA(DisplayName = "Patrol"),
 	Chase           UMETA(DisplayName = "Chase"),
 	Return			UMETA(DisplayName = "Return"),
 	Attack          UMETA(DisplayName = "Attack"),

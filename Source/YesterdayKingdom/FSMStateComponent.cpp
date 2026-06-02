@@ -134,7 +134,7 @@ void UFSMStateComponent::MoveToLocation(const FVector& TargetLocation, float Acc
 	if (!OwnerCharacter) return;
 	AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController());
 	if (!AIController) return;
-	AIController->MoveToLocation(TargetLocation, AcceptanceRadius);
+	AIController->MoveToLocation(TargetLocation, AcceptanceRadius, false, true, true, false, nullptr, true);
 }
 
 void UFSMStateComponent::StopMove()

@@ -35,6 +35,9 @@ public:
 	float MoveSpeed = 400.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float CrouchSpeed = 350.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float RunSpeed = 600.f;
 	
 	// 경직 

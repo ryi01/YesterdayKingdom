@@ -6,6 +6,7 @@
 #include "ChaseStateComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "IdleStatComponent.h"
+#include "PatrolStateComponent.h"
 #include "ReturnStateComponent.h"
 
 ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -16,6 +17,7 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	IdleState = CreateDefaultSubobject<UIdleStatComponent>(TEXT("IdleState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
+	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
 }
 
 void ABossEnemy::BeginPlay()
@@ -26,6 +28,7 @@ void ABossEnemy::BeginPlay()
 
 	if (IdleState)
 	{
+		IdleState->SetNextIdleState(EEnemyFSMStateType::Patrol);
 		FSMController->RegisterState(EEnemyFSMStateType::Idle, IdleState);
 	}
 
@@ -37,6 +40,11 @@ void ABossEnemy::BeginPlay()
 	if (ReturnState)
 	{
 		FSMController->RegisterState(EEnemyFSMStateType::Return, ReturnState);
+	}
+	
+	if (PatrolState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Patrol, PatrolState);
 	}
 
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);

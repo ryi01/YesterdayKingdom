@@ -23,6 +23,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerCombatComponent>(TEXT("CombatComponent")).SetDefaultSubobjectClass<UPlayerStatComponent>(TEXT("StatComponent")))
 {
 	PrimaryActorTick.bCanEverTick = true;
+	
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(WeaponRoot);
 	
@@ -50,7 +51,9 @@ void APlayerCharacter::BeginPlay()
 	if (MoveComp)
 	{
 		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
+		MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
 		MoveComp->bOrientRotationToMovement = true;
+		MoveComp->GetNavAgentPropertiesRef().bCanCrouch = true;
 	}
 	// 인터렉션 대상 체크
 	GetWorld()->GetTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::UpdateInteractionTarget, 0.1f, true);
@@ -92,6 +95,11 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	EnhancedInputComponent->BindAction(ChargeAttackAction, ETriggerEvent::Completed, this, &APlayerCharacter::DoChargeRelease);
 	EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoLightAttack);
 	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &APlayerCharacter::DoHeavyAttack);
+	
+	EnhancedInputComponent->BindAction(BuffAction, ETriggerEvent::Started, this, &APlayerCharacter::DoBattleBuff);
+	
+	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &APlayerCharacter::StartGuard);
+	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Completed, this, &APlayerCharacter::EndGuard);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
@@ -157,17 +165,21 @@ void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 		PlayerCombat->RequestAttack(EAttackType::Heavy);
 	}
 }
+
 void APlayerCharacter::DoChargedAttack()
 {
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
 	{
-		PlayerCombat->RequestAttack(EAttackType::Charge);
+		PlayerCombat->StartChargeAttack();
 	}
 }
 
 void APlayerCharacter::DoChargeRelease()
 {
-	if (CombatBaseComponent) CombatBaseComponent->ChargedAttack();
+	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
+	{
+		PlayerCombat->ReleaseChargeAttack();
+	}
 }
 
 void APlayerCharacter::CheckCombo_Implementation()
@@ -177,6 +189,76 @@ void APlayerCharacter::CheckCombo_Implementation()
 		CombatBaseComponent->CheckCombo();
 	}
 }
+//===============================================================================================
+// 버프 스킬 관련
+//===============================================================================================
+
+void APlayerCharacter::DoBattleBuff()
+{
+	if (!CanUseBattleBuff() || !GetStatComponent()) return;
+	if (BuffMPCost > 0.f && !GetStatComponent()->ConsumeMP(BuffMPCost)) return;
+	
+	bIsBattleBuffActive = true;
+	bIsBattleBuffOnCooldown = true;
+	
+	GetStatComponent()->AddBuffAttack(BattleBuffAttackBonus);
+	GetStatComponent()->AddBuffDefense(BattleBuffDefenseBonus);
+	
+	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed() * BuffMoveSpeedMultiplier;
+	UE_LOG(LogTemp, Warning, TEXT("BuffStart : %f"), MoveComp->MaxWalkSpeed);
+	GetWorld()->GetTimerManager().ClearTimer(BattleBuffTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(BattleBuffTimerHandle, this, &APlayerCharacter::EndBattleBuff, BuffDuration, false);
+
+	GetWorld()->GetTimerManager().ClearTimer(BattleBuffCooldownTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(BattleBuffCooldownTimerHandle, this, &APlayerCharacter::EndBattleBuffCooldown, BattleBuffCooldown, false);
+
+}
+void APlayerCharacter::EndBattleBuff()
+{
+	if (!bIsBattleBuffActive) return;
+
+	bIsBattleBuffActive = false;
+
+	if (GetStatComponent())
+	{
+		GetStatComponent()->ClearAllBuffStats();
+	}
+
+	if (MoveComp && GetStatComponent())
+	{
+		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
+	}
+	UE_LOG(LogTemp, Warning, TEXT("buffEnd : %f"), MoveComp->MaxWalkSpeed);
+}
+
+void APlayerCharacter::EndBattleBuffCooldown()
+{
+	bIsBattleBuffOnCooldown = false;
+	UE_LOG(LogTemp, Warning, TEXT("BuffCoolDown End"));
+}
+
+bool APlayerCharacter::CanUseBattleBuff() const
+{
+	if (bIsBattleBuffActive) return false;
+	if (bIsBattleBuffOnCooldown) return false;
+	if (!GetStatComponent()) return false;
+	if (GetStatComponent()->GetCurrentMP() < BuffMPCost) return false;
+
+	return true;
+}
+//===============================================================================================
+// 가드 관련 
+//===============================================================================================
+void APlayerCharacter::StartGuard()
+{
+	if (CombatBaseComponent) CombatBaseComponent->StartGuard();
+}
+
+void APlayerCharacter::EndGuard()
+{
+	if (CombatBaseComponent) CombatBaseComponent->EndGuard();
+}
+
 //===============================================================================================
 // 인터렉션 관련
 //===============================================================================================
@@ -215,3 +297,4 @@ UEquipmentComponent* APlayerCharacter::GetEquipmentComponent() const
 {
 	return EquipmentComponent;
 }
+

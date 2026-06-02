@@ -38,9 +38,12 @@ void UIdleStatComponent::OnStateUpdate(float DeltaTime)
 	if (StateElapsedTime < CurrentStateDuration) return;
 	if (IsPlayerInDetectRange())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Chase);
+		FSMController->ChangeState(NextIdleState);
 	}
-	
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Idle] Idle Finished -> %s"),
+	*UEnum::GetValueAsString(NextIdleState));
+
+	FSMController->ChangeState(NextIdleState);
 }
 
 void UIdleStatComponent::OnStateExit()
@@ -51,4 +54,9 @@ void UIdleStatComponent::OnStateExit()
 	{
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Idle] Exit : %s"), *OwnerCharacter->GetName());
 	}
+}
+
+void UIdleStatComponent::SetNextIdleState(EEnemyFSMStateType InNextState)
+{
+	NextIdleState = InNextState;
 }

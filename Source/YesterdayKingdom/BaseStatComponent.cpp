@@ -45,6 +45,7 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 	Attack = StatRow->Attack;
 	Defense = StatRow->Defense;
 	MoveSpeed = StatRow->MoveSpeed;
+	CrouchSpeed = StatRow->CrouchSpeed;
 	RunSpeed = StatRow->RunSpeed;
 	
 	MaxStun = StatRow->MaxStun;
@@ -63,7 +64,7 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 float UBaseStatComponent::ApplyDamage(float Amount)
 {
 	if (bIsDead) return 0.f;
-	const float FinalDamage = FMath::Max(Amount - Defense, 1.f);
+	const float FinalDamage = FMath::Max(Amount - GetFinalDefense(), 1.f);
 	CurrentHP = FMath::Clamp(CurrentHP - FinalDamage, 0.f, MaxHP);
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 	UE_LOG(LogTemp, Warning, TEXT("%s HP : %f"), *GetOwner()->GetName(), CurrentHP);
@@ -154,6 +155,35 @@ bool UBaseStatComponent::IsStunned() const
 	return bIsStun;
 }
 // ========================================================
+// 버프 
+// ========================================================
+void UBaseStatComponent::AddBuffAttack(float Value)
+{
+	BuffAttackBonus += Value;
+}
+
+void UBaseStatComponent::AddBuffDefense(float Value)
+{
+	BuffDefenseBonus += Value;
+}
+
+void UBaseStatComponent::ClearBuffAttack()
+{
+	BuffAttackBonus = 0.f;
+}
+
+void UBaseStatComponent::ClearBuffDefense()
+{
+	BuffDefenseBonus = 0.f;
+}
+
+void UBaseStatComponent::ClearAllBuffStats()
+{
+	BuffAttackBonus = 0.f;
+	BuffDefenseBonus = 0.f;
+}
+
+// ========================================================
 // 장비 장착 
 // ========================================================
 void UBaseStatComponent::SetEquipmentBonus(float InAttackBonus, float InDefenseBonus)
@@ -164,18 +194,16 @@ void UBaseStatComponent::SetEquipmentBonus(float InAttackBonus, float InDefenseB
 
 float UBaseStatComponent::GetFinalAttack() const
 {
-	return Attack + EquipmentAttackBonus;
+	return Attack + EquipmentAttackBonus + BuffAttackBonus;
 }
 
 float UBaseStatComponent::GetFinalDefense() const
 {
-	return Defense + EquipmentDefenseBonus;
+	return Defense + EquipmentDefenseBonus + BuffDefenseBonus;
 }
-
 // ========================================================
 // Getter 
 // ========================================================
-
 UDataTable* UBaseStatComponent::GetStatusDT() const
 {
 	return StatDT;
@@ -225,6 +253,11 @@ float UBaseStatComponent::GetMoveSpeed() const
 	return MoveSpeed;
 }
 
+float UBaseStatComponent::GetCrouchMoveSpeed() const
+{
+	return CrouchSpeed;
+}
+
 float UBaseStatComponent::GetRunSpeed() const
 {
 	return RunSpeed;
@@ -242,7 +275,7 @@ float UBaseStatComponent::GetLastSTConsumeTime() const
 
 float UBaseStatComponent::GetLastMPConsumeTime() const
 {
-	return LastSTConsumeTime;
+	return LastMPConsumeTime;
 }
 #pragma endregion
 

@@ -131,4 +131,24 @@ struct FAttackDataRow : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere)
 	TArray<FAttackNodeData> Nodes;
+	
+	// =========================
+	// Charge
+	// =========================
+
+	// 최대 차지 시간. 이 시간 이상 누르면 CurrentChargeRatio = 1
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Charge")
+	float MaxChargeTime = 1.5f;
+
+	// 차지 데미지 최소 배율
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Charge")
+	float MinChargeDamageMultiplier = 1.0f;
+
+	// 차지 데미지 최대 배율
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Charge")
+	float MaxChargeDamageMultiplier = 1.8f;
+
+	// 자원이 부족하면 차지를 강제 발동할지, 취소할지
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Charge")
+	bool bReleaseWhenChargeResourceEmpty = true;
 };

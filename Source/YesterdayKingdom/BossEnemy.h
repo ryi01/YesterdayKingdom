@@ -29,6 +29,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UReturnStateComponent> ReturnState;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UPatrolStateComponent> PatrolState;
+	
 public:
 	ABossEnemy(const FObjectInitializer& ObjectInitializer);
 
