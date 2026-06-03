@@ -42,6 +42,9 @@ public:
 	//===============================================================================================
 	// 이동 관련
 	//===============================================================================================
+	UPROPERTY()
+	TObjectPtr<UCharacterMovementComponent> MoveComp;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputMappingContext> InputMappingContext;
 	//이동 매핑
@@ -121,16 +124,29 @@ public:
 	//===============================================================================================
 	// 위잿 관련 
 	//===============================================================================================
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="UI")
+	TSubclassOf<class UPlayerHUDWidget> PlayerHUDWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<class UPlayerHUDWidget> PlayerHUDWidget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
+	bool bIsInventoryOpen = false;
 	
 protected:
-	// 캐릭터 이동 컴포넌트 참조
-	UPROPERTY()
-	TObjectPtr<UCharacterMovementComponent> MoveComp;
+
 	//===============================================================================================
 	// 인터렉션 관련 
 	//===============================================================================================
 	void UpdateInteractionTarget();
 	
+	//===============================================================================================
+	// 위잿 관련 
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void SetUIMode(bool bEnableUI);
+	
+	void CreatePlayerHUD();
 public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;

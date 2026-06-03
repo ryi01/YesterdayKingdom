@@ -16,6 +16,7 @@
 #include "InventoryComponent.h"
 #include "PlayerCombatComponent.h"
 #include "PlayerDefinition.h"
+#include "PlayerHUDWidget.h"
 #include "PlayerInteractionComponent.h"
 #include "PlayerStatComponent.h"
 
@@ -55,10 +56,11 @@ void APlayerCharacter::BeginPlay()
 		MoveComp->bOrientRotationToMovement = true;
 		MoveComp->GetNavAgentPropertiesRef().bCanCrouch = true;
 	}
+	
+	CreatePlayerHUD();
+	
 	// 인터렉션 대상 체크
 	GetWorld()->GetTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::UpdateInteractionTarget, 0.1f, true);
-	InventoryComponent->AddItem(TEXT("WP_Sword"), 1);
-	EquipmentComponent->EquipItem(TEXT("WP_Sword"));
 }
 
 void APlayerCharacter::Tick(float DeltaSeconds)
@@ -101,7 +103,45 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &APlayerCharacter::StartGuard);
 	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Completed, this, &APlayerCharacter::EndGuard);
 }
+//===============================================================================================
+// 위잿
+//===============================================================================================
+void APlayerCharacter::CreatePlayerHUD()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return;
+	if (!PlayerHUDWidgetClass) return;
+	PlayerHUDWidget = CreateWidget<UPlayerHUDWidget>(PC, PlayerHUDWidgetClass);
+	if (!PlayerHUDWidget) return;
+	PlayerHUDWidget->AddToViewport();
+	PlayerHUDWidget->BindPlayer(this);
+	PlayerHUDWidget->SetInventoryVisible(false);
+}
+void APlayerCharacter::SetUIMode(bool bEnableUI)
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC) return;
+	if (bEnableUI)
+	{
+		PC->bShowMouseCursor = true;
+		FInputModeGameAndUI InputModeGameAndUI;
+		InputModeGameAndUI.SetHideCursorDuringCapture(false);
+		InputModeGameAndUI.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		
+		PC->SetInputMode(InputModeGameAndUI);
+	}
+	else
+	{
+		PC->bShowMouseCursor = false;
 
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+	}
+}
+
+//===============================================================================================
+// 이동
+//===============================================================================================
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -129,7 +169,10 @@ void APlayerCharacter::Look(const FInputActionValue& Value)
 //===============================================================================================
 void APlayerCharacter::ToggleInventory()
 {
-	UE_LOG(LogTemp, Log, TEXT("Inventory"));	
+	if (!PlayerHUDWidget) return;
+	bIsInventoryOpen = !bIsInventoryOpen;
+	PlayerHUDWidget->SetInventoryVisible(bIsInventoryOpen);
+	SetUIMode(bIsInventoryOpen);
 }
 
 //===============================================================================================
@@ -293,6 +336,7 @@ void APlayerCharacter::UpdateInteractionTarget()
 		InteractionComponent->UpdateInteractTarget();
 	}
 }
+
 //===============================================================================================
 // 컴포넌트 Getter
 //===============================================================================================
