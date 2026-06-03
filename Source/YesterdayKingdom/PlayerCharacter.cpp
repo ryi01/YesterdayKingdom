@@ -18,6 +18,7 @@
 #include "PlayerDefinition.h"
 #include "PlayerHUDWidget.h"
 #include "PlayerInteractionComponent.h"
+#include "PlayerSkillComponent.h"
 #include "PlayerStatComponent.h"
 #include "QuestComponent.h"
 
@@ -34,6 +35,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	InteractionComponent = CreateDefaultSubobject<UPlayerInteractionComponent>(TEXT("InteractionComponent"));
 	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));
 	QuestComponent = CreateDefaultSubobject<UQuestComponent>(TEXT("QuestComponent"));
+	SkillComponent = CreateDefaultSubobject<UPlayerSkillComponent>(TEXT("SkillTreeComponent"));
 	
 	bDestroyOnDeath = false;
 }
@@ -63,6 +65,10 @@ void APlayerCharacter::BeginPlay()
 	
 	CreatePlayerHUD();
 	
+	if (GoldComponent)
+	{
+		GoldComponent->AddGold(1000);
+	}
 	// 인터렉션 대상 체크
 	GetWorld()->GetTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::UpdateInteractionTarget, 0.1f, true);
 }
@@ -106,6 +112,8 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	
 	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &APlayerCharacter::StartGuard);
 	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Completed, this, &APlayerCharacter::EndGuard);
+
+	EnhancedInputComponent->BindAction(TestSkillAction, ETriggerEvent::Started, this, &APlayerCharacter::TestUnlockSkill);
 }
 //===============================================================================================
 // 위잿
@@ -186,14 +194,25 @@ void APlayerCharacter::DoDash()
 {
 	if (GetStatComponent()->GetCurrentST() <= 0.f) return;
 	bIsDashing = true;
-	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetRunSpeed();
+	RefreshMoveSpeed();
 }
 
 void APlayerCharacter::DoDashStop()
 {
 	bIsDashing = false;
-	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed(); // 임시로 600 설정
+	RefreshMoveSpeed();
 }
+
+void APlayerCharacter::RefreshMoveSpeed()
+{
+	if (!MoveComp || !GetStatComponent()) return;
+	float NewSpeed = bIsDashing ? GetStatComponent()->GetRunSpeed() : GetStatComponent()->GetMoveSpeed();
+	if (bIsBattleBuffActive) NewSpeed *= BuffMoveSpeedMultiplier;
+	MoveComp->MaxWalkSpeed = NewSpeed;
+	MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
+}
+
+
 //===============================================================================================
 // 공격 관련
 //===============================================================================================
@@ -248,8 +267,8 @@ void APlayerCharacter::ApplyBattleBuff()
 	GetStatComponent()->AddBuffAttack(BattleBuffAttackBonus);
 	GetStatComponent()->AddBuffDefense(BattleBuffDefenseBonus);
 	
-	if (MoveComp) MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed() * BuffMoveSpeedMultiplier;
-	UE_LOG(LogTemp, Warning, TEXT("BuffStart : %f"), MoveComp->MaxWalkSpeed);
+	RefreshMoveSpeed();
+
 	GetWorld()->GetTimerManager().ClearTimer(BattleBuffTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(BattleBuffTimerHandle, this, &APlayerCharacter::EndBattleBuff, BuffDuration, false);
 
@@ -286,10 +305,8 @@ void APlayerCharacter::EndBattleBuff()
 		StatComponent->ClearAllBuffStats();
 	}
 
-	if (MoveComp && StatComponent)
-	{
-		MoveComp->MaxWalkSpeed = StatComponent->GetMoveSpeed();
-	}
+	RefreshMoveSpeed();
+	
 	UE_LOG(LogTemp, Warning, TEXT("buffEnd : %f"), MoveComp->MaxWalkSpeed);
 }
 
@@ -315,6 +332,8 @@ bool APlayerCharacter::CanUseBattleBuff() const
 //===============================================================================================
 void APlayerCharacter::StartGuard()
 {
+	if (!SkillComponent) return;
+	if (!SkillComponent->CanUseParry()) return;
 	if (CombatBaseComponent) CombatBaseComponent->StartGuard();
 }
 
@@ -326,6 +345,13 @@ void APlayerCharacter::EndGuard()
 void APlayerCharacter::OnDead()
 {
 	Super::OnDead();
+	bIsDashing = false;
+
+	if (MoveComp)
+	{
+		MoveComp->StopMovementImmediately();
+	}
+
 	SetUIMode(true);
 }
 
@@ -340,6 +366,30 @@ void APlayerCharacter::Interaction()
 		InteractionComponent->Interact();
 	}	
 }
+
+void APlayerCharacter::TestUnlockSkill()
+{
+	if (!SkillComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SkillTest] SkillComponent is null"));
+		return;
+	}
+
+	if (!GoldComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SkillTest] GoldComponent is null"));
+		return;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Attack Before: %f"), StatComponent->GetFinalAttack());
+	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Gold Before: %d"), GoldComponent->GetGold());
+
+	const bool bResult = SkillComponent->TryUnlockSkill(TEXT("SK_Charge_01"));
+
+	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Unlock Result: %s"), bResult ? TEXT("Success") : TEXT("Failed"));
+	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Gold After: %d"), GoldComponent->GetGold());
+	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] FinalAttack: %f"), StatComponent->GetFinalAttack());
+}
+
 void APlayerCharacter::UpdateInteractionTarget()
 {
 	if (InteractionComponent)
@@ -373,5 +423,10 @@ UEquipmentComponent* APlayerCharacter::GetEquipmentComponent() const
 UQuestComponent* APlayerCharacter::GetQuestComponent() const
 {
 	return QuestComponent;
+}
+
+UPlayerSkillComponent* APlayerCharacter::GetSkillComponent() const
+{
+	return SkillComponent;
 }
 

@@ -5,6 +5,8 @@
 
 #include "BaseCharacter.h"
 #include "BaseStatComponent.h"
+#include "PlayerCharacter.h"
+#include "PlayerSkillComponent.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -100,11 +102,20 @@ void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 	const FAttackDataRow* AttackData = GetAttackDataByRow(AttackRowName);
 	if (!AttackData) return;
 	
-	if (AttackData->StaminaCost > 0 && !OwnerCharacter->GetStatComponent()->ConsumeST(AttackData->StaminaCost)) return;
-	if (AttackData->MPCost > 0 && !OwnerCharacter->GetStatComponent()->ConsumeMP(AttackData->MPCost)) return;
+	UBaseStatComponent* StatComp = OwnerCharacter->GetStatComponent();
+	if (!StatComp) return;
+	
+	const float StaminaCost = AttackData->StaminaCost;
+	const float MPCost = AttackData->MPCost;
+	
+	if (StaminaCost > 0.f && StatComp->GetCurrentST() < StaminaCost) return;
+	if (MPCost > 0.f && StatComp->GetCurrentMP() < MPCost) return;
+	if (StaminaCost > 0.f) StatComp->ConsumeST(StaminaCost);
+	if (MPCost > 0.f)StatComp->ConsumeMP(MPCost);
 	
 	RequestAttackByRow(AttackRowName);
 }
+
 void UPlayerCombatComponent::OnChargeAttackStarted()
 {
 	FaceBestTarget();
@@ -130,14 +141,16 @@ void UPlayerCombatComponent::OnGuardEnded()
 
 	OwnerCharacter->UnCrouch();
 
-	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
-	{
-		MoveComp->MaxWalkSpeed = OwnerCharacter->GetStatComponent()->GetMoveSpeed();
-	}
+	if (APlayerCharacter* Player = Cast<APlayerCharacter>(OwnerCharacter)) Player->RefreshMoveSpeed();
 }
 
 void UPlayerCombatComponent::StartChargeAttack()
 {
+	APlayerCharacter* Player = Cast<APlayerCharacter>(OwnerCharacter);
+	if (!Player) return;
+	
+	UPlayerSkillComponent* SkillComponent = Player->GetSkillComponent();
+	if (!SkillComponent || !SkillComponent->CanUseChargeAttack()) return;
 	FName ChargeRowName = NAME_None;
 	if (!TryGetAttackRowName(EAttackType::Charge, ChargeRowName)) return;
 

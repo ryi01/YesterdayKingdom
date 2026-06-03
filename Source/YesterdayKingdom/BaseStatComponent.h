@@ -82,6 +82,29 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat|Equipment")
 	float EquipmentDefenseBonus = 0.f;
 
+	// ========================================================
+	// 스킬트리 관련
+	// ========================================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stat|Skill")
+	float SkillBonusAttack = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stat|Skill")
+	float SkillBonusDefense = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stat|Skill")
+	float SkillBonusMaxHP = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stat|Skill")
+	float SkillBonusMaxMP = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stat|Skill")
+	float SkillBonusMaxST = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stat|Skill")
+	float SkillBonusMoveSpeed = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Stat|Skill")
+	float SkillBonusRunSpeed = 0.f;
 	
 public:	
 	// Sets default values for this component's properties
@@ -142,6 +165,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
 	void AddBuffDefense(float Value);
+	
+	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
+	void AddBonusMoveSpeed(float Value);
 
 	UFUNCTION(BlueprintCallable, Category="Stat|Buff")
 	void ClearBuffAttack();
@@ -161,6 +187,33 @@ public:
 	float GetFinalAttack() const;
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetFinalDefense() const;
+	
+	// ========================================================
+	// Skill Stat
+	// ========================================================
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void AddSkillAttack(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void AddSkillDefense(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void AddSkillMaxHP(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void AddSkillMaxMP(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void AddSkillMaxST(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void AddSkillMoveSpeed(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void AddSkillRunSpeed(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
+	void ClearAllSkillStats();
 	
 	// ========================================================
 	// Getter 

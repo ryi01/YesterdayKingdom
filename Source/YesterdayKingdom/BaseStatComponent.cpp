@@ -65,8 +65,9 @@ float UBaseStatComponent::ApplyDamage(float Amount)
 {
 	if (bIsDead) return 0.f;
 	const float FinalDamage = FMath::Max(Amount - GetFinalDefense(), 1.f);
-	CurrentHP = FMath::Clamp(CurrentHP - FinalDamage, 0.f, MaxHP);
-	OnHPChanged.Broadcast(CurrentHP, MaxHP);
+	const float FinalMaxHP = GetMaxHP();
+	CurrentHP = FMath::Clamp(CurrentHP - FinalDamage, 0.f, FinalMaxHP);
+	OnHPChanged.Broadcast(CurrentHP, FinalMaxHP);
 	UE_LOG(LogTemp, Warning, TEXT("%s HP : %f"), *GetOwner()->GetName(), CurrentHP);
 	if (CurrentHP <= 0.f)
 	{
@@ -79,8 +80,9 @@ float UBaseStatComponent::ApplyDamage(float Amount)
 void UBaseStatComponent::Heal(float Amount)
 {
 	if (bIsDead) return;
-	CurrentHP = FMath::Clamp(CurrentHP + Amount, 0, MaxHP);
-	OnHPChanged.Broadcast(CurrentHP, MaxHP);
+	const float FinalMaxHP = GetMaxHP();
+	CurrentHP = FMath::Clamp(CurrentHP + Amount, 0, FinalMaxHP);
+	OnHPChanged.Broadcast(CurrentHP, FinalMaxHP);
 }
 //===============================================================================
 // 스테미나 관련
@@ -89,18 +91,20 @@ bool UBaseStatComponent::ConsumeST(float Amount)
 {
 	if (IsDead()) return false;
 	if (CurrentST < Amount) return false;
-	CurrentST = FMath::Clamp(CurrentST - Amount, 0, MaxST);
+	const float FinalMaxST = GetMaxST();
+	CurrentST = FMath::Clamp(CurrentST - Amount, 0, FinalMaxST);
 	LastSTConsumeTime = GetWorld()->GetTimeSeconds();
 	
-	OnSTChanged.Broadcast(CurrentST, MaxST);
+	OnSTChanged.Broadcast(CurrentST, FinalMaxST);
 	return true;
 }
 
 void UBaseStatComponent::RecoverST(float Amount)
 {
 	if (IsDead()) return;
-	CurrentST = FMath::Clamp(CurrentST + Amount, 0.f, MaxST);
-	OnSTChanged.Broadcast(CurrentST, MaxST);
+	const float FinalMaxST = GetMaxST();
+	CurrentST = FMath::Clamp(CurrentST + Amount, 0.f, FinalMaxST);
+	OnSTChanged.Broadcast(CurrentST, FinalMaxST);
 }
 //===============================================================================
 // MP 관련
@@ -109,17 +113,19 @@ bool UBaseStatComponent::ConsumeMP(float Amount)
 {
 	if (IsDead()) return false;
 	if (CurrentMP < Amount) return false;
-	CurrentMP = FMath::Clamp(CurrentMP - Amount, 0, MaxMP);
+	const float FinalMaxMP = GetMaxMP();
+	CurrentMP = FMath::Clamp(CurrentMP - Amount, 0, FinalMaxMP);
 	LastMPConsumeTime = GetWorld()->GetTimeSeconds();
-	OnMPChanged.Broadcast(CurrentMP, MaxMP);
+	OnMPChanged.Broadcast(CurrentMP, FinalMaxMP);
 	return true;
 }
 
 void UBaseStatComponent::RecoverMP(float Amount)
 {
 	if (IsDead()) return;
-	CurrentMP = FMath::Clamp(CurrentMP + Amount, 0.f, MaxMP);
-	OnMPChanged.Broadcast(CurrentMP, MaxMP);
+	const float FinalMaxMP = GetMaxMP();
+	CurrentMP = FMath::Clamp(CurrentMP + Amount, 0.f, FinalMaxMP);
+	OnMPChanged.Broadcast(CurrentMP, FinalMaxMP);
 }
 //===============================================================================
 // Stun 관련
@@ -127,7 +133,7 @@ void UBaseStatComponent::RecoverMP(float Amount)
 void UBaseStatComponent::AddStun(float Amount)
 {
 	if (bIsDead || bIsStun) return;
-	CurrentStun = FMath::Clamp(CurrentStun, 0.f, MaxStun);
+	CurrentStun = FMath::Clamp(CurrentStun + Amount, 0.f, MaxStun);
 	OnStunChanged.Broadcast(CurrentStun, MaxStun);
 	if (CurrentStun >= MaxStun)
 	{
@@ -167,6 +173,14 @@ void UBaseStatComponent::AddBuffDefense(float Value)
 	BuffDefenseBonus += Value;
 }
 
+void UBaseStatComponent::AddBonusMoveSpeed(float Value)
+{
+	if (FMath::IsNearlyZero(Value)) return;
+	
+	SkillBonusMoveSpeed += Value;
+	SkillBonusRunSpeed += Value;
+}
+
 void UBaseStatComponent::ClearBuffAttack()
 {
 	BuffAttackBonus = 0.f;
@@ -192,15 +206,87 @@ void UBaseStatComponent::SetEquipmentBonus(float InAttackBonus, float InDefenseB
 	EquipmentDefenseBonus = InDefenseBonus;
 }
 
-float UBaseStatComponent::GetFinalAttack() const
+// ========================================================
+// Skill Stat
+// ========================================================
+void UBaseStatComponent::AddSkillAttack(float Amount)
 {
-	return Attack + EquipmentAttackBonus + BuffAttackBonus;
+	SkillBonusAttack += Amount;
 }
 
-float UBaseStatComponent::GetFinalDefense() const
+void UBaseStatComponent::AddSkillDefense(float Amount)
 {
-	return Defense + EquipmentDefenseBonus + BuffDefenseBonus;
+	SkillBonusDefense += Amount;
 }
+
+void UBaseStatComponent::AddSkillMaxHP(float Amount)
+{
+	const float OldMaxHP = GetMaxHP();
+	SkillBonusMaxHP += Amount;
+	
+	const float NewMaxHP = GetMaxHP();
+	CurrentHP += NewMaxHP - OldMaxHP;
+	
+	CurrentHP = FMath::Clamp(CurrentHP, 0.f, NewMaxHP);
+
+	OnHPChanged.Broadcast(CurrentHP, NewMaxHP);
+}
+
+void UBaseStatComponent::AddSkillMaxMP(float Amount)
+{
+	const float OldMaxMP = GetMaxMP();
+
+	SkillBonusMaxMP += Amount;
+
+	const float NewMaxMP = GetMaxMP();
+	CurrentMP += NewMaxMP - OldMaxMP;
+	CurrentMP = FMath::Clamp(CurrentMP, 0.f, NewMaxMP);
+
+	OnMPChanged.Broadcast(CurrentMP, NewMaxMP);
+}
+
+void UBaseStatComponent::AddSkillMaxST(float Amount)
+{
+	const float OldMaxST = GetMaxST();
+
+	SkillBonusMaxST += Amount;
+
+	const float NewMaxST = GetMaxST();
+	CurrentST += NewMaxST - OldMaxST;
+	CurrentST = FMath::Clamp(CurrentST, 0.f, NewMaxST);
+
+	OnSTChanged.Broadcast(CurrentST, NewMaxST);
+}
+
+void UBaseStatComponent::AddSkillMoveSpeed(float Amount)
+{
+	SkillBonusMoveSpeed += Amount;
+}
+
+void UBaseStatComponent::AddSkillRunSpeed(float Amount)
+{
+	SkillBonusRunSpeed += Amount;
+}
+
+void UBaseStatComponent::ClearAllSkillStats()
+{
+	SkillBonusAttack = 0.f;
+	SkillBonusDefense = 0.f;
+	SkillBonusMaxHP = 0.f;
+	SkillBonusMaxMP = 0.f;
+	SkillBonusMaxST = 0.f;
+	SkillBonusMoveSpeed = 0.f;
+	SkillBonusRunSpeed = 0.f;
+
+	CurrentHP = FMath::Clamp(CurrentHP, 0.f, GetMaxHP());
+	CurrentMP = FMath::Clamp(CurrentMP, 0.f, GetMaxMP());
+	CurrentST = FMath::Clamp(CurrentST, 0.f, GetMaxST());
+
+	OnHPChanged.Broadcast(CurrentHP, GetMaxHP());
+	OnMPChanged.Broadcast(CurrentMP, GetMaxMP());
+	OnSTChanged.Broadcast(CurrentST, GetMaxST());
+}
+
 // ========================================================
 // Getter 
 // ========================================================
@@ -215,7 +301,7 @@ float UBaseStatComponent::GetCurrentHP() const
 
 float UBaseStatComponent::GetMaxHP() const
 {
-	return MaxHP;
+	return MaxHP + SkillBonusMaxHP;
 }
 
 float UBaseStatComponent::GetCurrentST() const
@@ -225,7 +311,7 @@ float UBaseStatComponent::GetCurrentST() const
 
 float UBaseStatComponent::GetMaxST() const
 {
-	return MaxST;
+	return MaxST + SkillBonusMaxST;
 }
 
 float UBaseStatComponent::GetCurrentMP() const
@@ -235,7 +321,7 @@ float UBaseStatComponent::GetCurrentMP() const
 
 float UBaseStatComponent::GetMaxMP() const
 {
-	return MaxMP;
+	return MaxMP + SkillBonusMaxMP;
 }
 
 float UBaseStatComponent::GetAttack() const
@@ -250,7 +336,7 @@ float UBaseStatComponent::GetDefense() const
 
 float UBaseStatComponent::GetMoveSpeed() const
 {
-	return MoveSpeed;
+	return MoveSpeed + SkillBonusMoveSpeed;
 }
 
 float UBaseStatComponent::GetCrouchMoveSpeed() const
@@ -260,7 +346,7 @@ float UBaseStatComponent::GetCrouchMoveSpeed() const
 
 float UBaseStatComponent::GetRunSpeed() const
 {
-	return RunSpeed;
+	return RunSpeed + SkillBonusRunSpeed;
 }
 
 float UBaseStatComponent::GetCurrentStun() const
@@ -277,6 +363,16 @@ float UBaseStatComponent::GetLastMPConsumeTime() const
 {
 	return LastMPConsumeTime;
 }
+float UBaseStatComponent::GetFinalAttack() const
+{
+	return Attack + EquipmentAttackBonus + BuffAttackBonus + SkillBonusAttack;
+}
+
+float UBaseStatComponent::GetFinalDefense() const
+{
+	return Defense + EquipmentDefenseBonus + BuffDefenseBonus + SkillBonusDefense;
+}
+
 #pragma endregion
 
 

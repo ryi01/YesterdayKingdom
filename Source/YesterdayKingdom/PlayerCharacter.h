@@ -42,6 +42,8 @@ public:
 	TObjectPtr<UEquipmentComponent> EquipmentComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Component")
 	TObjectPtr<UQuestComponent> QuestComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Component")
+	TObjectPtr<class UPlayerSkillComponent> SkillComponent;
 	
 	//===============================================================================================
 	// 이동 관련
@@ -125,6 +127,12 @@ public:
 	FTimerHandle BattleBuffCooldownTimerHandle;
 	FTimerHandle BattleBuffTimerHandle;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	TObjectPtr<class UInputAction> TestSkillAction;
+
+	UFUNCTION()
+	void TestUnlockSkill();
+	
 	//===============================================================================================
 	// 위잿 관련 
 	//===============================================================================================
@@ -171,6 +179,10 @@ public:
 	void Interaction();
 	UFUNCTION()
 	void ToggleInventory();
+	
+	UFUNCTION(BlueprintCallable, Category="Movement")
+	void RefreshMoveSpeed();
+	
 	//===============================================================================================
 	// 공격 관련 함수
 	//===============================================================================================
@@ -218,4 +230,5 @@ public:
 	UPlayerInteractionComponent* GetInteractionComponent() const;
 	UEquipmentComponent* GetEquipmentComponent() const;
 	UQuestComponent* GetQuestComponent() const;
+	UPlayerSkillComponent* GetSkillComponent() const;
 };
