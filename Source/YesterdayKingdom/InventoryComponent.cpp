@@ -3,6 +3,9 @@
 
 #include "InventoryComponent.h"
 
+#include "PlayerCharacter.h"
+#include "QuestComponent.h"
+
 // Sets default values for this component's properties
 UInventoryComponent::UInventoryComponent()
 {
@@ -20,16 +23,19 @@ void UInventoryComponent::BeginPlay()
 //===============================================================================================
 // 아이템 추가
 //===============================================================================================
-bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount)
+bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount, bool bNotifyQuest)
 {
 	if (ItemRowName.IsNone() || Amount <= 0) return false;
 	const FItemData* ItemData = GetItemData(ItemRowName);
 	if (!ItemData) return false;
 	
 	int32 RemainAmount = Amount;
+	int32 AddedAmount = 0;
+	
 	// 기존 슬롯에 중첩
 	for (FInventorySlot& InventorySlot : ItemSlots)
 	{
+		if (RemainAmount <= 0) break;
 		// 기존 슬롯에 동일한 아이템이 존재하고, 슬롯에 있는 개수가 maxStackCount가 아니라면
 		if (InventorySlot.ItemRowName == ItemRowName && InventorySlot.Count < ItemData->MaxStackCount)
 		{
@@ -41,19 +47,13 @@ bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount)
 			InventorySlot.Count += AddAmount;
 			// 남은 추가 개수를 줄임
 			RemainAmount -= AddAmount;
-			// 남은 추가개수가 없다면
-			if (RemainAmount <= 0)
-			{
-				// 인벤토리 추가 성공
-				OnInventoryChanged.Broadcast();
-				UE_LOG(LogTemp, Log, TEXT("[InventoryComponent::AddItem] Added %s x%d"), *ItemRowName.ToString(), Amount);
-				return true;
-			}
+			AddedAmount += AddAmount;
 		}
 	}
 	// 남은 추가 개수가 있다면 슬롯을 돌면서 비어있는 곳을 찾음
 	for (FInventorySlot& Slot : ItemSlots)
 	{
+		if (RemainAmount <= 0) break;
 		if (Slot.IsEmpty())
 		{
 			// 빈슬롯에 넣을 수 있는 개수와 남은 개수를 비교해서 더 적은 값을 빈 공간에 넣고
@@ -64,24 +64,32 @@ bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount)
 			Slot.Count = AddAmount;
 			
 			RemainAmount -= AddAmount;
-			
-			if (RemainAmount <= 0)
-			{
-				OnInventoryChanged.Broadcast();
-				UE_LOG(LogTemp, Log, TEXT("[InventoryComponent::AddItem] Added %s x%d"), *ItemRowName.ToString(), Amount);
-				return true;
-			}
+			AddedAmount += AddAmount;
 		}
 	}
 	
-	OnInventoryChanged.Broadcast();
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("[InventoryComponent::AddItem] Inventory full. Item: %s / Remain: %d"),
-		*ItemRowName.ToString(),
-		RemainAmount
-	);
+	if (AddedAmount > 0)
+	{
+		OnInventoryChanged.Broadcast();
+		
+		UE_LOG(LogTemp, Log, TEXT("[InventoryComponent::AddItem] Added %s x%d / Requested: %d"),
+					*ItemRowName.ToString(),
+					AddedAmount,
+					Amount
+				);
+
+		if (bNotifyQuest)
+		{
+			NotifyQuestItemCollected(ItemRowName, AddedAmount);
+		}
+	}
+	if (RemainAmount > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[InventoryComponent::AddItem] Inventory full. Item: %s / Remain: %d"),
+			*ItemRowName.ToString(),
+			RemainAmount
+		);
+	}
 	return RemainAmount <= 0;
 }
 //===============================================================================================
@@ -233,6 +241,21 @@ const FItemData* UInventoryComponent::GetItemData(FName ItemRowName) const
 	if (ItemRowName.IsNone()) return nullptr;
 	// 있다면 DT에서 해당 Row를 추출
 	return ItemDataTable->FindRow<FItemData>(ItemRowName, TEXT("InventoryComponent::GetItemData"));
+}
+//===============================================================================================
+// 아이템의 퀘스트 아이템 추가 
+//===============================================================================================
+void UInventoryComponent::NotifyQuestItemCollected(FName ItemRowName, int32 Amount)
+{
+	if (ItemRowName.IsNone() || Amount <= 0) return;
+	
+	APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetOwner());
+	if (!PlayerCharacter) return;
+
+	UQuestComponent* QuestComponent = PlayerCharacter->GetQuestComponent();
+	if (!QuestComponent) return;
+	
+	QuestComponent->AddProgress(EQuestObjectiveType::CollectItem, ItemRowName, Amount);
 }
 
 //===============================================================================================

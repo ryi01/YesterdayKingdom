@@ -134,15 +134,25 @@ void ABaseCharacter::NotifyDamage_Implementation(const FVector& DamageLocation, 
 
 void ABaseCharacter::HandleDeath_Implementation()
 {
+	if (bIsDead) return;
+	bIsDead = true;
 	IDamagable::HandleDeath_Implementation();
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
+		Movement->StopMovementImmediately();
 		Movement->DisableMovement();
 	}
 
 	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
 	{
 		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	OnDead();
+	if (bDestroyOnDeath)
+	{
+		const float FinalDestroyDelay = GetDeathDestroyDelay();
+		GetWorld()->GetTimerManager().ClearTimer(DestroyTimerHandle);
+		GetWorld()->GetTimerManager().SetTimer(DestroyTimerHandle, this, &ABaseCharacter::DestroyAfterDeath, FinalDestroyDelay, false);
 	}
 }
 
@@ -195,3 +205,14 @@ USceneComponent* ABaseCharacter::GetWeaponRoot() const
 	return WeaponRoot;
 }
 
+float ABaseCharacter::GetDeathDestroyDelay() const
+{
+	return DestroyDelay;
+}
+void ABaseCharacter::OnDead()
+{
+}
+void ABaseCharacter::DestroyAfterDeath()
+{
+	GetOwner()->Destroy();
+}

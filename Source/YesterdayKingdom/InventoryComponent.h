@@ -33,7 +33,7 @@ public:
 
 protected:
 
-
+	void NotifyQuestItemCollected(FName ItemRowName, int32 Amount);
 	// 슬롯 데이터를 UI 표시용 데이터로 변환
 	bool MakeSlotViewData(int32 SlotIndex, FInventorySlotViewData& OutViewData) const;
 
@@ -41,7 +41,7 @@ public:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(FName ItemRowName, int32 Amount = 1);
+	bool AddItem(FName ItemRowName, int32 Amount = 1, bool bNotifyQuest = true);
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItem(FName ItemRowName, int32 Amount = 1);

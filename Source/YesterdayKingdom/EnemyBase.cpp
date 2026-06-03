@@ -9,6 +9,7 @@
 #include "GoldComponent.h"
 #include "InventoryComponent.h"
 #include "PlayerCharacter.h"
+#include "QuestComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(ObjectInitializer)
@@ -16,6 +17,9 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(Obje
 	PrimaryActorTick.bCanEverTick = false;
 
 	OnAttackMontageEnded.BindUObject(this, &AEnemyBase::AttackMontageEnded);
+	
+	bDestroyOnDeath = true;
+	DestroyDelay = 3.0f;
 }
 
 void AEnemyBase::BeginPlay()
@@ -94,13 +98,27 @@ void AEnemyBase::HandleDeath_Implementation()
 {
 	if (bRewardGiven) return;
 	bRewardGiven = true;
+	
+	Super::HandleDeath_Implementation();
+	
 	GiveRewardToKiller();
+	NotifyQuestKillToKiller();
 	OnEnemyDied.Broadcast();
 	if (EnemyDefinition && EnemyDefinition->DeathMontage)
 	{
 		PlayAnimMontage(EnemyDefinition->DeathMontage);
 	}
-	Super::HandleDeath_Implementation();
+
+}
+
+float AEnemyBase::GetDeathDestroyDelay() const
+{
+	if (EnemyDefinition && EnemyDefinition->DeathMontage)
+	{
+		return EnemyDefinition->DeathMontage->GetPlayLength();
+	}
+
+	return Super::GetDeathDestroyDelay();
 }
 
 void AEnemyBase::GiveRewardToKiller()
@@ -145,6 +163,19 @@ void AEnemyBase::GiveRewardToKiller()
 		}
 	}
 }
+
+
+void AEnemyBase::NotifyQuestKillToKiller()
+{
+	if (QuestTargetID.IsNone()) return;
+	APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(LastDamageCauser);
+	if (!PlayerCharacter) return;
+	UQuestComponent* QuestComponent = PlayerCharacter->GetQuestComponent();
+	if (!QuestComponent) return;
+	QuestComponent->AddProgress(EQuestObjectiveType::KillEnemy, QuestTargetID, 1);
+}
+
+
 
 void AEnemyBase::DoAttackByRowName(FName AttackRowName)
 {

@@ -19,6 +19,7 @@
 #include "PlayerHUDWidget.h"
 #include "PlayerInteractionComponent.h"
 #include "PlayerStatComponent.h"
+#include "QuestComponent.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerCombatComponent>(TEXT("CombatComponent")).SetDefaultSubobjectClass<UPlayerStatComponent>(TEXT("StatComponent")))
@@ -32,6 +33,9 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	GoldComponent = CreateDefaultSubobject<UGoldComponent>(TEXT("GoldComponent"));
 	InteractionComponent = CreateDefaultSubobject<UPlayerInteractionComponent>(TEXT("InteractionComponent"));
 	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));
+	QuestComponent = CreateDefaultSubobject<UQuestComponent>(TEXT("QuestComponent"));
+	
+	bDestroyOnDeath = false;
 }
 
 
@@ -319,6 +323,13 @@ void APlayerCharacter::EndGuard()
 	if (CombatBaseComponent) CombatBaseComponent->EndGuard();
 }
 
+void APlayerCharacter::OnDead()
+{
+	Super::OnDead();
+	SetUIMode(true);
+}
+
+
 //===============================================================================================
 // 인터렉션 관련
 //===============================================================================================
@@ -357,5 +368,10 @@ UPlayerInteractionComponent* APlayerCharacter::GetInteractionComponent() const
 UEquipmentComponent* APlayerCharacter::GetEquipmentComponent() const
 {
 	return EquipmentComponent;
+}
+
+UQuestComponent* APlayerCharacter::GetQuestComponent() const
+{
+	return QuestComponent;
 }
 

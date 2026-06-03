@@ -13,6 +13,8 @@ class UInputAction;
 class UInputMappingContext;
 class UPlayerInteractionComponent;
 class UEquipmentComponent;
+class UQuestComponent;
+struct FQuestInstance;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
@@ -38,6 +40,8 @@ public:
 	TObjectPtr<UPlayerInteractionComponent> InteractionComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Equipment")
 	TObjectPtr<UEquipmentComponent> EquipmentComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Component")
+	TObjectPtr<UQuestComponent> QuestComponent;
 	
 	//===============================================================================================
 	// 이동 관련
@@ -200,6 +204,12 @@ public:
 	void StartGuard();
 	UFUNCTION()
 	void EndGuard();
+	
+	//===============================================================================================
+	// 사망처리
+	//===============================================================================================
+	virtual void OnDead() override;
+	
 	//===============================================================================================
 	// Getter
 	//===============================================================================================
@@ -207,4 +217,5 @@ public:
 	UInventoryComponent* GetInventoryComponent() const;
 	UPlayerInteractionComponent* GetInteractionComponent() const;
 	UEquipmentComponent* GetEquipmentComponent() const;
+	UQuestComponent* GetQuestComponent() const;
 };

@@ -27,6 +27,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamageCauser;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Quest")
+	FName QuestTargetID = NAME_None;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Reward")
 	bool bRewardGiven = false;
 
@@ -52,6 +55,12 @@ protected:
 	// 죽었을 경우 리워드 지급
 	//===============================================================================================
 	virtual void GiveRewardToKiller();
+	void NotifyQuestKillToKiller();
+	
+	//===============================================================================================
+	// 죽는 상태
+	//===============================================================================================
+	virtual float GetDeathDestroyDelay() const override;
 public:
 	virtual void BeginPlay() override;
 	//===============================================================================================

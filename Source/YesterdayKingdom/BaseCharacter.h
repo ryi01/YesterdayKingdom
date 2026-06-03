@@ -42,12 +42,35 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Reaction")
 	TObjectPtr<UAnimMontage> ParriedMontage;
 
+	// ========================================================
+	// 죽기
+	// ========================================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Death")
+	bool bIsDead = false;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Death")
+	bool bDestroyOnDeath = false;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Death")
+	float DestroyDelay = 3.0f;
+
+	FTimerHandle DestroyTimerHandle;
+
 private:
 protected:
 	// ========================================================
 	// 무기 세팅 초기화 함수
 	// ========================================================
 	void InitializeWeaponRoot();
+	
+	// ========================================================
+	// 죽기
+	// ========================================================
+	virtual void OnDead();
+
+	virtual float GetDeathDestroyDelay() const;
+
+	void DestroyAfterDeath();
 	
 public:	
 	// Called when the game starts or when spawned
