@@ -6,6 +6,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "BaseCharacter.h"
+#include "BaseStatComponent.h"
 #include "Animation/AnimMontage.h"
 #include "CommonEnumTypes.h"
 #include "Kismet/GameplayStatics.h"
@@ -15,8 +16,6 @@ UCombatBaseComponent::UCombatBaseComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.SetTickFunctionEnable(false);
 }
-
-
 
 // Called when the game starts
 void UCombatBaseComponent::BeginPlay()
@@ -272,20 +271,27 @@ float UCombatBaseComponent::CalculateChargeRatio(const FAttackDataRow* AttackDat
 	
 	return FMath::Clamp(HeldTime / MaxChargeTime, 0.f, 1.f);
 }
+
 //=====================================================================================================
 // 가드 관련
 //=====================================================================================================
+
+void UCombatBaseComponent::ApplyParryHitStop()
+{
+	if (!bUseParryHitStop) return;
+	if (ParryHitStopDuration <= 0.f) return;
+	GetWorld()->GetTimerManager().ClearTimer(HitStopTimerHandle);
+	UGameplayStatics::SetGlobalTimeDilation(GetWorld(), ParryHitStopTimeScale);
+	GetWorld()->GetTimerManager().SetTimer(HitStopTimerHandle, this, &UCombatBaseComponent::ResetHitStop, ParryHitStopDuration, false);
+}
+
 void UCombatBaseComponent::StartGuard()
 {
 	if (!CanStartGuard()) return;
 	bIsGuarding = true;
 	bCanParry = true;
 	OnGuardStarted();
-	if (GuardMontage && OwnerCharacter)
-	{
-		OwnerCharacter->PlayAnimMontage(GuardMontage, 1.f, GuardStartSection);
-	}
-	
+
 	GetWorld()->GetTimerManager().ClearTimer(ParryTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(ParryTimerHandle, this, &UCombatBaseComponent::CloseParryWindow, ParryWindow, false);
 }
@@ -302,14 +308,6 @@ void UCombatBaseComponent::EndGuard()
 	bCanParry = false;
 	
 	GetWorld()->GetTimerManager().ClearTimer(ParryTimerHandle);
-	
-	if (GuardMontage && OwnerCharacter)
-	{
-		if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
-		{
-			AnimInstance->Montage_JumpToSection(GuardEndSection, GuardMontage);
-		}
-	}
 
 	OnGuardEnded();
 }
@@ -325,13 +323,7 @@ void UCombatBaseComponent::OnParrySuccess(AActor* DamageCauser)
 {
 	if (!OwnerCharacter) return;
 	UE_LOG(LogTemp, Warning, TEXT("Success Parry"));
-	if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
-	{
-		if (GuardMontage)
-		{
-			AnimInstance->Montage_Stop(0.05f, GuardMontage);
-		}
-	}
+	ApplyParryHitStop();
 
 	if (ParrySuccessMontage)
 	{
@@ -343,19 +335,18 @@ void UCombatBaseComponent::OnParrySuccess(AActor* DamageCauser)
 bool UCombatBaseComponent::TryHandleGuardOrParry(float& InOutDamage, AActor* DamageCauser)
 {
 	if (!OwnerCharacter || !bIsGuarding) return false;
+	if (!IsGuardDirectionValid(DamageCauser)) return false;
 	UBaseStatComponent* StatComponent = OwnerCharacter->GetStatComponent();
 	if (!StatComponent) return false;
 	
 	if (bCanParry)
 	{
 		InOutDamage = 0.f;
-		bCanParry = false;
-		bIsGuarding = false;
 		
-		GetWorld()->GetTimerManager().ClearTimer(ParryTimerHandle);
 		if (ParrySTRecover > 0.f) StatComponent->RecoverST(ParrySTRecover);
+		
+		EndGuard();
 		OnParrySuccess(DamageCauser);
-		OnGuardEnded();
 		
 		return true;
 	}
@@ -382,6 +373,20 @@ bool UCombatBaseComponent::CanStartGuard() const
 	if (bIsCharging) return false;
 	
 	return true;
+}
+
+bool UCombatBaseComponent::IsGuardDirectionValid(AActor* DamageCauser) const
+{
+	if (!OwnerCharacter || !DamageCauser) return false;
+	const FVector ToAttacker = DamageCauser->GetActorLocation() - OwnerCharacter->GetActorLocation();
+	const FVector ToAttacker2D = FVector(ToAttacker.X, ToAttacker.Y, 0.f).GetSafeNormal();
+	
+	const FVector Forward = OwnerCharacter->GetActorForwardVector();
+	const FVector Forward2D = FVector(Forward.X, Forward.Y, 0.f).GetSafeNormal();
+	
+	const float Dot = FVector::DotProduct(Forward2D, ToAttacker2D);
+	
+	return Dot >= 0.3f;
 }
 
 bool UCombatBaseComponent::IsGuarding() const
@@ -440,11 +445,27 @@ void UCombatBaseComponent::DoAttackTrace()
 #endif
 	
 	if (!bHit) return;
+	HitResults.Sort([&Start](const FHitResult& A, const FHitResult& B)
+	{
+		return FVector::DistSquared(Start, A.ImpactPoint) < FVector::DistSquared(Start, B.ImpactPoint);
+	});
+	
+	const float HalfAngle = TraceAngle * 0.5f;
+	const float MinDot = FMath::Cos(FMath::DegreesToRadians(HalfAngle));
+	const FVector Forward = OwnerCharacter->GetActorForwardVector();
+	
 	// 피격 대상이 있다면
 	for (const FHitResult& Hit : HitResults)
 	{
 		AActor* HitActor = Hit.GetActor();
 		if (!IsValidHitActor(HitActor)) continue;
+		const FVector ToTarget = HitActor->GetActorLocation() - OwnerCharacter->GetActorLocation();
+		const FVector ToTarget2D = FVector(ToTarget.X, ToTarget.Y, 0.f).GetSafeNormal();
+		
+		const FVector Forward2D = FVector(Forward.X, Forward.Y, 0.f).GetSafeNormal();
+		
+		const float Dot = FVector::DotProduct(ToTarget2D, Forward2D );
+		if (Dot < MinDot) continue;;
 		// 이미 피격한 대상이 아니라면 
 		HitActors.Add(HitActor);
 		// 데미지를 입힌다
@@ -478,10 +499,7 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 {
 	if (!HitActor || !OwnerCharacter) return;
 	const FAttackNodeData* NodeData = GetCurrentAttackNodeData();
-
-<<<<<<< Updated upstream
-	const float Damage = NodeData ? NodeData->Damage : DefaultDamage;
-=======
+	
 	const float BaseDamage = NodeData ? NodeData->Damage : DefaultDamage;
 	
 	float AttackBonus = 0.f;
@@ -500,7 +518,7 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 			Damage *= Multiplier;
 		}
 	}
->>>>>>> Stashed changes
+
 	const FVector DamageImpulse = OwnerCharacter->GetActorForwardVector();
 	
 	IDamagable::Execute_ApplyDamage(HitActor, Damage, OwnerCharacter.Get(), HitResult.ImpactPoint, DamageImpulse);
@@ -565,5 +583,17 @@ const FAttackDataRow* UCombatBaseComponent::GetAttackDataByRow(FName AttackRowNa
 void UCombatBaseComponent::SetAttackDataTable(UDataTable* NewTable)
 {
 	AttackDataTable = NewTable;
+}
+//=====================================================================================================
+// Getter
+//=====================================================================================================
+bool UCombatBaseComponent::IsAttacking() const
+{
+	return !CurrentAttackRowName.IsNone();
+}
+
+bool UCombatBaseComponent::IsCharging() const
+{
+	return bIsCharging;
 }
 

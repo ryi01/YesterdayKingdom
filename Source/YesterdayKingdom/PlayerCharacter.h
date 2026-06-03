@@ -81,25 +81,16 @@ public:
 	UPROPERTY()
 	bool bIsDashing = false;
 	//===============================================================================================
-	// 공격 관련 함수
+	// 인터렉션 관련 
 	//===============================================================================================
-	virtual void CheckCombo_Implementation() override;
+	FTimerHandle InteractionCheckTimerHandle;
 	
-	void DoChargedAttack();
-	void DoChargeRelease();
-	void DoLightAttack(const FInputActionValue& Value);
-	void DoHeavyAttack(const FInputActionValue& Value);
-	//===============================================================================================
-	// 인터렉션 관련 
-	//===============================================================================================
-	FTimerHandle InteractionCheckTimerHandle;
-
-	// 인터렉션 관련 
-	//===============================================================================================
-	FTimerHandle InteractionCheckTimerHandle;
 	//===============================================================================================
 	// 버프 관련
 	//===============================================================================================
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Buff|Animation")
+	TObjectPtr<UAnimMontage> BattleBuffMontage;
+
 	UPROPERTY(EditDefaultsOnly, Category="Buff")
 	float BuffDuration = 8.f;
 
@@ -171,6 +162,8 @@ public:
 	//===============================================================================================
 	// 스킬 관련
 	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category="Buff")
+	void ApplyBattleBuff();
 	UFUNCTION()
 	void DoBattleBuff();
 	UFUNCTION()

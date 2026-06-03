@@ -165,7 +165,6 @@ void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 		PlayerCombat->RequestAttack(EAttackType::Heavy);
 	}
 }
-
 void APlayerCharacter::DoChargedAttack()
 {
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
@@ -192,14 +191,12 @@ void APlayerCharacter::CheckCombo_Implementation()
 //===============================================================================================
 // 버프 스킬 관련
 //===============================================================================================
-
-void APlayerCharacter::DoBattleBuff()
+void APlayerCharacter::ApplyBattleBuff()
 {
-	if (!CanUseBattleBuff() || !GetStatComponent()) return;
-	if (BuffMPCost > 0.f && !GetStatComponent()->ConsumeMP(BuffMPCost)) return;
+	if (bIsBattleBuffActive) return;
+	if (!GetStatComponent()) return;
 	
 	bIsBattleBuffActive = true;
-	bIsBattleBuffOnCooldown = true;
 	
 	GetStatComponent()->AddBuffAttack(BattleBuffAttackBonus);
 	GetStatComponent()->AddBuffDefense(BattleBuffDefenseBonus);
@@ -209,6 +206,24 @@ void APlayerCharacter::DoBattleBuff()
 	GetWorld()->GetTimerManager().ClearTimer(BattleBuffTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(BattleBuffTimerHandle, this, &APlayerCharacter::EndBattleBuff, BuffDuration, false);
 
+}
+
+void APlayerCharacter::DoBattleBuff()
+{
+	if (!CanUseBattleBuff() || !GetStatComponent()) return;
+	if (BuffMPCost > 0.f && !GetStatComponent()->ConsumeMP(BuffMPCost)) return;
+	
+	bIsBattleBuffOnCooldown = true;
+	
+	if (BattleBuffMontage)
+	{
+		PlayAnimMontage(BattleBuffMontage);
+	}
+	else
+	{
+		ApplyBattleBuff();
+	}
+	
 	GetWorld()->GetTimerManager().ClearTimer(BattleBuffCooldownTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(BattleBuffCooldownTimerHandle, this, &APlayerCharacter::EndBattleBuffCooldown, BattleBuffCooldown, false);
 
@@ -219,14 +234,14 @@ void APlayerCharacter::EndBattleBuff()
 
 	bIsBattleBuffActive = false;
 
-	if (GetStatComponent())
+	if (StatComponent)
 	{
-		GetStatComponent()->ClearAllBuffStats();
+		StatComponent->ClearAllBuffStats();
 	}
 
-	if (MoveComp && GetStatComponent())
+	if (MoveComp && StatComponent)
 	{
-		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
+		MoveComp->MaxWalkSpeed = StatComponent->GetMoveSpeed();
 	}
 	UE_LOG(LogTemp, Warning, TEXT("buffEnd : %f"), MoveComp->MaxWalkSpeed);
 }
@@ -241,9 +256,11 @@ bool APlayerCharacter::CanUseBattleBuff() const
 {
 	if (bIsBattleBuffActive) return false;
 	if (bIsBattleBuffOnCooldown) return false;
-	if (!GetStatComponent()) return false;
-	if (GetStatComponent()->GetCurrentMP() < BuffMPCost) return false;
-
+	if (!StatComponent) return false;
+	if (StatComponent->GetCurrentMP() < BuffMPCost) return false;
+	if (CombatBaseComponent && CombatBaseComponent->IsGuarding()) return false; 
+	if (CombatBaseComponent && CombatBaseComponent->IsAttacking()) return false; 
+	if (CombatBaseComponent && CombatBaseComponent->IsCharging()) return false; 
 	return true;
 }
 //===============================================================================================

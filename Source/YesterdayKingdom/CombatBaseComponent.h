@@ -29,6 +29,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Trace")
 	float TraceRadius = 45.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Trace")
+	float TraceAngle = 70.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Trace")
 	float TraceHeight = 60.f;
@@ -75,19 +78,7 @@ protected:
 	// 가드 
 	//===============================================================================
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
-	TObjectPtr<UAnimMontage> GuardMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
 	TObjectPtr<UAnimMontage> ParrySuccessMontage;
-
-	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
-	FName GuardStartSection = TEXT("Guard_start");
-
-	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
-	FName GuardLoopSection = TEXT("Guard_loop");
-
-	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
-	FName GuardEndSection = TEXT("Guard_end");
 	
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Guard")
 	bool bIsGuarding = false;
@@ -106,6 +97,15 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard")
 	float ParrySTRecover = 10.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard|Parry")
+	bool bUseParryHitStop = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard|Parry")
+	float ParryHitStopDuration = 0.02f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Guard|Parry")
+	float ParryHitStopTimeScale = 0.25f;
 
 	FTimerHandle ParryTimerHandle;
 	
@@ -118,12 +118,18 @@ protected:
 	//=====================================================================================================
 	virtual void OnChargeAttackStarted();
 	virtual void OnChargeAttackReleased();
+	
 	void UpdateCharge(float DeltaTime);
+	
 	float CalculateChargeRatio(const FAttackDataRow* AttackDataRow) const;
+	
 	//===============================================================================
 	// 가드 
 	//===============================================================================
+	void ApplyParryHitStop();
+	
 	virtual bool CanStartGuard() const;
+	virtual bool IsGuardDirectionValid(AActor* DamageCauser) const;
 
 	virtual void OnGuardStarted();
 	virtual void OnGuardEnded();
@@ -137,6 +143,7 @@ protected:
 	virtual bool IsValidHitActor(AActor* HitActor) const;
 	const FAttackNodeData* GetCurrentAttackNodeData() const;
 	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
+	
 	//=====================================================================================================
 	// Hit시 발생되는 효과
 	//=====================================================================================================
@@ -147,6 +154,7 @@ protected:
 	bool JumpToNextAttackSection();
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
 public:	
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -160,11 +168,13 @@ public:
 	virtual void DoAttackTrace();
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void EndAttackTrace();
+	
 	//=====================================================================================================
 	// 코모 공격
 	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void CheckCombo();
+	
 	//=====================================================================================================
 	// 차지 공격
 	//=====================================================================================================
@@ -174,6 +184,7 @@ public:
 	virtual void CancelChargeAttack();
 	UFUNCTION(BlueprintCallable, Category = "Combat|Charge")
 	virtual void ReleaseChargeAttack();
+	
 	//===============================================================================
 	// 가드 
 	//===============================================================================
@@ -187,15 +198,24 @@ public:
 	bool IsGuarding() const;
 	UFUNCTION(BlueprintCallable, Category="Combat|Guard")
 	bool CanParry() const;
+	
 	//=====================================================================================================
 	// AttackRow 탐색
 	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category="Combat")
 	virtual void RequestAttackByRow(FName AttackRowName);
+	
 	//=====================================================================================================
 	// 리셋 및 셋팅
 	//=====================================================================================================
 	void ResetAttackState();
 	void SetAttackDataTable(UDataTable* NewTable);
+	//=====================================================================================================
+	// Getter
+	//=====================================================================================================
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool IsAttacking() const;
+	UFUNCTION(BlueprintPure, Category="Combat")
+	bool IsCharging() const;
 
 };

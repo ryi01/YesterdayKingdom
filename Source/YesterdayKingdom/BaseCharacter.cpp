@@ -110,9 +110,9 @@ void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCaus
 	float FinalDamage = Damage;
 	if (CombatBaseComponent)
 	{
-		const bool bGuardedOrParried = CombatBaseComponent->TryHandleGuardOrParry(FinalDamage, DamageCauser);
-		if (bGuardedOrParried && FinalDamage <= 0.f) return;
+		CombatBaseComponent->TryHandleGuardOrParry(FinalDamage, DamageCauser);
 	}
+	if (FinalDamage <= 0.f) return;
 	
 	const float AppliedDamage = StatComponent->ApplyDamage(FinalDamage);
 
