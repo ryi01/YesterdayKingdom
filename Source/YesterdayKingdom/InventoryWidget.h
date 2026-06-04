@@ -48,4 +48,13 @@ protected:
 	void OnEquipBtnClicked(const FInventorySlotData& SlotData);
 */
 
+	UPROPERTY()
+	TObjectPtr<class UInventoryComponent> InventoryComponent;
+
+protected:
+	UFUNCTION()
+	void RefreshInventory();
+public:
+	UFUNCTION(BlueprintCallable)
+	void BindInventory(class UInventoryComponent* InInventory);
 };
