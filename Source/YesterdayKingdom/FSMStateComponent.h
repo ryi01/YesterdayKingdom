@@ -50,8 +50,17 @@ protected:
 	// AI 이동
 	void MoveToTarget(AActor* TargetActor, float AcceptanceRadius = 80.f);
 	void MoveToPlayer(float AcceptanceRadius = 80.f);
-	void MoveToLocation(const FVector& TargetLocation, float AcceptanceRadius);
+	void MoveToLocation(const FVector& TargetLocation, float AcceptanceRadius, bool bCanStrafe = false);
 	void StopMove();
+	// AI 초점
+	UFUNCTION(BlueprintCallable, Category="Enemy|AI")
+	void SetFocusToPlayer();
+
+	UFUNCTION(BlueprintCallable, Category="Enemy|AI")
+	void SetFocusTarget(AActor* TargetActor);
+
+	UFUNCTION(BlueprintCallable, Category="Enemy|AI")
+	void ClearFocusTarget();
 public:	
 	// Called when the game starts
 	virtual void BeginPlay() override;

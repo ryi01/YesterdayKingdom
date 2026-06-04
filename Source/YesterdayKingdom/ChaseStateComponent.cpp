@@ -13,6 +13,7 @@ void UChaseStateComponent::OnStateEnter()
 	Super::OnStateEnter();
 	if (OwnerCharacter)
 	{
+		OwnerCharacter->SetCombatMoveSpeed();
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Chase] Enter : %s"), *OwnerCharacter->GetName());
 	}
 }
@@ -27,10 +28,18 @@ void UChaseStateComponent::OnStateUpdate(float X)
 		return;
 	}
 	
-	if (!IsPlayerValid() || IsTooFarFromHome(EnemyDefinition->ReturnRadius) || IsPlayerLost(LoseTargetMultiplier))
+	if (!IsPlayerValid())
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Return);
 		return;
+	}
+	if (EnemyDefinition && EnemyDefinition->EnemyRole != EEnemyRole::Boss)
+	{
+		if (IsTooFarFromHome(EnemyDefinition->ReturnRadius) || IsPlayerLost(LoseTargetMultiplier))
+		{
+			FSMController->ChangeState(EEnemyFSMStateType::Return);
+			return;
+		}
 	}
 	
 	if (IsPlayerInAttackRange())

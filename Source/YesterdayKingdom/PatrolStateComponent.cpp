@@ -25,6 +25,7 @@ void UPatrolStateComponent::OnStateEnter()
 
 	if (OwnerCharacter)
 	{
+		OwnerCharacter->SetDefaultMoveSpeed();
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Patrol] Enter : %s"), *OwnerCharacter->GetName());
 	}
 	RunPatrolEQS();
@@ -93,7 +94,7 @@ void UPatrolStateComponent::RunPatrolEQS()
 		return;
 	}
 
-	const float MinPatrolDistance = 300.f;
+	const float MinPatrolDistance = 100.f;
 	const float MaxPatrolDistance = EnemyDefinition->PatrolRadius;
 	
 	if (MaxPatrolDistance <= MinPatrolDistance)

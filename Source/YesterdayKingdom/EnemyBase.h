@@ -17,8 +17,6 @@ UCLASS(Abstract)
 class YESTERDAYKINGDOM_API AEnemyBase : public ABaseCharacter
 {
 	GENERATED_BODY()
-public:
-	AEnemyBase(const FObjectInitializer& ObjectInitializer);
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Data")
@@ -41,7 +39,13 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|AI")
 	FVector HomeLocation = FVector::ZeroVector;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
+	FName SelectedAttackRowName = NAME_None;
+	
 public:
+	AEnemyBase(const FObjectInitializer& ObjectInitializer);
+	
 	FOnMontageEnded OnAttackMontageEnded;
 	FOnEnemyAttackCompleted OnAttackCompleted;
 	FOnEnemyLanded OnEnemyLanded;
@@ -81,7 +85,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void DoSubAttack();
 
+	virtual void ClearAttackAnimation_Implementation() override;
 	virtual void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
+	void SetSelectedAttackRowName(FName InAttackRowName);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Combat")
+	FName GetSelectedAttackRowName() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
+	void ClearSelectedAttackRowName();
+	
+	//===============================================================================================
+	// 속도 변경
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category="Enemy|Movement")
+	void SetMoveSpeed(float NewSpeed);
+
+	UFUNCTION(BlueprintCallable, Category="Enemy|Movement")
+	void SetDefaultMoveSpeed();
+
+	UFUNCTION(BlueprintCallable, Category="Enemy|Movement")
+	void SetCombatMoveSpeed();
+	
 	//===============================================================================================
 	// Getter함수
 	//===============================================================================================

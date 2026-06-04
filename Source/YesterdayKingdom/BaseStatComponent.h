@@ -214,7 +214,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Stat|Skill")
 	void ClearAllSkillStats();
-	
+	// ========================================================
+	// Setter 
+	// ========================================================
+	UFUNCTION()
+	void SetStatRowName(FName NewName);
 	// ========================================================
 	// Getter 
 	// ========================================================

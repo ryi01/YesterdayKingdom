@@ -129,12 +129,12 @@ void UFSMStateComponent::MoveToPlayer(float AcceptanceRadius)
 	MoveToTarget(PlayerPawn, AcceptanceRadius);
 }
 
-void UFSMStateComponent::MoveToLocation(const FVector& TargetLocation, float AcceptanceRadius)
+void UFSMStateComponent::MoveToLocation(const FVector& TargetLocation, float AcceptanceRadius, bool bCanStrafe)
 {
 	if (!OwnerCharacter) return;
 	AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController());
 	if (!AIController) return;
-	AIController->MoveToLocation(TargetLocation, AcceptanceRadius, false, true, true, false, nullptr, true);
+	AIController->MoveToLocation(TargetLocation, AcceptanceRadius, false, true, true, bCanStrafe, nullptr, true);
 }
 
 void UFSMStateComponent::StopMove()
@@ -143,6 +143,34 @@ void UFSMStateComponent::StopMove()
 	AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController());
 	if (!AIController) return;
 	AIController->StopMovement();
+}
+
+void UFSMStateComponent::SetFocusToPlayer()
+{
+	APawn* PlayerPawn = GetTargetPlayer();
+	if (!PlayerPawn) return;
+
+	SetFocusTarget(PlayerPawn);
+}
+
+void UFSMStateComponent::SetFocusTarget(AActor* TargetActor)
+{
+	if (!OwnerCharacter || !TargetActor) return;
+
+	AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController());
+	if (!AIController) return;
+
+	AIController->SetFocus(TargetActor, EAIFocusPriority::Gameplay);
+}
+
+void UFSMStateComponent::ClearFocusTarget()
+{
+	if (!OwnerCharacter) return;
+
+	AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController());
+	if (!AIController) return;
+
+	AIController->ClearFocus(EAIFocusPriority::Gameplay);
 }
 
 AEnemyBase* UFSMStateComponent::GetOwnerEnemy() const

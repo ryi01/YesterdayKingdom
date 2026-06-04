@@ -108,8 +108,6 @@ void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 	const float StaminaCost = AttackData->StaminaCost;
 	const float MPCost = AttackData->MPCost;
 	
-	if (StaminaCost > 0.f && StatComp->GetCurrentST() < StaminaCost) return;
-	if (MPCost > 0.f && StatComp->GetCurrentMP() < MPCost) return;
 	if (StaminaCost > 0.f) StatComp->ConsumeST(StaminaCost);
 	if (MPCost > 0.f)StatComp->ConsumeMP(MPCost);
 	

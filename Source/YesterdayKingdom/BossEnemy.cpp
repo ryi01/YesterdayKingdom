@@ -3,27 +3,40 @@
 
 #include "BossEnemy.h"
 
+#include "AttackStateComponent.h"
+#include "BackStepStateComponent.h"
 #include "ChaseStateComponent.h"
+#include "CooldownStateComponent.h"
 #include "EnemyFSMControllerComponent.h"
+#include "FlankingStateComponent.h"
 #include "IdleStatComponent.h"
 #include "PatrolStateComponent.h"
+#include "PatternSelectStateComponent.h"
 #include "ReturnStateComponent.h"
 
 ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
+	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
+	WeaponMesh->SetupAttachment(WeaponRoot);
+	
 	FSMController = CreateDefaultSubobject<UEnemyFSMControllerComponent>(TEXT("FSMController"));
 	IdleState = CreateDefaultSubobject<UIdleStatComponent>(TEXT("IdleState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
 	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
+	PatternSelectState = CreateDefaultSubobject<UPatternSelectStateComponent>(TEXT("PatternSelectState"));
+	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));
+	CooldownState = CreateDefaultSubobject<UCooldownStateComponent>(TEXT("CooldownState"));
+	FlankingState = CreateDefaultSubobject<UFlankingStateComponent>(TEXT("FlankingState"));
+	BackStepState = CreateDefaultSubobject<UBackStepStateComponent>(TEXT("BackStepState"));
 }
 
 void ABossEnemy::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	if (WeaponMesh) WeaponMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocketName);
 	FSMController->InitializeFSM(this);
 
 	if (IdleState)
@@ -45,6 +58,26 @@ void ABossEnemy::BeginPlay()
 	if (PatrolState)
 	{
 		FSMController->RegisterState(EEnemyFSMStateType::Patrol, PatrolState);
+	}
+	if (PatternSelectState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::PatternSelect, PatternSelectState);
+	}
+	if (AttackState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Attack, AttackState);
+	}
+	if (CooldownState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Cooldown, CooldownState);
+	}
+	if (FlankingState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Flanking, FlankingState);
+	}	
+	if (BackStepState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::BackStep, BackStepState);
 	}
 
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);

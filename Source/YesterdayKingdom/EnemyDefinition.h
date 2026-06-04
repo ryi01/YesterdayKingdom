@@ -57,6 +57,26 @@ struct FBossAttackPattern
 	int32 MaxPhase = 1;
 };
 USTRUCT(BlueprintType)
+struct FEnemyFSMActionConfig
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Action", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float FlankingChance = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Action", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float BackStepChance = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Flanking", meta = (ClampMin = "0.0"))
+	float FlankingDuration = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Flanking", meta = (ClampMin = "0.0"))
+	float FlankingRadius = 300.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep", meta = (ClampMin = "0.0"))
+	float BackStepDistance = 300.f;
+};
+USTRUCT(BlueprintType)
 struct FEnemyFSMStateTime
 {
 	GENERATED_BODY()
@@ -170,7 +190,10 @@ public:
 	TObjectPtr<UStateTree> StateTree;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float CombatMoveSpeed = 350.f;
+	float MoveSpeed = 350.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float CombatMoveSpeed = 500.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float RotationSpeed = 5.f;
@@ -189,6 +212,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI|FSM")
 	FEnemyFSMTimeConfig FSMTimeConfig;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI|FSM")
+	FEnemyFSMActionConfig FSMActionConfig;
 	
 	// 전투
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")

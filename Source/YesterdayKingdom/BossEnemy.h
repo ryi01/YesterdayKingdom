@@ -17,6 +17,14 @@ class YESTERDAYKINGDOM_API ABossEnemy : public AEnemyBase
 {
 	GENERATED_BODY()
 protected:
+	//===============================================================================================
+	// 무기
+	//===============================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	TObjectPtr<class UStaticMeshComponent> WeaponMesh;
+	//===============================================================================================
+	// FSM
+	//===============================================================================================
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM")
 	TObjectPtr<UEnemyFSMControllerComponent> FSMController;
 
@@ -31,6 +39,22 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UPatrolStateComponent> PatrolState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UPatternSelectStateComponent> PatternSelectState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UAttackStateComponent> AttackState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UCooldownStateComponent> CooldownState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UFlankingStateComponent> FlankingState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UBackStepStateComponent> BackStepState;
+	
 	
 public:
 	ABossEnemy(const FObjectInitializer& ObjectInitializer);

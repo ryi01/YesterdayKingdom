@@ -19,6 +19,7 @@ enum class EEnemyFSMStateType : uint8
 	Attack          UMETA(DisplayName = "Attack"),
 	Cooldown        UMETA(DisplayName = "Cooldown"),
 	BackStep        UMETA(DisplayName = "BackStep"),
+	Flanking        UMETA(DisplayName = "Flanking"),
 
 	PatternSelect   UMETA(DisplayName = "Pattern Select"),
 	PhaseChange     UMETA(DisplayName = "Phase Change"),

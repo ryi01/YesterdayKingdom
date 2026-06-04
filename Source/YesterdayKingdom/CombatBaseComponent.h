@@ -48,7 +48,7 @@ protected:
 	//===============================================================================
 	// 공격 DT
 	//===============================================================================
-	UPROPERTY(EditDefaultsOnly, Category="Combat|Data")
+	UPROPERTY(EditAnywhere, Category="Combat|Data")
 	TObjectPtr<UDataTable> AttackDataTable;
 
 	UPROPERTY(VisibleInstanceOnly, Category="Combat|Runtime")

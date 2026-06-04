@@ -51,12 +51,19 @@ void AEnemyBase::InitializeFromDefinition()
 		{
 			MeshComp->SetAnimInstanceClass(EnemyDefinition->AnimBP); 
 		}
+
+		if (!EnemyDefinition->StatRowName.IsNone())
+		{
+			StatComponent->SetStatRowName(EnemyDefinition->StatRowName);
+		}
+		if (EnemyDefinition->AttackDataTable)
+		{
+			CombatBaseComponent->SetAttackDataTable(EnemyDefinition->AttackDataTable);
+		}
+		
 	}
 
-	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
-	{
-		Movement->MaxWalkSpeed = EnemyDefinition->CombatMoveSpeed;
-	}
+	SetDefaultMoveSpeed();
 	
 	if (StatComponent)
 	{
@@ -181,6 +188,7 @@ void AEnemyBase::DoAttackByRowName(FName AttackRowName)
 {
 	if (!EnemyDefinition || AttackRowName.IsNone() || !CombatBaseComponent || IsDead()) return;
 	
+	bIsAttacking = true;
 	CombatBaseComponent->RequestAttackByRow(AttackRowName);
 }
 
@@ -200,10 +208,68 @@ void AEnemyBase::DoSubAttack()
 	DoAttackByRowName(EnemyDefinition->AttackSet.SubAttackRowName);
 }
 
+void AEnemyBase::ClearAttackAnimation_Implementation()
+{
+	Super::ClearAttackAnimation_Implementation();
+
+	if (!bIsAttacking) return;
+	
+	bIsAttacking = false;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[EnemyBase] ClearAttackAnimation -> AttackCompleted : %s"),
+		*GetName());
+
+	OnAttackCompleted.ExecuteIfBound();
+}
+
 void AEnemyBase::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	OnAttackCompleted.ExecuteIfBound();
 }
+
+void AEnemyBase::SetSelectedAttackRowName(FName InAttackRowName)
+{
+	SelectedAttackRowName = InAttackRowName;
+	UE_LOG(LogTemp, Log, TEXT("[EnemyBase] SetSelectedAttackRowName : %s / RowName = %s"),
+		*GetName(),
+		*SelectedAttackRowName.ToString());
+}
+
+FName AEnemyBase::GetSelectedAttackRowName() const
+{
+	return SelectedAttackRowName;
+}
+
+void AEnemyBase::ClearSelectedAttackRowName()
+{
+	SelectedAttackRowName = NAME_None;
+}
+
+//===============================================================================================
+// 속도 변경
+//===============================================================================================
+void AEnemyBase::SetMoveSpeed(float NewSpeed)
+{
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (!Movement) return;
+
+	Movement->MaxWalkSpeed = NewSpeed;
+}
+
+void AEnemyBase::SetDefaultMoveSpeed()
+{
+	if (!EnemyDefinition) return;
+
+	SetMoveSpeed(EnemyDefinition->MoveSpeed);
+}
+
+void AEnemyBase::SetCombatMoveSpeed()
+{
+	if (!EnemyDefinition) return;
+
+	SetMoveSpeed(EnemyDefinition->CombatMoveSpeed);
+}
+
 //===============================================================================================
 // Getter함수
 //===============================================================================================

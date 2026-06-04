@@ -12,6 +12,7 @@ void UReturnStateComponent::OnStateEnter()
 	Super::OnStateEnter();
 	if (OwnerCharacter)
 	{
+		OwnerCharacter->SetDefaultMoveSpeed();
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Return] Enter : %s"), *OwnerCharacter->GetName());
 	}
 }

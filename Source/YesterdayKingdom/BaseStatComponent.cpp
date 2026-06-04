@@ -90,7 +90,11 @@ void UBaseStatComponent::Heal(float Amount)
 bool UBaseStatComponent::ConsumeST(float Amount)
 {
 	if (IsDead()) return false;
-	if (CurrentST < Amount) return false;
+	if (CurrentST < Amount)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LOWST"));
+		return false;
+	}
 	const float FinalMaxST = GetMaxST();
 	CurrentST = FMath::Clamp(CurrentST - Amount, 0, FinalMaxST);
 	LastSTConsumeTime = GetWorld()->GetTimeSeconds();
@@ -112,7 +116,12 @@ void UBaseStatComponent::RecoverST(float Amount)
 bool UBaseStatComponent::ConsumeMP(float Amount)
 {
 	if (IsDead()) return false;
-	if (CurrentMP < Amount) return false;
+	if (CurrentMP < Amount) 
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LOW MANA"));
+		return false;
+	}
+		
 	const float FinalMaxMP = GetMaxMP();
 	CurrentMP = FMath::Clamp(CurrentMP - Amount, 0, FinalMaxMP);
 	LastMPConsumeTime = GetWorld()->GetTimeSeconds();
@@ -285,6 +294,13 @@ void UBaseStatComponent::ClearAllSkillStats()
 	OnHPChanged.Broadcast(CurrentHP, GetMaxHP());
 	OnMPChanged.Broadcast(CurrentMP, GetMaxMP());
 	OnSTChanged.Broadcast(CurrentST, GetMaxST());
+}
+// ========================================================
+// Setter
+// ========================================================
+void UBaseStatComponent::SetStatRowName(FName NewName)
+{
+	StatRowName = NewName;
 }
 
 // ========================================================
