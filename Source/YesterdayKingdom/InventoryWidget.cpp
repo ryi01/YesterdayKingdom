@@ -3,21 +3,11 @@
 
 #include "InventoryWidget.h"
 
-#include "InventoryComponent.h"
-
-
-
-void UInventoryWidget::BindInventory(class UInventoryComponent* InInventory)
+void UInventoryWidget::OnMoneyUpdated(int32 TotalMoney)
 {
-	InventoryComponent = InInventory;
-	if (!InventoryComponent) return;
-
-	InventoryComponent->OnInventoryChanged.AddDynamic(this, &UInventoryWidget::RefreshInventory);
-
-	RefreshInventory();
 }
 
-void UInventoryWidget::RefreshInventory()
+void UInventoryWidget::NativeConstruct()
 {
-	
+	Super::NativeConstruct();
 }
