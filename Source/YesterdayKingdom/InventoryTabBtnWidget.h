@@ -6,9 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "InventoryTabBtnWidget.generated.h"
 
-/**
- * 
- */
+
+
 UCLASS()
 class YESTERDAYKINGDOM_API UInventoryTabBtnWidget : public UUserWidget
 {
