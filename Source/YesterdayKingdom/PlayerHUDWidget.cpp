@@ -11,6 +11,7 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 	if (!OwnerPlayer) return;
 	if (WBP_Inventory)
 	{
+
 		WBP_Inventory->BindInventory(OwnerPlayer->GetInventoryComponent());
 		WBP_Inventory->SetVisibility(ESlateVisibility::Collapsed);
 	}
