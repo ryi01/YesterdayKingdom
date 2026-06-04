@@ -36,7 +36,7 @@ protected:
 	float DefaultBackStepDuration = 0.8f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep")
-	float MaxBackStepDuration = 1.5f;``
+	float MaxBackStepDuration = 1.5f;
 private:
 	void HandleEnemyLanded();
 public:
