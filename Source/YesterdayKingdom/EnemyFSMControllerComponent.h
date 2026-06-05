@@ -67,6 +67,7 @@ public:
 	// ========================================================
 	// Getter
 	// ========================================================
+	UFSMStateComponent* GetCurrentStateComponent() const;
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "FSM")
 	EEnemyFSMStateType GetCurrentStateType() const;
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "FSM")

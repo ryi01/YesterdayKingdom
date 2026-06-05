@@ -57,6 +57,17 @@ float UFSMStateComponent::GetDistanceToPlayer() const
 	return GetDistanceToTarget(PlayerPawn);
 }
 
+float UFSMStateComponent::GetDistance2DToPlayer() const
+{
+	APawn* PlayerPawn = GetTargetPlayer();
+	if (!PlayerPawn) return TNumericLimits<float>::Max();
+
+	return FVector::Dist2D(
+		OwnerCharacter->GetActorLocation(),
+		PlayerPawn->GetActorLocation()
+	);
+}
+
 float UFSMStateComponent::GetDistanceToHomeLocation() const
 {
 	if (!OwnerCharacter) return TNumericLimits<float>::Max();

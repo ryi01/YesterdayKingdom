@@ -54,7 +54,7 @@ void UCooldownStateComponent::OnStateExit()
 EEnemyFSMStateType UCooldownStateComponent::SelectNextStateAfterCooldown() const
 {
 	if (!EnemyDefinition) return NextState;
-	
+
 	const float SafeBackStepChance = FMath::Clamp(EnemyDefinition->FSMActionConfig.BackStepChance, 0.f, 1.f);	
 	const float SafeFlankingChance = FMath::Clamp(EnemyDefinition->FSMActionConfig.FlankingChance, 0.f, 1.f);	
 	const float RandomValue = FMath::FRand();

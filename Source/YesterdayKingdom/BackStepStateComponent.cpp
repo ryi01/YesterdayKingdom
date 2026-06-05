@@ -12,7 +12,6 @@ void UBackStepStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
 	ElapsedTime = 0.f;
-	CurrentBackStepDuration = DefaultBackStepDuration;
 	bHasLanded = false;
 	if (!OwnerCharacter || !FSMController) return;
 	APawn* PlayerPawn = GetTargetPlayer();
@@ -25,8 +24,8 @@ void UBackStepStateComponent::OnStateEnter()
 	OwnerCharacter->OnEnemyLanded.Unbind();
 	OwnerCharacter->OnEnemyLanded.BindUObject(this, &UBackStepStateComponent::HandleEnemyLanded);
 	
-	const float BackStepDistance = EnemyDefinition ? EnemyDefinition->FSMActionConfig.BackStepDistance : DefaultBackStepDistance;
-	CurrentBackStepDuration = EnemyDefinition ? EnemyDefinition->FSMTimeConfig.BackStepTime.GetRandomTime() : DefaultBackStepDuration;
+	const float BackStepDistance = EnemyDefinition->FSMActionConfig.BackStepDistance;
+	CurrentBackStepDuration = EnemyDefinition->FSMTimeConfig.BackStepTime.GetRandomTime();
 	
 	StopMove();
 	SetFocusToPlayer();
@@ -79,7 +78,7 @@ void UBackStepStateComponent::OnStateExit()
 	ClearFocusTarget();
 
 	ElapsedTime = 0.f;
-	CurrentBackStepDuration = DefaultBackStepDuration;
+	CurrentBackStepDuration = 0.f;
 
 	UE_LOG(LogTemp, Log, TEXT("[FSM][BackStep] Exit : %s"),
 		OwnerCharacter ? *OwnerCharacter->GetName() : TEXT("None"));
@@ -87,4 +86,7 @@ void UBackStepStateComponent::OnStateExit()
 
 void UBackStepStateComponent::HandleEnemyLanded()
 {
+	bHasLanded = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][BackStep] Landed"));
 }

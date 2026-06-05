@@ -35,6 +35,7 @@ protected:
 	APawn* GetTargetPlayer() const;
 	float GetDistanceToTarget(AActor* TargetActor) const;
 	float GetDistanceToPlayer() const;
+	float GetDistance2DToPlayer() const;
 	float GetDistanceToHomeLocation() const;
 	
 	bool IsPlayerValid() const;

@@ -44,6 +44,7 @@ void UEnemyFSMControllerComponent::TickFSM(float DeltaTime)
 {
 	if (!bIsRunning || !CurrentStateComponent) return;
 	StateElapsedTime += DeltaTime;
+
 	CurrentStateComponent->OnStateUpdate(DeltaTime);
 }
 
@@ -55,7 +56,14 @@ void UEnemyFSMControllerComponent::StopFSM()
 	CurrentStateType = EEnemyFSMStateType::None;
 	CurrentStateComponent = nullptr;
 }
+static FString GetEnemyFSMStateName(EEnemyFSMStateType StateType)
+{
+	const UEnum* EnumPtr = StaticEnum<EEnemyFSMStateType>();
+	if (!EnumPtr) return TEXT("Unknown");
 
+	FString StateName = EnumPtr->GetNameStringByValue(static_cast<int64>(StateType));
+	return StateName;
+}
 void UEnemyFSMControllerComponent::ChangeState(EEnemyFSMStateType NewStateType)
 {
 	if (!bIsRunning || CurrentStateType == NewStateType) return;
@@ -68,9 +76,17 @@ void UEnemyFSMControllerComponent::ChangeState(EEnemyFSMStateType NewStateType)
 	CurrentStateType = NewStateType;
 	CurrentStateComponent = NewState;
 	StateElapsedTime = 0.f;
-
+	
+	const FString PrevStateName = GetEnemyFSMStateName(PreviousStateType);
+	const FString NewStateName = GetEnemyFSMStateName(NewStateType);
+	GEngine->AddOnScreenDebugMessage(-1,
+			3.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("[FSM] %s -> %s"), *PrevStateName, *NewStateName)
+		);
 	CurrentStateComponent->OnStateEnter();
 }
+
 
 // ========================================================
 // 맵핑된 state 찾기
@@ -85,6 +101,11 @@ UFSMStateComponent* UEnemyFSMControllerComponent::FindState(EEnemyFSMStateType S
 // ========================================================
 // Getter
 // ========================================================
+
+UFSMStateComponent* UEnemyFSMControllerComponent::GetCurrentStateComponent() const
+{
+	return CurrentStateComponent;
+}
 EEnemyFSMStateType UEnemyFSMControllerComponent::GetCurrentStateType() const
 {
 	return CurrentStateType;

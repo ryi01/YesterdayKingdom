@@ -29,14 +29,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep")
 	float BackStepVerticalPower = 220.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep")
-	float DefaultBackStepDistance = 500.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep")
-	float DefaultBackStepDuration = 0.8f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep")
-	float MaxBackStepDuration = 1.5f;
 private:
 	void HandleEnemyLanded();
 public:

@@ -6,6 +6,7 @@
 #include "BaseStatComponent.h"
 #include "CombatBaseComponent.h"
 #include "EnemyDefinition.h"
+#include "EnemyFSMControllerComponent.h"
 #include "GoldComponent.h"
 #include "InventoryComponent.h"
 #include "PlayerCharacter.h"
@@ -15,7 +16,9 @@
 AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
-
+	
+	FSMController = CreateDefaultSubobject<UEnemyFSMControllerComponent>(TEXT("FSMController"));
+	
 	OnAttackMontageEnded.BindUObject(this, &AEnemyBase::AttackMontageEnded);
 	
 	bDestroyOnDeath = true;
@@ -273,6 +276,12 @@ void AEnemyBase::SetCombatMoveSpeed()
 //===============================================================================================
 // Getter함수
 //===============================================================================================
+
+UEnemyFSMControllerComponent* AEnemyBase::GetFSMControllerComponent() const
+{
+	return FSMController;
+}
+
 float AEnemyBase::GetCurrentHP() const
 {
 	if (!GetStatComponent())

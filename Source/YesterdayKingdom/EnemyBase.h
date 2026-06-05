@@ -7,6 +7,7 @@
 #include "EnemyBase.generated.h"
 
 class UEnemyDefinition;
+class UEnemyFSMControllerComponent;
 DECLARE_DELEGATE(FOnEnemyAttackCompleted);
 DECLARE_DELEGATE(FOnEnemyLanded);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDoEnemyDied);
@@ -19,6 +20,9 @@ class YESTERDAYKINGDOM_API AEnemyBase : public ABaseCharacter
 	GENERATED_BODY()
 	
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM")
+	TObjectPtr<UEnemyFSMControllerComponent> FSMController;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Data")
 	TObjectPtr<UEnemyDefinition> EnemyDefinition;
 	
@@ -113,6 +117,8 @@ public:
 	// Getter함수
 	//===============================================================================================
 	UEnemyDefinition* GetEnemyDefinition() const { return EnemyDefinition; }
+	
+	UEnemyFSMControllerComponent* GetFSMControllerComponent() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Stat")
 	float GetCurrentHP() const;

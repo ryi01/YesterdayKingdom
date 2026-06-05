@@ -25,9 +25,6 @@ protected:
 	//===============================================================================================
 	// FSM
 	//===============================================================================================
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM")
-	TObjectPtr<UEnemyFSMControllerComponent> FSMController;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<UIdleStatComponent> IdleState;
 
@@ -55,6 +52,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UBackStepStateComponent> BackStepState;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UJumpAttackStateComponent> JumpAttackState;
 	
 public:
 	ABossEnemy(const FObjectInitializer& ObjectInitializer);

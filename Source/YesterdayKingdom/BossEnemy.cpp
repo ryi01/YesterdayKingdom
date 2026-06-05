@@ -10,6 +10,7 @@
 #include "EnemyFSMControllerComponent.h"
 #include "FlankingStateComponent.h"
 #include "IdleStatComponent.h"
+#include "JumpAttackStateComponent.h"
 #include "PatrolStateComponent.h"
 #include "PatternSelectStateComponent.h"
 #include "ReturnStateComponent.h"
@@ -21,7 +22,6 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(WeaponRoot);
 	
-	FSMController = CreateDefaultSubobject<UEnemyFSMControllerComponent>(TEXT("FSMController"));
 	IdleState = CreateDefaultSubobject<UIdleStatComponent>(TEXT("IdleState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
@@ -31,6 +31,7 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	CooldownState = CreateDefaultSubobject<UCooldownStateComponent>(TEXT("CooldownState"));
 	FlankingState = CreateDefaultSubobject<UFlankingStateComponent>(TEXT("FlankingState"));
 	BackStepState = CreateDefaultSubobject<UBackStepStateComponent>(TEXT("BackStepState"));
+	JumpAttackState = CreateDefaultSubobject<UJumpAttackStateComponent>(TEXT("JumpAttackState"));
 }
 
 void ABossEnemy::BeginPlay()
@@ -78,6 +79,10 @@ void ABossEnemy::BeginPlay()
 	if (BackStepState)
 	{
 		FSMController->RegisterState(EEnemyFSMStateType::BackStep, BackStepState);
+	}	
+	if (JumpAttackState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::JumpAttack, JumpAttackState);
 	}
 
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);
@@ -86,6 +91,7 @@ void ABossEnemy::BeginPlay()
 void ABossEnemy::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
 	if (FSMController) FSMController->TickFSM(DeltaSeconds);
 }
 
