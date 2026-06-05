@@ -39,46 +39,6 @@ void UCombatBaseComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 //=====================================================================================================
 void UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[Combat] RequestAttackByRow Called : %s"),
-	*AttackRowName.ToString());
-
-	if (!AttackDataTable)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Combat] AttackDataTable is NULL"));
-		return;
-	}
-
-	const FAttackDataRow* AttackData = AttackDataTable->FindRow<FAttackDataRow>(
-		AttackRowName,
-		TEXT("RequestAttackByRow")
-	);
-
-	if (!AttackData)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Combat] AttackDataRow Not Found : %s"),
-			*AttackRowName.ToString());
-		return;
-	}
-
-	if (!AttackData->Montage)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Combat] Montage is NULL : %s"),
-			*AttackRowName.ToString());
-		return;
-	}
-
-	if (AttackData->Nodes.Num() <= 0)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Combat] Nodes Empty : %s"),
-			*AttackRowName.ToString());
-		return;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[Combat] AttackData Found : %s / Montage = %s / Nodes = %d"),
-		*AttackRowName.ToString(),
-		*AttackData->Montage->GetName(),
-		AttackData->Nodes.Num()
-	);
 	if (!OwnerCharacter || !AttackDataTable) return;
 	if (!CurrentAttackRowName.IsNone())
 	{
@@ -112,10 +72,6 @@ void UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
 void UCombatBaseComponent::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	ResetAttackState();
-	if (OwnerCharacter)
-	{
-		IAttacker::Execute_ClearAttackAnimation(OwnerCharacter);
-	}
 }
 
 void UCombatBaseComponent::ResetAttackState()
@@ -346,6 +302,7 @@ void UCombatBaseComponent::CloseParryWindow()
 
 void UCombatBaseComponent::EndGuard()
 {
+//
 	if (!bIsGuarding) return;
 	
 	bIsGuarding = false;
@@ -628,8 +585,6 @@ void UCombatBaseComponent::SetAttackDataTable(UDataTable* NewTable)
 {
 	AttackDataTable = NewTable;
 }
-
-
 //=====================================================================================================
 // Getter
 //=====================================================================================================
