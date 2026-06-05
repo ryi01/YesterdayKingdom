@@ -13,7 +13,6 @@ void UMoneyWidget::NativeOnInitialized()
 	{
 		Text_TotalMoney->SetText(FText::FromString("0"));
 	}
-
 }
 
 // 게임 머니 정보 표시 갱신
