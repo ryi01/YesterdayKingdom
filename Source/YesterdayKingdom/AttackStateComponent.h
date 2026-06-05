@@ -17,6 +17,8 @@ class YESTERDAYKINGDOM_API UAttackStateComponent : public UFSMStateComponent
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Next")
 	EEnemyFSMStateType NextState = EEnemyFSMStateType::Cooldown;
+	
+	bool bAttackCompletedNormally = false;
 protected:
 	void HandleAttackCompleted();
 public:

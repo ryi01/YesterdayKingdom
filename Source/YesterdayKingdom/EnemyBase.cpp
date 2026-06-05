@@ -32,6 +32,7 @@ void AEnemyBase::BeginPlay()
 	HomeLocation = GetActorLocation();
 	InitializeFromDefinition();
 }
+
 //===============================================================================================
 // 초기화
 //===============================================================================================
@@ -74,11 +75,13 @@ void AEnemyBase::InitializeFromDefinition()
 	}
 	InitializeWeaponRoot();
 }
+
 void AEnemyBase::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 	OnEnemyLanded.ExecuteIfBound();
 }
+
 
 //===============================================================================================
 // 전투관련
@@ -93,14 +96,27 @@ void AEnemyBase::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, 
 void AEnemyBase::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
 	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+	if (IsDead())
+	{
+		if (FSMController)
+		{
+			FSMController->ChangeState(EEnemyFSMStateType::Dead);
+		}
+		return;
+	}
 	if (DamageSource && DamageSource->ActorHasTag(TEXT("Player")))
 	{
 		LastDangerLocation = DamageLocation;
 		LastDangerTime = GetWorld()->GetTimeSeconds();
 	}
-	if (EnemyDefinition && EnemyDefinition->HitMontage)
+	// enemy hit state에서 발생
+	/*if (EnemyDefinition && EnemyDefinition->HitMontage)
 	{
 		PlayAnimMontage(EnemyDefinition->HitMontage);
+	}*/
+	if (FSMController)
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::Hit);
 	}
 }
 
@@ -114,11 +130,11 @@ void AEnemyBase::HandleDeath_Implementation()
 	GiveRewardToKiller();
 	NotifyQuestKillToKiller();
 	OnEnemyDied.Broadcast();
-	if (EnemyDefinition && EnemyDefinition->DeathMontage)
+	
+	if (FSMController)
 	{
-		PlayAnimMontage(EnemyDefinition->DeathMontage);
+		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 	}
-
 }
 
 float AEnemyBase::GetDeathDestroyDelay() const
@@ -247,7 +263,6 @@ void AEnemyBase::ClearSelectedAttackRowName()
 {
 	SelectedAttackRowName = NAME_None;
 }
-
 //===============================================================================================
 // 속도 변경
 //===============================================================================================

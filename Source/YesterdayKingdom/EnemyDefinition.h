@@ -189,6 +189,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UStateTree> StateTree;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="AI|Boss")
+	float PatternSelectRange = 850.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="AI|Boss")
+	float JumpAttackRange = 1100.f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float MoveSpeed = 350.f;
 	

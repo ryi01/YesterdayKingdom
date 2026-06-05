@@ -16,8 +16,11 @@ enum class EEnemyFSMStateType : uint8
 	Patrol          UMETA(DisplayName = "Patrol"),
 	Chase           UMETA(DisplayName = "Chase"),
 	Return			UMETA(DisplayName = "Return"),
+	
 	Attack          UMETA(DisplayName = "Attack"),
 	JumpAttack      UMETA(DisplayName = "JumpAttack"),
+	RotationAttack  UMETA(DisplayName = "Rotation Attack"),
+	
 	Cooldown        UMETA(DisplayName = "Cooldown"),
 	BackStep        UMETA(DisplayName = "BackStep"),
 	Flanking        UMETA(DisplayName = "Flanking"),

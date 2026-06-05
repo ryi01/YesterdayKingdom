@@ -156,6 +156,22 @@ void UFSMStateComponent::StopMove()
 	AIController->StopMovement();
 }
 
+void UFSMStateComponent::FacePlayerInstant()
+{
+	if (!OwnerCharacter) return;
+
+	APawn* PlayerPawn = GetTargetPlayer();
+	if (!PlayerPawn) return;
+
+	FVector Direction = PlayerPawn->GetActorLocation() - OwnerCharacter->GetActorLocation();
+	Direction.Z = 0.f;
+
+	if (Direction.IsNearlyZero()) return;
+
+	const FRotator LookRotation = Direction.Rotation();
+	OwnerCharacter->SetActorRotation(LookRotation);
+}
+
 void UFSMStateComponent::SetFocusToPlayer()
 {
 	APawn* PlayerPawn = GetTargetPlayer();
@@ -182,6 +198,15 @@ void UFSMStateComponent::ClearFocusTarget()
 	if (!AIController) return;
 
 	AIController->ClearFocus(EAIFocusPriority::Gameplay);
+}
+
+void UFSMStateComponent::SetRootMotionFromMontage(bool bEnabled)
+{
+	if (!OwnerCharacter) return;
+	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+	AnimInstance->SetRootMotionMode(bEnabled ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::IgnoreRootMotion);
+	
 }
 
 AEnemyBase* UFSMStateComponent::GetOwnerEnemy() const

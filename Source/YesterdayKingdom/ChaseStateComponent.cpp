@@ -11,6 +11,7 @@
 void UChaseStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
+	SetRootMotionFromMontage(false);
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->SetCombatMoveSpeed();
@@ -41,12 +42,30 @@ void UChaseStateComponent::OnStateUpdate(float X)
 			return;
 		}
 	}
-	
-	if (IsPlayerInAttackRange())
+	const float DistanceToPlayer = GetDistance2DToPlayer();
+	if (EnemyDefinition && EnemyDefinition->EnemyRole == EEnemyRole::Boss)
 	{
-		StopMove();
-		FSMController->ChangeState(NextAttackState);
-		return;
+		if (DistanceToPlayer >= EnemyDefinition->JumpAttackRange)
+		{
+			StopMove();
+			FSMController->ChangeState(EEnemyFSMStateType::JumpAttack);
+			return;
+		}
+		if (DistanceToPlayer <= EnemyDefinition->PatternSelectRange)
+		{
+			StopMove();
+			FSMController->ChangeState(NextAttackState);
+			return;
+		}
+	}
+	else
+	{
+		if (IsPlayerInAttackRange())
+		{
+			StopMove();
+			FSMController->ChangeState(NextAttackState);
+			return;
+		}
 	}
 	MoveToPlayer(AcceptanceRadius);
 	

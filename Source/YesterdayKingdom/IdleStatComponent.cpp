@@ -12,7 +12,7 @@
 void UIdleStatComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
-	
+	SetRootMotionFromMontage(false);
 	CurrentStateDuration = 0.f;
 
 	if (!OwnerCharacter) return;

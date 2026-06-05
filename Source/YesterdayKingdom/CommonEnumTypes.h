@@ -151,4 +151,23 @@ struct FAttackDataRow : public FTableRowBase
 	// 자원이 부족하면 차지를 강제 발동할지, 취소할지
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Charge")
 	bool bReleaseWhenChargeResourceEmpty = true;
+	
+	// =========================
+	// Jump / Dash Attack
+	// =========================
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Jump")
+	float JumpUpPower = 700.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Jump")
+	float JumpForwardPower = 1200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Jump")
+	float AttackTriggerDistance = 250.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Jump")
+	float AttackTriggerHeight = 150.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Jump")
+	float MaxJumpAttackTime = 3.f;
 };

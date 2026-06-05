@@ -2,6 +2,8 @@
 
 
 #include "AttackStateComponent.h"
+
+#include "CombatBaseComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "EnemyBase.h"
 void UAttackStateComponent::OnStateEnter()
@@ -13,7 +15,13 @@ void UAttackStateComponent::OnStateEnter()
 		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
+	SetRootMotionFromMontage(true);
+	
+	FacePlayerInstant();
+	
 	StopMove();
+	
+	bAttackCompletedNormally = false;
 	
 	OwnerCharacter->OnAttackCompleted.Unbind();
 	OwnerCharacter->OnAttackCompleted.BindUObject(this, &UAttackStateComponent::HandleAttackCompleted);
@@ -42,6 +50,11 @@ void UAttackStateComponent::OnStateExit()
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->OnAttackCompleted.Unbind();
+		OwnerCharacter->ClearSelectedAttackRowName();
+
+		OwnerCharacter->GetCombatComponent()->EndAttackTrace();
+		OwnerCharacter->GetCombatComponent()->ResetAttackState();
+
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[FSM][Attack] Exit"));
@@ -51,7 +64,7 @@ void UAttackStateComponent::HandleAttackCompleted()
 {
 	if (!FSMController) return;
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][Attack] Attack Completed"));
-
+	bAttackCompletedNormally = true;
 	FSMController->ChangeState(NextState);
 }
 

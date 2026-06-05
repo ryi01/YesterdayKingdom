@@ -59,16 +59,13 @@ public:
 protected:
 	virtual void Landed(const FHitResult& Hit) override;
 	virtual void InitializeFromDefinition();
+
 	//===============================================================================================
 	// 죽었을 경우 리워드 지급
 	//===============================================================================================
 	virtual void GiveRewardToKiller();
 	void NotifyQuestKillToKiller();
-	
-	//===============================================================================================
-	// 죽는 상태
-	//===============================================================================================
-	virtual float GetDeathDestroyDelay() const override;
+
 public:
 	virtual void BeginPlay() override;
 	//===============================================================================================
@@ -77,6 +74,12 @@ public:
 	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse) override;
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	virtual void HandleDeath_Implementation() override;
+	
+	//===============================================================================================
+	// 죽는 상태
+	//===============================================================================================
+	virtual float GetDeathDestroyDelay() const override;
+	
 	//===============================================================================================
 	// 전투관련
 	//===============================================================================================

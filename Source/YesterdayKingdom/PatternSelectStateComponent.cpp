@@ -3,6 +3,7 @@
 
 #include "PatternSelectStateComponent.h"
 
+#include "CombatBaseComponent.h"
 #include "EnemyBase.h"
 #include "EnemyFSMControllerComponent.h"
 
@@ -14,26 +15,36 @@ void UPatternSelectStateComponent::OnStateEnter()
 	
 	if (SelectedPattern.IsNone())
 	{
-		if (!EnemyDefinition->AttackSet.MainAttackRowName.IsNone())
+		if (IsPlayerInAttackRange() && !EnemyDefinition->AttackSet.MainAttackRowName.IsNone())
 		{
-			OwnerCharacter->SetSelectedAttackRowName(EnemyDefinition->AttackSet.MainAttackRowName);
-			FSMController->ChangeState(NextState);
+			const FName FallbackRowName = EnemyDefinition->AttackSet.MainAttackRowName;
+
+			OwnerCharacter->SetSelectedAttackRowName(FallbackRowName);
+
+			const EEnemyFSMStateType TargetState = GetNextStateByAttackType(FallbackRowName);
+
+			FSMController->ChangeState(TargetState);
+			return;
 		}
+
+		FSMController->ChangeState(EEnemyFSMStateType::Chase);
 		return;
 	}
 	
 	OwnerCharacter->SetSelectedAttackRowName(SelectedPattern);
+
+	const EEnemyFSMStateType TargetState = GetNextStateByAttackType(SelectedPattern);
 	
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][PatternSelect] Selected Pattern : %s"),
 		*SelectedPattern.ToString());
 
-	FSMController->ChangeState(NextState);
+	FSMController->ChangeState(TargetState);
 }
 
 FName UPatternSelectStateComponent::SelectBossAttackPattern() const
 {
 	if (!EnemyDefinition) return NAME_None;
-	const float DistanceToPlayer = GetDistanceToPlayer();
+	const float DistanceToPlayer = GetDistance2DToPlayer();
 	// 사용 가능한 공격 패턴 후보 
 	TArray<const FBossAttackPattern*> Candidates;
 	float TotalWeight = 0.f;
@@ -73,6 +84,33 @@ bool UPatternSelectStateComponent::CanUseBossPattern(const FBossAttackPattern& P
 int32 UPatternSelectStateComponent::GetCurrentPhase() const
 {
 	return 1;
+}
+
+EEnemyFSMStateType UPatternSelectStateComponent::GetNextStateByAttackType(FName AttackRowName) const
+{
+	if (!OwnerCharacter || !OwnerCharacter->GetCombatComponent()) return NextState;
+	const FAttackDataRow* AttackDataRow = OwnerCharacter->GetCombatComponent()->GetAttackDataByRow(AttackRowName); 
+	if (!AttackDataRow)
+	{
+		return NextState;
+	}
+
+	switch (AttackDataRow->AttackType)
+	{
+	case EAttackType::Charge:
+		return EEnemyFSMStateType::RotationAttack;
+
+	case EAttackType::Dash:
+		return EEnemyFSMStateType::JumpAttack;
+
+	case EAttackType::Light:
+	case EAttackType::Heavy:
+	case EAttackType::Special:
+	case EAttackType::AOE:
+	default:
+		return EEnemyFSMStateType::Attack;
+	}
+
 }
 
 

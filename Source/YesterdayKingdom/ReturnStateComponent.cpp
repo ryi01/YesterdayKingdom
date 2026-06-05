@@ -10,6 +10,7 @@
 void UReturnStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
+	SetRootMotionFromMontage(false);
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->SetDefaultMoveSpeed();

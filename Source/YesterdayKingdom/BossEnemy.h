@@ -55,6 +55,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UJumpAttackStateComponent> JumpAttackState;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UHitStateComponent> HitState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UDeadStateComponent> DeadState;
 public:
 	ABossEnemy(const FObjectInitializer& ObjectInitializer);
 

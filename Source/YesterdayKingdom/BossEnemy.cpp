@@ -7,8 +7,10 @@
 #include "BackStepStateComponent.h"
 #include "ChaseStateComponent.h"
 #include "CooldownStateComponent.h"
+#include "DeadStateComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "FlankingStateComponent.h"
+#include "HitStateComponent.h"
 #include "IdleStatComponent.h"
 #include "JumpAttackStateComponent.h"
 #include "PatrolStateComponent.h"
@@ -32,6 +34,8 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	FlankingState = CreateDefaultSubobject<UFlankingStateComponent>(TEXT("FlankingState"));
 	BackStepState = CreateDefaultSubobject<UBackStepStateComponent>(TEXT("BackStepState"));
 	JumpAttackState = CreateDefaultSubobject<UJumpAttackStateComponent>(TEXT("JumpAttackState"));
+	HitState = CreateDefaultSubobject<UHitStateComponent>(TEXT("HitState"));
+	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
 }
 
 void ABossEnemy::BeginPlay()
@@ -83,6 +87,14 @@ void ABossEnemy::BeginPlay()
 	if (JumpAttackState)
 	{
 		FSMController->RegisterState(EEnemyFSMStateType::JumpAttack, JumpAttackState);
+	}
+	if (HitState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Hit, HitState);
+	}
+	if (DeadState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Dead, DeadState);
 	}
 
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);

@@ -23,7 +23,7 @@ protected:
 	FName SelectBossAttackPattern() const;
 	bool CanUseBossPattern(const FBossAttackPattern& Pattern, float DistanceToPlayer) const;
 	int32 GetCurrentPhase() const;
-	
+	EEnemyFSMStateType GetNextStateByAttackType(FName AttackRowName) const;
 public:
 	virtual void OnStateEnter() override;
 	

@@ -142,7 +142,6 @@ protected:
 	//=====================================================================================================
 	virtual bool IsValidHitActor(AActor* HitActor) const;
 	const FAttackNodeData* GetCurrentAttackNodeData() const;
-	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
 	
 	//=====================================================================================================
 	// Hit시 발생되는 효과
@@ -151,7 +150,6 @@ protected:
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
 	void ResetHitStop();
 	
-	bool JumpToNextAttackSection();
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
@@ -170,7 +168,7 @@ public:
 	virtual void EndAttackTrace();
 	
 	//=====================================================================================================
-	// 코모 공격
+	// 콤보 공격
 	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void CheckCombo();
@@ -210,6 +208,9 @@ public:
 	//=====================================================================================================
 	void ResetAttackState();
 	void SetAttackDataTable(UDataTable* NewTable);
+	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
+	bool JumpToNextAttackSection();
+	
 	//=====================================================================================================
 	// Getter
 	//=====================================================================================================
