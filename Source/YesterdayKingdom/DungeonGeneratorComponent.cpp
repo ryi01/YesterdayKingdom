@@ -14,6 +14,12 @@ UDungeonGeneratorComponent::UDungeonGeneratorComponent()
 
 	// ...
 }
+// Called when the game starts
+void UDungeonGeneratorComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	GenerateDungeon();
+}
 
 void UDungeonGeneratorComponent::GenerateDungeon()
 {
@@ -31,6 +37,8 @@ void UDungeonGeneratorComponent::GenerateDungeon()
 	
 	CreateMap();
 	CreateWalls();
+	
+	SetPlayerStartLocation();
 	
 	SpawnDecorationByRoomData();
 	SpawnEnemiesByRoomData();
@@ -717,6 +725,14 @@ FName UDungeonGeneratorComponent::GetRoomTypeRowName(EDungeonRoomType RoomType) 
 	return FName(*NameString);
 }
 
+void UDungeonGeneratorComponent::SetPlayerStartLocation()
+{
+	APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+	if (!PlayerPawn) return;
+	const FVector Location = GridToWorldLocation(StartPoint, 100.f);
+	PlayerPawn->SetActorLocation(Location);
+}
+
 void UDungeonGeneratorComponent::SpawnEnemiesByRoomData()
 {
 	for (const FDungeonRoomInfo& Room : Rooms)
@@ -1293,10 +1309,7 @@ void UDungeonGeneratorComponent::DebugPrintMapData() const
 	}
 }
 
-
-// Called when the game starts
-void UDungeonGeneratorComponent::BeginPlay()
+FVector UDungeonGeneratorComponent::GridToWorldLocation(const FVector2D& Point, float Z) const
 {
-	Super::BeginPlay();
-	GenerateDungeon();
+	return FVector(Point.X * TileSize, Point.Y * TileSize, Z);
 }

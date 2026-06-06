@@ -7,6 +7,7 @@
 #include "EnemyBase.h"
 #include "EnemyDefinition.h"
 #include "EnemyFSMControllerComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
@@ -42,6 +43,7 @@ void UFSMStateComponent::OnStateUpdate(float)
 
 void UFSMStateComponent::OnStateExit()
 {
+	
 }
 
 APawn* UFSMStateComponent::GetTargetPlayer() const
@@ -154,6 +156,12 @@ void UFSMStateComponent::StopMove()
 	AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController());
 	if (!AIController) return;
 	AIController->StopMovement();
+	if (UCharacterMovementComponent* MovementComponent = OwnerCharacter->GetCharacterMovement())
+	{
+		MovementComponent->StopMovementImmediately();
+		MovementComponent->Velocity = FVector::ZeroVector;
+		MovementComponent->ClearAccumulatedForces();
+	}
 }
 
 void UFSMStateComponent::FacePlayerInstant()

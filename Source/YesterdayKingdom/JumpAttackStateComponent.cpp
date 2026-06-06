@@ -16,26 +16,35 @@ void UJumpAttackStateComponent::OnStateEnter()
 	bDidJumpToPlayer = false;
 	bStartedAttack = false;
 	CurrentStep = EJumpAttackStep::JumpStart;
-	
 
 	if (!OwnerCharacter || !FSMController) return;
 	
 	APawn* PlayerPawn = GetTargetPlayer();
 	if (!PlayerPawn)
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Idle);
+		FSMController->ChangeState(NextState);
 		return;
 	}
-	JumpTargetLocation = PlayerPawn->GetActorLocation();
-	if (!InitializeJumpAttackFromData())
+	if (!InitializeActionTarget())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Chase);
+		FSMController->ChangeState(NextState);
 		return;
 	}
+	if (!InitializeAttackActionFromData())
+	{
+		FSMController->ChangeState(NextState);
+		return;
+	}
+	
+	ApplyMovePowerFromAttackData();
+	CurrentJumpUpPower = CurrentAttackDataRow->JumpUpPower;
+	CurrentAttackTriggerDistance = CurrentAttackDataRow->AttackTriggerDistance;
+	CurrentAttackTriggerHeight = CurrentAttackDataRow->AttackTriggerHeight;
+	
 	UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent();
 	if (!CombatComp)
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Chase);
+		FSMController->ChangeState(NextState);
 		return;
 	}
 	StopMove();
@@ -47,15 +56,12 @@ void UJumpAttackStateComponent::OnStateEnter()
 	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
 	if (!AnimInstance) 
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Idle);
+		FSMController->ChangeState(NextState);
 		return;
 	}
 	
 	FacePlayerInstant();
 	SetRootMotionFromMontage(false);
-	
-	OwnerCharacter->OnAttackCompleted.Unbind();
-	OwnerCharacter->OnAttackCompleted.BindUObject(this, &UJumpAttackStateComponent::HandleAttackCompleted);
 
 	CombatComp->RequestAttackByRow(CurrentAttackRowName);
 
@@ -67,34 +73,7 @@ void UJumpAttackStateComponent::OnStateEnter()
 		*OwnerCharacter->GetName(),
 		GetDistanceToPlayer());
 }
-bool UJumpAttackStateComponent::InitializeJumpAttackFromData()
-{
-	if (!OwnerCharacter) return false;
 
-	UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent();
-	if (!CombatComp) return false;
-
-	CurrentAttackRowName = OwnerCharacter->GetSelectedAttackRowName();
-
-	if (CurrentAttackRowName.IsNone()) return false;
-
-	CurrentAttackDataRow = CombatComp->GetAttackDataByRow(CurrentAttackRowName);
-	if (!CurrentAttackDataRow || !CurrentAttackDataRow->Montage) return false;
-	
-	CurrentJumpUpPower = CurrentAttackDataRow->JumpUpPower;
-	CurrentJumpForwardPower = CurrentAttackDataRow->JumpForwardPower;
-	CurrentAttackTriggerDistance = CurrentAttackDataRow->AttackTriggerDistance;
-	CurrentAttackTriggerHeight = CurrentAttackDataRow->AttackTriggerHeight;
-	CurrentMaxJumpAttackTime = CurrentAttackDataRow->MaxJumpAttackTime;
-
-	if (CurrentMaxJumpAttackTime <= 0.f)
-	{
-		CurrentMaxJumpAttackTime = 3.f;
-	}
-
-	return true;
-	
-}
 
 void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 {
@@ -107,9 +86,11 @@ void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 		return;
 	}
 
+	if (bFinished) return;
+	
 	ElapsedTime += DeltaTime;
 
-	if (ElapsedTime >= CurrentMaxJumpAttackTime)
+	if (ElapsedTime >= MaxActionTime)
 	{
 		FSMController->ChangeState(NextState);
 		return;
@@ -128,7 +109,6 @@ void UJumpAttackStateComponent::OnStateExit()
 
 	if (OwnerCharacter)
 	{
-		OwnerCharacter->OnAttackCompleted.Unbind();
 		OwnerCharacter->ClearSelectedAttackRowName();
 
 		if (UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent())
@@ -140,16 +120,29 @@ void UJumpAttackStateComponent::OnStateExit()
 
 	ClearFocusTarget();
 
-	ElapsedTime = 0.f;
+	SetRootMotionFromMontage(false);
+
 	bDidJumpToPlayer = false;
 	bStartedAttack = false;
 	CurrentStep = EJumpAttackStep::None;
 
-	CurrentAttackRowName = NAME_None;
-	CurrentAttackDataRow = nullptr;
-	JumpTargetLocation = FVector::ZeroVector;
+	ClearActionTargetData();
+	ClearAttackActionData();
 
 	UE_LOG(LogTemp, Log, TEXT("[FSM][JumpAttack] Exit"));
+}
+
+void UJumpAttackStateComponent::NotifyAttackActionStart()
+{
+	if (bDidJumpToPlayer) return;
+	if (!OwnerCharacter || !FSMController) return;
+
+	bDidJumpToPlayer = true;
+	CurrentStep = EJumpAttackStep::Flying;
+	if (!JumpToNextAttackSection()) return;
+	SetRootMotionFromMontage(false);
+	MoveToActionTargetLocation(true, false);
+	ClearFocusTarget();
 }
 
 
@@ -160,13 +153,9 @@ void UJumpAttackStateComponent::TryStartAttackSection()
 
 	const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
 
-	const float DistanceToTarget = FVector::Dist2D(OwnerLocation, JumpTargetLocation);
-	const float HeightDiff = FMath::Abs(OwnerLocation.Z - JumpTargetLocation.Z);
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] TryStartAttack / TargetDist = %.2f / Height = %.2f / TriggerDist = %.2f / TriggerHeight = %.2f"),
-		DistanceToTarget,
-		HeightDiff,
-		CurrentAttackTriggerDistance,
-		CurrentAttackTriggerHeight);
+	const float DistanceToTarget = FVector::Dist2D(OwnerLocation, ActionTargetLocation);
+	const float HeightDiff = FMath::Abs(OwnerLocation.Z - ActionTargetLocation.Z);
+
 	if (DistanceToTarget <= CurrentAttackTriggerDistance && HeightDiff <= CurrentAttackTriggerHeight)
 	{
 		StartAttackSection();
@@ -186,64 +175,10 @@ void UJumpAttackStateComponent::StartAttackSection()
 
 	bStartedAttack = true;
 	CurrentStep = EJumpAttackStep::Attack;
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] StartAttackSection Called"));
 	if (!CombatComp->JumpToNextAttackSection())
 	{
 		FSMController->ChangeState(NextState);
 	}
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] SpinMove -> Attack Success"));
+
 }
 
-void UJumpAttackStateComponent::HandleAttackCompleted()
-{
-	if (!FSMController) return;
-
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] Attack Completed"));
-
-	FSMController->ChangeState(NextState);
-}
-void UJumpAttackStateComponent::NotifyJumpToPlayer()
-{
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] NotifyJumpToPlayer Called"));
-	if (bDidJumpToPlayer) return;
-	if (!OwnerCharacter || !FSMController) return;
-	
-	UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent();
-	if (!CombatComp) return;
-	
-	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
-	if (!AnimInstance) return;
-
-	bDidJumpToPlayer = true;
-	CurrentStep = EJumpAttackStep::Flying;
-	// JumpStart에서 spinMove로 변경
-	if (!CombatComp->JumpToNextAttackSection())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] Failed JumpStart -> SpinMove"));
-		FSMController->ChangeState(NextState);
-		return;
-	}
-	
-	// 앞으로 이동은 RootMotion 끄고 코드로 제어
-	SetRootMotionFromMontage(false);
-	
-	FVector JumpDirection = JumpTargetLocation - OwnerCharacter->GetActorLocation();
-	JumpDirection.Z = 0.f;
-
-	if (JumpDirection.IsNearlyZero())
-	{
-		JumpDirection = OwnerCharacter->GetActorForwardVector();
-		JumpDirection.Z = 0.f;
-	}
-
-	JumpDirection.Normalize();
-
-	const FVector LaunchVelocity = JumpDirection * CurrentJumpForwardPower;
-	
-	OwnerCharacter->LaunchCharacter(LaunchVelocity, true, false);
-
-	ClearFocusTarget();
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] Jump To Player / ForwardPower = %.2f"),
-		CurrentJumpForwardPower);
-	
-}

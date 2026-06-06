@@ -55,6 +55,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UJumpAttackStateComponent> JumpAttackState;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM")
+	TObjectPtr<class URotationAttackStateComponent> RotationAttackState;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UHitStateComponent> HitState;
 	

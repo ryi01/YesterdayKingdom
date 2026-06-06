@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "EnemyCombatTypes.h"
+#include "EnemyFSMTypes.h"
 #include "Engine/DataAsset.h"
 #include "EnemyDefinition.generated.h"
 
@@ -55,6 +56,12 @@ struct FBossAttackPattern
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	int32 MaxPhase = 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
+	bool bCanUseAsOpeningPattern = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Pattern")
+	EEnemyFSMStateType ExecuteState = EEnemyFSMStateType::Attack;
 };
 USTRUCT(BlueprintType)
 struct FEnemyFSMActionConfig
@@ -72,9 +79,21 @@ struct FEnemyFSMActionConfig
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Flanking", meta = (ClampMin = "0.0"))
 	float FlankingRadius = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Flanking", meta = (ClampMin = "0.0"))
+	float FlankingMinDistance = 250.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Flanking", meta = (ClampMin = "0.0"))
+	float FlankingMaxDistance = 700.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep", meta = (ClampMin = "0.0"))
 	float BackStepDistance = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep", meta = (ClampMin = "0.0"))
+	float ForceBackStepDistance = 250.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|BackStep", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float CloseBackStepChanceBonus = 0.35f;
 };
 USTRUCT(BlueprintType)
 struct FEnemyFSMStateTime

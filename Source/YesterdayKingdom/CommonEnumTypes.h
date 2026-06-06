@@ -170,4 +170,13 @@ struct FAttackDataRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Jump")
 	float MaxJumpAttackTime = 3.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Action")
+	bool bTrackTargetDuringAction = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Action")
+	bool bFaceTargetDuringAction = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Action", meta=(ClampMin="0.0"))
+	float FaceTargetRotationSpeed = 8.f;
 };

@@ -106,14 +106,35 @@ bool UCombatBaseComponent::JumpToNextAttackSection()
 {
 	if (!OwnerCharacter) return false;
 	// DT에서 필요한 열 추출
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][JumpToNext] Try / Row=%s / CurrentIndex=%d"),
+		*CurrentAttackRowName.ToString(),
+		CurrentAttackNodeIndex);
 	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentAttackRowName);
 	if (!AttackDataRow || !AttackDataRow->Montage) return false;
 	// 사용되는 Row에서 NodeData 추출
 	const FAttackNodeData* CurrentNode = GetCurrentAttackNodeData();
-	if (!CurrentNode) return false;
-
+	if (!CurrentNode)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Failed / CurrentNode None / Row=%s / CurrentIndex=%d / NodeCount=%d"),
+			*CurrentAttackRowName.ToString(),
+			CurrentAttackNodeIndex,
+			AttackDataRow->Nodes.Num());
+		return false;
+	}
+	UE_LOG(LogTemp, Warning,
+			TEXT("[Combat][JumpToNext] CurrentNode / Section=%s / NextIndex=%d / NodeCount=%d"),
+			*CurrentNode->SectionName.ToString(),
+			CurrentNode->NextIndex,
+			AttackDataRow->Nodes.Num());
 	if (CurrentNode->NextIndex == INDEX_NONE || !AttackDataRow->Nodes.IsValidIndex(CurrentNode->NextIndex))
 	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Failed / Invalid NextIndex / CurrentSection=%s / NextIndex=%d / NodeCount=%d"),
+			*CurrentNode->SectionName.ToString(),
+			CurrentNode->NextIndex,
+			AttackDataRow->Nodes.Num());
 		CurrentAttackRowName = NAME_None;
 		CurrentAttackNodeIndex = INDEX_NONE;
 		bComboInputBuffered = false;
@@ -121,18 +142,60 @@ bool UCombatBaseComponent::JumpToNextAttackSection()
 	}
 	// 현재 실행되는 콤보의 인덱스를 올리고
 	CurrentAttackNodeIndex = CurrentNode->NextIndex;
-	
+	const int32 PreviousIndex = CurrentAttackNodeIndex;
+	const int32 NextIndex = CurrentNode->NextIndex;
 	const FAttackNodeData* NextNode = GetCurrentAttackNodeData();
-	if (!NextNode) return false;
+	if (!NextNode)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Failed / NextNode None / PrevIndex=%d / NextIndex=%d"),
+			PreviousIndex,
+			NextIndex);
+		return false;
+	}
 
 	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return false;
+	const bool bIsPlaying = AnimInstance->Montage_IsPlaying(AttackDataRow->Montage);
+	const bool bHasNextSection = AttackDataRow->Montage->IsValidSectionName(NextNode->SectionName);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][JumpToNext] NextNode / PrevIndex=%d / NextIndex=%d / NextSection=%s / Montage=%s / IsPlaying=%d / HasSection=%d"),
+		PreviousIndex,
+		NextIndex,
+		*NextNode->SectionName.ToString(),
+		*AttackDataRow->Montage->GetName(),
+		bIsPlaying,
+		bHasNextSection);
+
+	if (!bHasNextSection)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Failed / Montage Section Not Found / Section=%s / Montage=%s"),
+			*NextNode->SectionName.ToString(),
+			*AttackDataRow->Montage->GetName());
+		return false;
+	}
+
+	if (!bIsPlaying)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Warning / Montage Not Playing Before Jump / Montage=%s"),
+			*AttackDataRow->Montage->GetName());
+	}
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &UCombatBaseComponent::OnAttackMontageEnded);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackDataRow->Montage);
 	// 애니메이션을 실행한다
 	AnimInstance->Montage_JumpToSection(NextNode->SectionName, AttackDataRow->Montage);
-	
+	const FName CurrentSectionAfterJump = AnimInstance->Montage_GetCurrentSection(AttackDataRow->Montage);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][JumpToNext] Success / JumpedTo=%s / CurrentSectionAfterJump=%s / CurrentIndex=%d"),
+		*NextNode->SectionName.ToString(),
+		*CurrentSectionAfterJump.ToString(),
+		CurrentAttackNodeIndex);
+
 	return true;
 }
 //=====================================================================================================
@@ -596,5 +659,18 @@ bool UCombatBaseComponent::IsAttacking() const
 bool UCombatBaseComponent::IsCharging() const
 {
 	return bIsCharging;
+}
+
+const FAttackDataRow* UCombatBaseComponent::GetCurrentAttackDataRow() const
+{
+	if (CurrentAttackRowName.IsNone()) return nullptr;
+
+	return GetAttackDataByRow(CurrentAttackRowName);
+}
+
+
+FName UCombatBaseComponent::GetCurrentAttackRowName() const
+{
+	return CurrentAttackRowName;
 }
 

@@ -11,7 +11,11 @@
 void UChaseStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
+	ChaseElapsedTime = 0.f;
+
+	StopMove();
 	SetRootMotionFromMontage(false);
+
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->SetCombatMoveSpeed();
@@ -34,6 +38,13 @@ void UChaseStateComponent::OnStateUpdate(float X)
 		FSMController->ChangeState(EEnemyFSMStateType::Return);
 		return;
 	}
+	ChaseElapsedTime += X;
+
+	if (ChaseElapsedTime < ChaseStartDelay)
+	{
+		return;
+	}
+	
 	if (EnemyDefinition && EnemyDefinition->EnemyRole != EEnemyRole::Boss)
 	{
 		if (IsTooFarFromHome(EnemyDefinition->ReturnRadius) || IsPlayerLost(LoseTargetMultiplier))
@@ -45,16 +56,12 @@ void UChaseStateComponent::OnStateUpdate(float X)
 	const float DistanceToPlayer = GetDistance2DToPlayer();
 	if (EnemyDefinition && EnemyDefinition->EnemyRole == EEnemyRole::Boss)
 	{
-		if (DistanceToPlayer >= EnemyDefinition->JumpAttackRange)
+		const bool bCanSelectPattern = OwnerCharacter && !OwnerCharacter->IsPatternSelectBlocked();
+
+		if (bCanSelectPattern && DistanceToPlayer <= EnemyDefinition->PatternSelectRange)
 		{
 			StopMove();
-			FSMController->ChangeState(EEnemyFSMStateType::JumpAttack);
-			return;
-		}
-		if (DistanceToPlayer <= EnemyDefinition->PatternSelectRange)
-		{
-			StopMove();
-			FSMController->ChangeState(NextAttackState);
+			FSMController->ChangeState(EEnemyFSMStateType::PatternSelect);
 			return;
 		}
 	}

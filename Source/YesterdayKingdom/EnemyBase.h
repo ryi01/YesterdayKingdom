@@ -19,6 +19,8 @@ class YESTERDAYKINGDOM_API AEnemyBase : public ABaseCharacter
 {
 	GENERATED_BODY()
 	
+	float PatternSelectBlockedUntilTime = 0.f;
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM")
 	TObjectPtr<UEnemyFSMControllerComponent> FSMController;
@@ -135,4 +137,6 @@ public:
 	
 	const FVector& GetHomeLocation() const;
 	
+	void BlockPatternSelect(float Duration);
+	bool IsPatternSelectBlocked() const;
 };

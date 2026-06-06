@@ -331,3 +331,16 @@ const FVector& AEnemyBase::GetHomeLocation() const
 {
 	return HomeLocation;
 }
+
+void AEnemyBase::BlockPatternSelect(float Duration)
+{
+	PatternSelectBlockedUntilTime = GetWorld()->GetTimeSeconds() + Duration;
+	UE_LOG(LogTemp, Warning,
+		TEXT("[EnemyBase] BlockPatternSelect / Duration = %.2f"),
+		Duration);
+}
+
+bool AEnemyBase::IsPatternSelectBlocked() const
+{
+	return GetWorld()->GetTimeSeconds() < PatternSelectBlockedUntilTime;
+}

@@ -15,15 +15,24 @@ UCLASS()
 class YESTERDAYKINGDOM_API UPatternSelectStateComponent : public UFSMStateComponent
 {
 	GENERATED_BODY()
+private:
+	UPROPERTY()
+	TMap<FName, float> LastPatternUsedTimeMap;
+	
+	bool bHasSelectedOpeningPattern = false;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="FSM|Next")
 	EEnemyFSMStateType NextState = EEnemyFSMStateType::Attack;
-
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Pattern")
+	float NoValidPatternChaseTime = 0.7f;
+	
+private:
+	bool IsPatternOnCooldown(const FBossAttackPattern& Pattern) const;
+	void MarkPatternUsed(const FBossAttackPattern& Pattern);
 protected:
-	FName SelectBossAttackPattern() const;
-	bool CanUseBossPattern(const FBossAttackPattern& Pattern, float DistanceToPlayer) const;
 	int32 GetCurrentPhase() const;
-	EEnemyFSMStateType GetNextStateByAttackType(FName AttackRowName) const;
+
 public:
 	virtual void OnStateEnter() override;
 	

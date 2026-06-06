@@ -252,7 +252,7 @@ private:
 
 	FIntPoint GetDirectionByType(int32 X, int32 Y, EDungeonTileType Type) const;
 	FRotator DirectionToRotation(const FIntPoint& Dir) const;
-	
+	FVector GridToWorldLocation(const FVector2D& Point, float Z) const;
 	// ==============================
 	// Tile Visual
 	// ==============================
@@ -268,6 +268,7 @@ private:
 	// ==============================
 	// Spawn
 	// ==============================
+	void SetPlayerStartLocation();
 	void SpawnEnemiesByRoomData();
 	void SpawnDecorationByRoomData();
 	void SpawnCornerWallOnTile(int32 X, int32 Y, const FIntPoint& DirA, const FIntPoint& DirB);

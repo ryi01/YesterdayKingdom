@@ -218,5 +218,7 @@ public:
 	bool IsAttacking() const;
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool IsCharging() const;
+	const FAttackDataRow* GetCurrentAttackDataRow() const;
+	FName GetCurrentAttackRowName() const;
 
 };
