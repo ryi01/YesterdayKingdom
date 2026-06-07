@@ -265,6 +265,8 @@ private:
 	
 	FName GetRoomTypeRowName(EDungeonRoomType RoomType) const;
 	
+	FName GetDecorationThemeRowName(EDungeonDecorationTheme Theme) const;
+	
 	// ==============================
 	// Spawn
 	// ==============================
@@ -276,15 +278,18 @@ private:
 	
 	void SpawnEnemyAroundPoint(TSubclassOf<AActor> EnemyClass, const FVector2D& Point);
 	void SpawnDecorationAroundPoint(TSubclassOf<AActor> DecorationClass, const FVector2D& Point);
+	void SpawnWallDecorationInRoom(TSubclassOf<AActor> DecorationClass, const FVector2D& Point);
 	
 	void PlaceCorridorTile(int32 X, int32 Y);
 
 	const FDungeonEnemySpawnDataRow* GetEnemySpawnData(EDungeonRoomType RoomType) const;
-	const FDungeonDecorationDataRow* GetDecorationData(EDungeonRoomType RoomType) const;
+	const FDungeonDecorationDataRow* GetDecorationData(EDungeonDecorationTheme  RoomType) const;
+	const FDungeonDecorationEntry* PickRandomDecorationEntry(const TArray<FDungeonDecorationEntry>& Entries);
 
 	EDungeonPieceShape GetWallShapeForEdge(int32 X, int32 Y, const FIntPoint& Dir) const;
 	FDungeonNeighborInfo GetWallNeighborInfoForEdge(int32 X, int32 Y, const FIntPoint& Dir) const;
 	FRotator GetRotationByNeighborInfo(const FDungeonNeighborInfo& Info, EDungeonPieceShape Shape) const;
+	FRotator DirectionToInnerWallRotation(const FIntPoint& Dir) const;
 	
 	FDungeonNeighborInfo GetWalkableNeighborInfo(int32 X, int32 Y) const;
 	FDungeonNeighborInfo GetNeighborInfo(int32 X, int32 Y, TFunctionRef<bool(int32, int32)> Predicate) const;

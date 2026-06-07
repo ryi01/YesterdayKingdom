@@ -303,11 +303,20 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 		FDungeonRoomInfo RoomInfo;
 		RoomInfo.Center = Point;
 		RoomInfo.RoomType =  EDungeonRoomType::Normal;
+		RoomInfo.DecorationTheme = EDungeonDecorationTheme::Basic;
 		
 		// 시작 방이면 type을 start
-		if (Point.Equals(StartPoint)) RoomInfo.RoomType = EDungeonRoomType::Start;
+		if (Point.Equals(StartPoint))
+		{
+			RoomInfo.RoomType = EDungeonRoomType::Start;
+			RoomInfo.DecorationTheme = EDungeonDecorationTheme::StartRoom;
+		}
 		// 마지막 방이면 type을 boss
-		else if (Point.Equals(EndPoint)) RoomInfo.RoomType = EDungeonRoomType::Boss;
+		else if (Point.Equals(EndPoint))
+		{
+			RoomInfo.RoomType = EDungeonRoomType::Boss;
+			RoomInfo.DecorationTheme = EDungeonDecorationTheme::BossEntrance;
+		}
 		else
 		{
 			// IndexOfByPredicate : 특정 조건에 부합한 엘리먼트의 인덱스 반환
@@ -327,13 +336,19 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 				if (Progress >= 0.65f)
 				{
 					RoomInfo.RoomType = EDungeonRoomType::Elite;
+					RoomInfo.DecorationTheme = EDungeonDecorationTheme::WeaponRoom;
 				}
 				else
 				{
 					RoomInfo.RoomType = EDungeonRoomType::Normal;
+					RoomInfo.DecorationTheme = FMath::RandBool() ? EDungeonDecorationTheme::Basic : EDungeonDecorationTheme::Broken;
 				}
 			}
-			else RoomInfo.RoomType = EDungeonRoomType::Normal;
+			else
+			{
+				RoomInfo.RoomType = EDungeonRoomType::Normal;
+				RoomInfo.DecorationTheme = FMath::RandBool() ? EDungeonDecorationTheme::Basic : EDungeonDecorationTheme::Broken;
+			}
 		}
 		
 		Rooms.Add(RoomInfo);
@@ -468,22 +483,26 @@ void UDungeonGeneratorComponent::CreateWalls()
 			// 코너에 사용되지 않은 edge만 Straight 생성
 			if (bN && !bUsedN)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(0, 1), EDungeonPieceShape::Straight, FRotator::ZeroRotator);
+				const FIntPoint Dir(0, 1);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 
 			if (bS && !bUsedS)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(0, -1), EDungeonPieceShape::Straight, FRotator::ZeroRotator);
+				const FIntPoint Dir(0, -1);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 
 			if (bE && !bUsedE)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(1, 0), EDungeonPieceShape::Straight, FRotator(0.f, 90.f, 0.f));
+				const FIntPoint Dir(1, 0);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 
 			if (bW && !bUsedW)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(-1, 0), EDungeonPieceShape::Straight, FRotator(0.f, 90.f, 0.f));
+				const FIntPoint Dir(-1, 0);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 		}
 	}
@@ -633,12 +652,12 @@ FRotator UDungeonGeneratorComponent::DirectionToRotation(const FIntPoint& Dir) c
 {
 	if (Dir == FIntPoint(-1, 0))
 	{
-		return FRotator(0.f, 90.f, 0.f);
+		return FRotator(0.f, -90.f, 0.f);
 	}
 
 	if (Dir == FIntPoint(1, 0))
 	{
-		return FRotator(0.f, -90.f, 0.f);
+		return FRotator(0.f, 90.f, 0.f);
 	}
 
 	if (Dir == FIntPoint(0, -1))
@@ -716,6 +735,27 @@ FName UDungeonGeneratorComponent::GetRoomTypeRowName(EDungeonRoomType RoomType) 
 	return FName(*NameString);
 }
 
+FName UDungeonGeneratorComponent::GetDecorationThemeRowName(EDungeonDecorationTheme Theme) const
+{
+	switch (Theme)
+	{
+	case EDungeonDecorationTheme::Basic:
+		return FName(TEXT("Basic"));
+	case EDungeonDecorationTheme::Storage:
+		return FName(TEXT("Storage"));
+	case EDungeonDecorationTheme::Broken:
+		return FName(TEXT("Broken"));
+	case EDungeonDecorationTheme::WeaponRoom:
+		return FName(TEXT("WeaponRoom"));
+	case EDungeonDecorationTheme::BossEntrance:
+		return FName(TEXT("BossEntrance"));
+	case EDungeonDecorationTheme::StartRoom:
+		return FName(TEXT("StartRoom"));
+	default:
+		return NAME_None;
+	}
+}
+
 void UDungeonGeneratorComponent::SetPlayerStartLocation()
 {
 	APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
@@ -754,17 +794,19 @@ void UDungeonGeneratorComponent::SpawnDecorationByRoomData()
 {
 	for (const FDungeonRoomInfo& Room : Rooms)
 	{
-		const FDungeonDecorationDataRow* DecorationDataRow = GetDecorationData(Room.RoomType);
+		const FDungeonDecorationDataRow* DecorationDataRow = GetDecorationData(Room.DecorationTheme);
 		if (!DecorationDataRow) continue;
-		for (const FDungeonDecorationEntry& Entry : DecorationDataRow->Decorations)
+
+		if (DecorationDataRow->Decorations.Num() == 0) continue;
+
+		const int32 TotalCount = FMath::RandRange(DecorationDataRow->MinTotalCount,DecorationDataRow->MaxTotalCount);
+
+		for (int32 i = 0; i < TotalCount; i++)
 		{
-			if (!Entry.DecorationClass) continue;
-			if (FMath::FRand() > Entry.SpawnChance) continue;
-			const int32 Count = FMath::RandRange(Entry.MinCount, Entry.MaxCount);
-			for (int32 i = 0; i < Count; i++)
-			{
-				SpawnDecorationAroundPoint(Entry.DecorationClass, Room.Center);
-			}
+			const FDungeonDecorationEntry* PickedEntry = PickRandomDecorationEntry(DecorationDataRow->Decorations);
+			if (!PickedEntry || !PickedEntry->DecorationClass) continue;
+
+			SpawnDecorationAroundPoint(PickedEntry->DecorationClass, Room.Center);
 		}
 	}
 }
@@ -806,7 +848,14 @@ void UDungeonGeneratorComponent::SpawnWallPiece(int32 X, int32 Y, const FIntPoin
 		Location.X += Dir.X * Half;
 		Location.Y += Dir.Y * Half;
 	}
-	
+	UE_LOG(LogTemp, Warning, TEXT("[StraightWall] Tile=(%d,%d) Dir=(%d,%d) Yaw=%.1f Class=%s"),
+	X,
+	Y,
+	Dir.X,
+	Dir.Y,
+	Rotator.Yaw,
+	*GetNameSafe(WallClass)
+);
 	AActor* Wall = GetWorld()->SpawnActor<AActor>(WallClass, Location, Rotator);
 	if (Wall)
 	{
@@ -848,14 +897,50 @@ void UDungeonGeneratorComponent::SpawnDecorationAroundPoint(TSubclassOf<AActor> 
 {
 	if (!DecorationClass || !GetWorld()) return;
 
-	const FVector2D Offset = FMath::RandPointInCircle(DecorationSpawnRadius);
+	const int32 CX = FMath::RoundToInt(Point.X);
+	const int32 CY = FMath::RoundToInt(Point.Y);
+
+	const int32 SearchRadius = 5;
+
+	TArray<FIntPoint> CandidateTiles;
 	
-	FVector Location = GridToWorldLocation(Point, DecorationHeight);
-	Location.X += Offset.X;
-	Location.Y += Offset.Y;
-	
-	AActor* Spawned = GetWorld()->SpawnActor<AActor>(DecorationClass, Location, FRotator::ZeroRotator);
-	if (Spawned) SpawnedDungeonActors.Add(Spawned);
+	for (int32 X = CX - SearchRadius; X <= CX + SearchRadius; X++)
+	{
+		for (int32 Y = CY - SearchRadius; Y <= CY + SearchRadius; Y++)
+		{
+			if (!IsWalkableTile(X, Y)) continue;
+
+			// 너무 벽에 붙는 걸 피하고 싶으면 가장자리 제외
+			if (GetTile(X + 1, Y) == EDungeonTileType::Empty) continue;
+			if (GetTile(X - 1, Y) == EDungeonTileType::Empty) continue;
+			if (GetTile(X, Y + 1) == EDungeonTileType::Empty) continue;
+			if (GetTile(X, Y - 1) == EDungeonTileType::Empty) continue;
+
+			CandidateTiles.Add(FIntPoint(X, Y));
+		}
+	}
+
+	if (CandidateTiles.Num() == 0)
+	{
+		return;
+	}
+
+	const int32 Index = FMath::RandRange(0, CandidateTiles.Num() - 1);
+	const FIntPoint Tile = CandidateTiles[Index];
+
+	FVector Location = GridToWorldLocation(FVector2D(Tile.X, Tile.Y), DecorationHeight);
+
+	const float InnerRandom = TileSize * 0.35f;
+	Location.X += FMath::RandRange(-InnerRandom, InnerRandom);
+	Location.Y += FMath::RandRange(-InnerRandom, InnerRandom);
+
+	const FRotator Rotation(0.f, FMath::RandRange(0.f, 360.f), 0.f);
+
+	AActor* Spawned = GetWorld()->SpawnActor<AActor>(DecorationClass, Location, Rotation);
+	if (Spawned)
+	{
+		SpawnedDungeonActors.Add(Spawned);
+	}
 }
 
 void UDungeonGeneratorComponent::PlaceCorridorTile(int32 X, int32 Y)
@@ -894,10 +979,10 @@ const FDungeonEnemySpawnDataRow* UDungeonGeneratorComponent::GetEnemySpawnData(E
 	return DungeonEnemySpawnDataTable->FindRow<FDungeonEnemySpawnDataRow>(GetRoomTypeRowName(RoomType), TEXT("DungeonSpawnData"));
 }
 
-const FDungeonDecorationDataRow* UDungeonGeneratorComponent::GetDecorationData(EDungeonRoomType RoomType) const
+const FDungeonDecorationDataRow* UDungeonGeneratorComponent::GetDecorationData(EDungeonDecorationTheme  RoomType) const
 {
 	if (!DungeonDecorationDataTable) return  nullptr;
-	return DungeonDecorationDataTable->FindRow<FDungeonDecorationDataRow>(GetRoomTypeRowName(RoomType),TEXT("DungeonSpawnData"));
+	return DungeonDecorationDataTable->FindRow<FDungeonDecorationDataRow>(GetDecorationThemeRowName(RoomType),TEXT("DungeonSpawnData"));
 }
 
 EDungeonPieceShape UDungeonGeneratorComponent::GetWallShapeForEdge(int32 X, int32 Y, const FIntPoint& Dir) const
@@ -1034,6 +1119,12 @@ FRotator UDungeonGeneratorComponent::GetRotationByNeighborInfo(const FDungeonNei
 	if (Info.bE || Info.bW) return FRotator(0.f, 90.f, 0.f);
 
 	return FRotator::ZeroRotator;
+}
+
+FRotator UDungeonGeneratorComponent::DirectionToInnerWallRotation(const FIntPoint& Dir) const
+{
+	const FIntPoint InnerDir(-Dir.X, -Dir.Y);
+	return DirectionToRotation(InnerDir);
 }
 
 FDungeonNeighborInfo UDungeonGeneratorComponent::GetNeighborInfo(int32 X, int32 Y, TFunctionRef<bool(int32, int32)> Predicate) const
@@ -1290,4 +1381,33 @@ FVector UDungeonGeneratorComponent::GridToWorldLocation(const FVector2D& Point, 
 	const float CenterX = MapWidth * 0.5f;
 	const float CenterY = MapHeight * 0.5f;
 	return FVector((Point.X - CenterX) * TileSize, (Point.Y - CenterY) * TileSize, Z);
+}
+
+const FDungeonDecorationEntry* UDungeonGeneratorComponent::PickRandomDecorationEntry(
+	const TArray<FDungeonDecorationEntry>& Entries)
+{
+	float TotalWeight = 0.f;
+	for (const FDungeonDecorationEntry& Entry : Entries)
+	{
+		if (!Entry.DecorationClass) continue;
+		TotalWeight += FMath::Max(0.f, Entry.SpawnWeight);
+	}
+	
+	if (TotalWeight <= 0.f) return nullptr;
+
+	float RandomValue = FMath::FRandRange(0.f, TotalWeight);
+
+	for (const FDungeonDecorationEntry& Entry : Entries)
+	{
+		if (!Entry.DecorationClass) continue;
+
+		RandomValue -= FMath::Max(0.f, Entry.SpawnWeight);
+
+		if (RandomValue <= 0.f)
+		{
+			return &Entry;
+		}
+	}
+
+	return nullptr;
 }

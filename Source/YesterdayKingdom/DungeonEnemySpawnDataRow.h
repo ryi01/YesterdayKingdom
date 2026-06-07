@@ -18,6 +18,17 @@ enum class EDungeonRoomType : uint8
 	Elite		UMETA(DisplayName="Elite"),
 	Boss		UMETA(DisplayName="Boss")
 };
+UENUM(BlueprintType)
+enum class EDungeonDecorationTheme : uint8
+{
+	None,
+	Basic,
+	Storage,
+	Broken,
+	WeaponRoom,
+	BossEntrance,
+	StartRoom
+};
 USTRUCT(BlueprintType)
 struct FDungeonRoomInfo
 {
@@ -27,6 +38,8 @@ struct FDungeonRoomInfo
 	FVector2D Center = FVector2D::ZeroVector;
 	UPROPERTY()
 	EDungeonRoomType RoomType = EDungeonRoomType::Normal;
+	UPROPERTY()
+	EDungeonDecorationTheme DecorationTheme = EDungeonDecorationTheme::Basic;
 };
 
 #pragma endregion
@@ -105,13 +118,7 @@ struct FDungeonDecorationEntry
 	TSubclassOf<AActor> DecorationClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 MinCount = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 MaxCount = 3;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float SpawnChance = 0.5f;
+	float SpawnWeight = 1.f;
 };
 USTRUCT(BlueprintType)
 struct FDungeonDecorationDataRow : public FTableRowBase
@@ -119,7 +126,13 @@ struct FDungeonDecorationDataRow : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EDungeonRoomType RoomType;
+	EDungeonDecorationTheme DecorationTheme = EDungeonDecorationTheme::Basic;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 MinTotalCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 MaxTotalCount = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<FDungeonDecorationEntry> Decorations;
