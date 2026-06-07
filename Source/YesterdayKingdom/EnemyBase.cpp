@@ -28,9 +28,12 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(Obje
 void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	HomeLocation = GetActorLocation();
 	InitializeFromDefinition();
+}
+
+void AEnemyBase::SetHomeLocation(const FVector& InHomeLocation)
+{
+	HomeLocation = InHomeLocation;
 }
 
 //===============================================================================================

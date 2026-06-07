@@ -308,9 +308,7 @@ private:
 	// NavMesh
 	// ==============================
 	void BuildNavMesh();
-	
-	void DebugPrintMapData() const;
-	
+
 public:	
 	virtual void BeginPlay() override;
 	UFUNCTION(BlueprintCallable)

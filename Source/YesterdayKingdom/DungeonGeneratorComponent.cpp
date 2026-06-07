@@ -2,6 +2,8 @@
 
 
 #include "DungeonGeneratorComponent.h"
+
+#include "EnemyBase.h"
 #include "NavigationSystem.h"
 #include "Containers/Queue.h"
 
@@ -368,22 +370,11 @@ void UDungeonGeneratorComponent::CreateMap()
 	// 지름길 추가
 	for (const FDungeonEdge& Edge :FinalEdges)
 	{
-		DrawDebugLine(
-			GetWorld(),
-			FVector(Edge.U.X * TileSize, Edge.U.Y * TileSize, 100.f),
-			FVector(Edge.V.X * TileSize, Edge.V.Y * TileSize, 100.f),
-			FColor::Green,
-			true,
-			20.f,
-			0,
-			20.f
-		);
 
 		MakeCorridorInData(Edge);
 	}
 
 	SpawnFloorTiles();
-	DebugPrintMapData();
 	
 }
 
@@ -668,7 +659,7 @@ AActor* UDungeonGeneratorComponent::SpawnTileActor(TSubclassOf<AActor> ActorClas
 {
 	if (!ActorClass || !GetWorld()) return nullptr;
 	
-	const FVector Location(X * TileSize, Y * TileSize, 0.f);
+	const FVector Location = GridToWorldLocation(FVector2D(X, Y), 0.f);
 	AActor* Spawned = GetWorld()->SpawnActor<AActor>(ActorClass, Location, FRotator::ZeroRotator);
 	
 	if (Spawned)
@@ -739,7 +730,14 @@ void UDungeonGeneratorComponent::SpawnEnemiesByRoomData()
 	{
 		if (Room.RoomType == EDungeonRoomType::Start) continue;
 		const FDungeonEnemySpawnDataRow* SpawnDataRow = GetEnemySpawnData(Room.RoomType);
-		if (!SpawnDataRow) continue;
+		if (!SpawnDataRow)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Dungeon] SpawnDataRow NULL / RoomType=%s / RowName=%s"),
+				*StaticEnum<EDungeonRoomType>()->GetNameStringByValue(static_cast<int64>(Room.RoomType)),
+				*GetRoomTypeRowName(Room.RoomType).ToString()
+			);
+			continue;
+		}
 		for (const FDungeonEnemySpawnEntry& Entry : SpawnDataRow->EnemySpawnEntries)
 		{
 			if (!Entry.EnemyClass) continue;;
@@ -800,7 +798,7 @@ void UDungeonGeneratorComponent::SpawnWallPiece(int32 X, int32 Y, const FIntPoin
 	TSubclassOf<AActor> WallClass = GetTileVisualClass(EDungeonVisualTileType::Wall, Shape);
 	if (!WallClass || !GetWorld()) return;
 	
-	FVector Location(X * TileSize, Y * TileSize, 0.f);
+	FVector Location = GridToWorldLocation(FVector2D(X, Y), 0.f);
 	const float Half = TileSize * 0.5f;
 	
 	if (Shape == EDungeonPieceShape::Straight)
@@ -830,9 +828,20 @@ void UDungeonGeneratorComponent::SpawnEnemyAroundPoint(TSubclassOf<AActor> Enemy
 {
 	if (!EnemyClass || !GetWorld()) return;
 	const FVector2D Offset = FMath::RandPointInCircle(EnemySpawnRadius);
-	const FVector Location((Point.X * TileSize) + Offset.X,(Point.Y * TileSize) + Offset.Y, 0.5f);
-	AActor* Spawned = GetWorld()->SpawnActor<AActor>(EnemyClass, Location, FRotator::ZeroRotator);
-	if (Spawned) SpawnedDungeonActors.Add(Spawned);
+	FVector Location = GridToWorldLocation(Point, 100.f);
+	Location.X += Offset.X;
+	Location.Y += Offset.Y;
+	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	AActor* Spawned = GetWorld()->SpawnActor<AActor>(EnemyClass, Location, FRotator::ZeroRotator, SpawnParams);
+	if (!Spawned) return;
+	SpawnedDungeonActors.Add(Spawned);
+	if (AEnemyBase* EnemyBase = Cast<AEnemyBase>(Spawned))
+	{
+		const FVector RoomCenterLocation = GridToWorldLocation(Point, 100.f);
+		EnemyBase->SetHomeLocation(RoomCenterLocation);
+	}
 }
 
 void UDungeonGeneratorComponent::SpawnDecorationAroundPoint(TSubclassOf<AActor> DecorationClass, const FVector2D& Point)
@@ -841,7 +850,9 @@ void UDungeonGeneratorComponent::SpawnDecorationAroundPoint(TSubclassOf<AActor> 
 
 	const FVector2D Offset = FMath::RandPointInCircle(DecorationSpawnRadius);
 	
-	const FVector Location((Point.X * TileSize) + Offset.X,(Point.Y * TileSize) + Offset.Y, DecorationHeight); 
+	FVector Location = GridToWorldLocation(Point, DecorationHeight);
+	Location.X += Offset.X;
+	Location.Y += Offset.Y;
 	
 	AActor* Spawned = GetWorld()->SpawnActor<AActor>(DecorationClass, Location, FRotator::ZeroRotator);
 	if (Spawned) SpawnedDungeonActors.Add(Spawned);
@@ -1265,8 +1276,8 @@ void UDungeonGeneratorComponent::BuildNavMesh()
 	if (!World)return;
 	if (UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World))
 	{
-		const FVector Center((MapWidth * TileSize) * 0.5f,(MapHeight * TileSize) * 0.5f, 0.f);
-		const FVector Extent(MapWidth * TileSize, MapHeight * TileSize, 500.f);
+		const FVector Center = FVector::ZeroVector;
+		const FVector Extent(MapWidth  * TileSize * 0.5f, MapHeight * TileSize * 0.5f, 500.f);
 		const FBox DirtyBox(Center - Extent, Center + Extent);
 		
 		NavSys->AddDirtyArea(DirtyBox, ENavigationDirtyFlag::All);
@@ -1274,42 +1285,9 @@ void UDungeonGeneratorComponent::BuildNavMesh()
 	}
 }
 
-void UDungeonGeneratorComponent::DebugPrintMapData() const
-{
-	for (int32 Y = MapHeight - 1; Y >= 0; Y--)
-	{
-		FString Line;
-
-		for (int32 X = 0; X < MapWidth; X++)
-		{
-			switch (GetTile(X, Y))
-			{
-			case EDungeonTileType::Empty:
-				Line += TEXT(".");
-				break;
-			case EDungeonTileType::Room:
-				Line += TEXT("R");
-				break;
-			case EDungeonTileType::BossRoom:
-				Line += TEXT("B");
-				break;
-			case EDungeonTileType::Corridor:
-				Line += TEXT("C");
-				break;
-			case EDungeonTileType::Wall:
-				Line += TEXT("W");
-				break;
-			default:
-				Line += TEXT("?");
-				break;
-			}
-		}
-
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *Line);
-	}
-}
-
 FVector UDungeonGeneratorComponent::GridToWorldLocation(const FVector2D& Point, float Z) const
 {
-	return FVector(Point.X * TileSize, Point.Y * TileSize, Z);
+	const float CenterX = MapWidth * 0.5f;
+	const float CenterY = MapHeight * 0.5f;
+	return FVector((Point.X - CenterX) * TileSize, (Point.Y - CenterY) * TileSize, Z);
 }
