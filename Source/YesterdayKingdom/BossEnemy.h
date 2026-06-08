@@ -41,7 +41,7 @@ protected:
 	TObjectPtr<class UPatternSelectStateComponent> PatternSelectState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
-	TObjectPtr<class UAttackBossStateComponent> AttackState;
+	TObjectPtr<class UAttackStateComponent> AttackState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UCooldownStateComponent> CooldownState;
