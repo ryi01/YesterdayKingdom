@@ -50,6 +50,9 @@ public:
 
 	const FVector& GetLastDangerLocation() const;
 	float GetLastDangerTime() const;
+	
+	UFUNCTION()
+	void NotifyAttackEnded();
 
 protected:
 	virtual void BeginPlay() override;
@@ -78,7 +81,10 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Data")
 	TObjectPtr<UEnemyDefinition> EnemyDefinition;
-protected:
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
+	TObjectPtr<UStaticMeshComponent> WeaponMeshComponent;
+
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamageCauser;
 

@@ -135,6 +135,8 @@ public:
 	// 기타 함수들
 	// ========================================================
 	UFUNCTION(BlueprintCallable)
+	void SetCurrentHP(float NewHP);
+	UFUNCTION(BlueprintCallable)
 	void InitializeStat(UDataTable* InStatTable, FName InRowName);
 	UFUNCTION(BlueprintCallable)
 	float ApplyDamage(float Amount);

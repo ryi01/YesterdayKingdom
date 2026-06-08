@@ -98,6 +98,7 @@ public:
 	virtual void ClearAttackAnimation_Implementation() override;
 	virtual void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
+
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	void SetSelectedAttackRowName(FName InAttackRowName);
 
@@ -120,6 +121,18 @@ public:
 	void SetCombatMoveSpeed();
 	
 	//===============================================================================================
+	// 꼭두각시 인형 관련
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category="Enemy|Animation")
+	void DownMontage();
+
+	UFUNCTION(BlueprintCallable, Category="Enemy|Animation")
+	void ReviveMontage();
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Animation")
+	bool IsAnyMontagePlaying() const;
+
+	//===============================================================================================
 	// Getter함수
 	//===============================================================================================
 	UEnemyDefinition* GetEnemyDefinition() const { return EnemyDefinition; }
@@ -131,6 +144,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Stat")
 	bool IsDead() const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Stat")
+	bool IsAttacking() const;
 	
 	const FVector& GetLastDangerLocation() const;
 	

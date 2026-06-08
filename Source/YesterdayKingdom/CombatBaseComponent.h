@@ -10,6 +10,8 @@
 class ABaseCharacter;
 class UDataTable;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API UCombatBaseComponent : public UActorComponent
 {
@@ -112,6 +114,10 @@ protected:
 public:	
 	// Sets default values for this component's properties
 	UCombatBaseComponent();
+	
+	UPROPERTY(BlueprintAssignable, Category = "Combat|Event")
+	FOnAttackEnded OnAttackEnded;
+	
 protected:
 	//=====================================================================================================
 	// 차지 공격

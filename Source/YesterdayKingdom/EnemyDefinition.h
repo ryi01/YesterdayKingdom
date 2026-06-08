@@ -10,7 +10,7 @@
 
 class UAnimMontage;
 class UStateTree;
-class USkeletalMesh;
+class UStaticMesh;
 
 USTRUCT(BlueprintType)
 struct FEnemyAttackSet
@@ -197,6 +197,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UAnimInstance> AnimBP;
 	
+	// 무기
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UStaticMesh> WeaponMesh;
+	
 	// 보상
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Reward")
 	int32 GoldReward = 0;
@@ -238,8 +242,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI|FSM")
 	FEnemyFSMTimeConfig FSMTimeConfig;
 	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI|FSM")
 	FEnemyFSMActionConfig FSMActionConfig;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Puppet")
+	float ReviveDelay = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Puppet", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float ReviveHPPercent = 0.5f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet")
+	bool bReviveUntilMasterDead = true;
+
 	
 	// 전투
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
@@ -256,5 +271,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
+	TObjectPtr<UAnimMontage> DownMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
+	TObjectPtr<UAnimMontage> ReviveMontage;
 	
 };

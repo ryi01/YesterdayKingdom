@@ -10,7 +10,7 @@
 #include "InventoryComponent.h"
 #include "PlayerCharacter.h"
 #include "Animation/AnimInstance.h"
-#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 
@@ -23,6 +23,12 @@ AEnemyNomal::AEnemyNomal(const FObjectInitializer& ObjectInitializer) : Super(Ob
 	AIControllerClass = AEnemyNomalAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	
+	WeaponSocketName = TEXT("katana3");
+	
+	WeaponMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMeshComponent"));
+	WeaponMeshComponent->SetupAttachment(GetWeaponRoot());
+	WeaponMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 //CombatBaseComponent = CreateDefaultSubobject<UCombatBaseComponent>(TEXT("CombatBaseComponent"));
 }
 
@@ -31,6 +37,14 @@ void AEnemyNomal::BeginPlay()
 	Super::BeginPlay();
 
 	InitializeFromDefinition();
+	
+	if (CombatBaseComponent)
+	{
+		CombatBaseComponent->OnAttackEnded.AddDynamic(
+			this,
+			&AEnemyNomal::NotifyAttackEnded
+		);
+	}
 }
 
 void AEnemyNomal::InitializeFromDefinition()
@@ -53,20 +67,49 @@ void AEnemyNomal::InitializeFromDefinition()
 			MeshComp->SetAnimInstanceClass(EnemyDefinition->AnimBP); 
 		}
 	}
-
+	
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->MaxWalkSpeed = EnemyDefinition->CombatMoveSpeed;
 	}
 	if (CombatBaseComponent) CombatBaseComponent->SetAttackDataTable(EnemyDefinition->AttackDataTable);
+	
 	InitializeWeaponRoot();
+	
+	if (WeaponMeshComponent && EnemyDefinition->WeaponMesh)
+	{
+		WeaponMeshComponent->SetStaticMesh(EnemyDefinition->WeaponMesh);
+
+		WeaponMeshComponent->AttachToComponent(
+			GetWeaponRoot(),
+			FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocketName
+		);
+		
+		WeaponMeshComponent->SetRelativeLocation(FVector::ZeroVector);
+		WeaponMeshComponent->SetRelativeRotation(FRotator::ZeroRotator);
+		WeaponMeshComponent->SetRelativeScale3D(FVector::OneVector);
+	}
+	
 }
 
 void AEnemyNomal::DoAIComboAttack()
 {
-	if (!EnemyDefinition) return;
-	
-	if (CombatBaseComponent) CombatBaseComponent->RequestAttackByRow(EnemyDefinition->AttackSet.MainAttackRowName);
+	if (bIsAttacking)
+	{
+		return;
+	}
+
+	if (!EnemyDefinition || !CombatBaseComponent)
+	{
+		OnAttackCompleted.ExecuteIfBound();
+		return;
+	}
+
+	bIsAttacking = true;
+
+	CombatBaseComponent->RequestAttackByRow(
+		EnemyDefinition->AttackSet.MainAttackRowName
+	);
 }
 
 void AEnemyNomal::DoAIChargedAttack()
@@ -92,6 +135,14 @@ float AEnemyNomal::GetLastDangerTime() const
 {
 	return LastDangerTime;
 }
+
+void AEnemyNomal::NotifyAttackEnded()
+{
+	bIsAttacking = false;
+
+	OnAttackCompleted.ExecuteIfBound();
+}
+
 
 void AEnemyNomal::ApplyDamage_Implementation(
 	float Damage,
@@ -141,7 +192,7 @@ void AEnemyNomal::HandleDeath_Implementation()
 	bRewardGiven = true;
 
 	GiveRewardToKiller();
-	
+
 	OnEnemyDied.Broadcast();
 
 	if (EnemyDefinition && EnemyDefinition->DeathMontage)
