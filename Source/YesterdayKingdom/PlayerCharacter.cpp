@@ -11,7 +11,6 @@
 #include "EnhancedInputComponent.h"
 #include "EquipmentComponent.h"
 #include "GoldComponent.h"
-#include "InputMappingContext.h"
 #include "InputActionValue.h"
 #include "InventoryComponent.h"
 #include "PlayerCombatComponent.h"
@@ -212,7 +211,35 @@ void APlayerCharacter::RefreshMoveSpeed()
 	MoveComp->MaxWalkSpeed = NewSpeed;
 	MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
 }
+//===============================================================================================
+// 피격 관련 함수
+//===============================================================================================
+void APlayerCharacter::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
+{
+	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+	PlayHitFlash();
 
+	if (PlayerHitCameraShake)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PC->ClientStartCameraShake(PlayerHitCameraShake);
+		}
+	}
+}
+void APlayerCharacter::PlayHitFlash()
+{
+	if (!HitOverlayMaterial) return;
+	GetMesh()->SetOverlayMaterial(HitOverlayMaterial);
+	
+	GetWorld()->GetTimerManager().ClearTimer(HitFlashTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(HitFlashTimerHandle, this, &APlayerCharacter::EndHitFlash, HitFlashDuration, false);
+}
+
+void APlayerCharacter::EndHitFlash()
+{
+	GetMesh()->SetOverlayMaterial(nullptr);
+}
 
 //===============================================================================================
 // 공격 관련
@@ -390,6 +417,8 @@ void APlayerCharacter::TestUnlockSkill()
 	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Gold After: %d"), GoldComponent->GetGold());
 	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] FinalAttack: %f"), StatComponent->GetFinalAttack());
 }
+
+
 
 void APlayerCharacter::UpdateInteractionTarget()
 {
