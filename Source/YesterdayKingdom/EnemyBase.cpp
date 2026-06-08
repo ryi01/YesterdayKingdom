@@ -173,6 +173,38 @@ void AEnemyBase::AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	OnAttackCompleted.ExecuteIfBound();
 }
+
+void AEnemyBase::DownMontage()
+{
+	if (EnemyDefinition && EnemyDefinition->DownMontage)
+	{
+		PlayAnimMontage(EnemyDefinition->DownMontage);
+	}
+}
+
+void AEnemyBase::ReviveMontage()
+{
+	if (EnemyDefinition && EnemyDefinition->ReviveMontage)
+	{
+		PlayAnimMontage(EnemyDefinition->ReviveMontage);
+	}
+}
+
+bool AEnemyBase::IsAnyMontagePlaying() const
+{
+	if (!GetMesh())
+	{
+		return false;
+	}
+
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		return AnimInstance->IsAnyMontagePlaying();
+	}
+
+	return false;
+}
+
 //===============================================================================================
 // Getter함수
 //===============================================================================================
@@ -194,6 +226,11 @@ bool AEnemyBase::IsDead() const
 	}
 
 	return GetStatComponent()->IsDead();
+}
+
+bool AEnemyBase::IsAttacking() const
+{
+	return bIsAttacking;
 }
 
 const FVector& AEnemyBase::GetLastDangerLocation() const

@@ -21,6 +21,16 @@ void UBaseStatComponent::BeginPlay()
 		InitializeStat(StatDT, StatRowName);
 	}
 }
+
+void UBaseStatComponent::SetCurrentHP(float NewHP)
+{
+	CurrentHP = FMath::Clamp(NewHP, 0.f, MaxHP);
+
+	bIsDead = CurrentHP <= 0.f;
+
+	OnHPChanged.Broadcast(CurrentHP, MaxHP);
+}
+
 //===============================================================================
 // 초기화
 //===============================================================================

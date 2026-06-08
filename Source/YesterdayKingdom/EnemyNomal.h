@@ -32,7 +32,6 @@ public:
 	bool IsDead() const;
 
 	FOnMontageEnded OnAttackMontageEnded;
-	
 	FOnEnemyAttackCompleted OnAttackCompleted;
 	FOnEnemyLanded OnEnemyLanded;
 

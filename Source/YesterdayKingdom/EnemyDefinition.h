@@ -194,6 +194,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|AI|FSM")
 	FEnemyFSMTimeConfig FSMTimeConfig;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Puppet")
+	float ReviveDelay = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Puppet", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float ReviveHPPercent = 0.5f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet")
+	bool bReviveUntilMasterDead = true;
+	
 	// 전투
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
 	TObjectPtr<UDataTable> AttackDataTable;
@@ -209,5 +218,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
 	TObjectPtr<UAnimMontage> DeathMontage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
+	TObjectPtr<UAnimMontage> DownMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Animation")
+	TObjectPtr<UAnimMontage> ReviveMontage;
 	
 };
