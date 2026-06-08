@@ -3,6 +3,7 @@
 
 #include "EnemyPuppetMaster.h"
 #include "EnemyElite.h"
+#include "EngineUtils.h"
 
 AEnemyPuppetMaster::AEnemyPuppetMaster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -14,13 +15,10 @@ void AEnemyPuppetMaster::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	for (AEnemyElite* Puppet : Puppets)
-	{
-		if (Puppet)
-		{
-			RegisterPuppet(Puppet);
-		}
-	}
+	GetWorldTimerManager().SetTimerForNextTick(
+		this,
+		&AEnemyPuppetMaster::FindAndRegisterPuppets
+	);
 }
 
 void AEnemyPuppetMaster::RegisterPuppet(AEnemyElite* Puppet)
@@ -53,6 +51,24 @@ void AEnemyPuppetMaster::HandleDeath_Implementation()
 	}
 
 	Super::HandleDeath_Implementation();
+}
+
+void AEnemyPuppetMaster::FindAndRegisterPuppets()
+{
+	for (TActorIterator<AEnemyElite> It(GetWorld()); It; ++It)
+	{
+		AEnemyElite* Puppet = *It;
+		if (!IsValid(Puppet)) continue;
+
+		const float Distance = FVector::Dist(
+			GetActorLocation(),
+			Puppet->GetActorLocation()
+		);
+
+		if (Distance > FindPuppetRadius) continue;
+
+		RegisterPuppet(Puppet);
+	}
 }
 
 

@@ -15,6 +15,7 @@ void UDeadStateComponent::OnStateEnter()
 	if (!OwnerCharacter) return;
 	SetRootMotionFromMontage(true);
 	StopMove();
+	ClearFocusTarget();
 	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
 	{
 		MoveComp->StopMovementImmediately();

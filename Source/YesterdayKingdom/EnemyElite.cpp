@@ -41,16 +41,6 @@ bool AEnemyElite::IsPuppetMasterDead() const
 void AEnemyElite::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (PuppetMaster)
-	{
-		PuppetMaster->RegisterPuppet(this);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Elite] BeginPlay PuppetMaster is null"));
-	}
-	
 	if (!FSMController)
 	{
 		return;

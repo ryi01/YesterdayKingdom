@@ -25,7 +25,12 @@ public:
 protected:
 	virtual void HandleDeath_Implementation() override;
 	virtual void BeginPlay() override;
+	UPROPERTY(EditAnywhere, Category="Puppet")
+	float FindPuppetRadius = 1500.f;
 
+	FTimerHandle FindPuppetTimerHandle;
+
+	void FindAndRegisterPuppets();
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet")
 	TArray<TObjectPtr<AEnemyElite>> Puppets;

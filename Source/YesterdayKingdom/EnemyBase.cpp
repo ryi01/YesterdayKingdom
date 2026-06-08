@@ -133,8 +133,8 @@ void AEnemyBase::HandleDeath_Implementation()
 	GiveRewardToKiller();
 	NotifyQuestKillToKiller();
 	OnEnemyDied.Broadcast();
-	
-	if (FSMController)
+
+	if (FSMController && EnemyDefinition->EnemyRole != EEnemyRole::Normal)
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 	}

@@ -117,6 +117,11 @@ bool UQuestComponent::CompleteCurrentQuest()
 bool UQuestComponent::StartNextQuest()
 {
 	const int32 NextIndex = CurrentQuestIndex + 1;
+	UE_LOG(LogTemp, Warning, TEXT("[Quest] Try StartNextQuest / CurrentIndex: %d / NextIndex: %d / QuestOrderNum: %d"),
+		CurrentQuestIndex,
+		NextIndex,
+		QuestOrder.Num()
+	);
 	if (!QuestOrder.IsValidIndex(NextIndex))
 	{
 		UE_LOG(LogTemp, Log, TEXT("[Quest] All Quest Completed"));
