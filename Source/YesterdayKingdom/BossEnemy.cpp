@@ -3,7 +3,7 @@
 
 #include "BossEnemy.h"
 
-#include "AttackStateComponent.h"
+#include "AttackBossStateComponent.h"
 #include "BackStepStateComponent.h"
 #include "ChaseStateComponent.h"
 #include "CooldownStateComponent.h"
@@ -30,7 +30,7 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
 	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
 	PatternSelectState = CreateDefaultSubobject<UPatternSelectStateComponent>(TEXT("PatternSelectState"));
-	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));
+	AttackState = CreateDefaultSubobject<UAttackBossStateComponent>(TEXT("AttackState"));
 	CooldownState = CreateDefaultSubobject<UCooldownStateComponent>(TEXT("CooldownState"));
 	FlankingState = CreateDefaultSubobject<UFlankingStateComponent>(TEXT("FlankingState"));
 	BackStepState = CreateDefaultSubobject<UBackStepStateComponent>(TEXT("BackStepState"));

@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "FSMStateComponent.h"
-#include "AttackStateComponent.generated.h"
+#include "AttackBossStateComponent.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class YESTERDAYKINGDOM_API UAttackStateComponent : public UFSMStateComponent
+class YESTERDAYKINGDOM_API UAttackBossStateComponent : public UFSMStateComponent
 {
 	GENERATED_BODY()
 	
