@@ -19,8 +19,7 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	FSMController = CreateDefaultSubobject<UEnemyFSMControllerComponent>(TEXT("FSMController"));
+	
 	IdleState = CreateDefaultSubobject<UIdleStatComponent>(TEXT("IdleState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
 	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));

@@ -45,9 +45,6 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Enemy|Puppet")
 	bool bTrueDead = false;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM")
-	TObjectPtr<UEnemyFSMControllerComponent> FSMController;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UIdleStatComponent> IdleState;
