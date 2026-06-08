@@ -207,7 +207,7 @@ public:
 	// AttackRow 탐색
 	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category="Combat")
-	virtual void RequestAttackByRow(FName AttackRowName);
+	virtual bool RequestAttackByRow(FName AttackRowName);
 	
 	//=====================================================================================================
 	// 리셋 및 셋팅

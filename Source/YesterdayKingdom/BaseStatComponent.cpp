@@ -52,7 +52,6 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 	MaxMP = StatRow->MaxMP;
 	CurrentMP = MaxMP;
 	
-	Attack = StatRow->Attack;
 	Defense = StatRow->Defense;
 	MoveSpeed = StatRow->MoveSpeed;
 	CrouchSpeed = StatRow->CrouchSpeed;

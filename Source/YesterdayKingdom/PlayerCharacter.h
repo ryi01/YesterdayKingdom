@@ -15,6 +15,7 @@ class UPlayerInteractionComponent;
 class UEquipmentComponent;
 class UQuestComponent;
 struct FQuestInstance;
+class UPlayerHUDWidget;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
@@ -252,4 +253,5 @@ public:
 	UEquipmentComponent* GetEquipmentComponent() const;
 	UQuestComponent* GetQuestComponent() const;
 	UPlayerSkillComponent* GetSkillComponent() const;
+	UPlayerHUDWidget* GetPlayerHUDWidget() const;
 };

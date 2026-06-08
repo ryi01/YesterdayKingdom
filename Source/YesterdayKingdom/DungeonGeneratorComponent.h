@@ -160,10 +160,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Dungeon|Data")
 	TObjectPtr<UDataTable> DungeonEnemySpawnDataTable;
 	
+	UPROPERTY(EditAnywhere, Category="Dungeon|Data")
+	TObjectPtr<UDataTable> DungeonRoomActorSpawnDataTable;
+	
 	// ==============================
 	// Spawn Options
 	// ==============================
-
+	UPROPERTY(EditAnywhere, Category="Dungeon|Boss")
+	TSubclassOf<class ABossRoomTrigger> BossRoomTriggerClass;
+	
 	UPROPERTY(EditAnywhere, Category="Dungeon|Spawn")
 	float EnemySpawnRadius = 250.f;
 
@@ -205,7 +210,12 @@ protected:
 
 	UPROPERTY()
 	FVector2D EndPoint;
-	
+		
+	// ==============================
+	// 보스 방
+	// ==============================
+	UPROPERTY(EditAnywhere, Category="Dungeon|Boss")
+	TSubclassOf<class ABossRoomEntrance> BossRoomEntranceClass;
 public:	
 	// Sets default values for this component's properties
 	UDungeonGeneratorComponent();
@@ -253,6 +263,10 @@ private:
 	FIntPoint GetDirectionByType(int32 X, int32 Y, EDungeonTileType Type) const;
 	FRotator DirectionToRotation(const FIntPoint& Dir) const;
 	FVector GridToWorldLocation(const FVector2D& Point, float Z) const;
+	
+	const FDungeonRoomInfo* FindRoomInfoByCenter(const FVector2D& Center) const;
+	int32 GetRoomSizeByRoomType(EDungeonRoomType RoomType) const;
+	int32 SpawnStoreDecorationGroup(const TArray<FDungeonDecorationEntry>& Entries, const TArray<FVector2D>& Offsets, const FDungeonRoomInfo& Room, const FRotator& Rotation);
 	// ==============================
 	// Tile Visual
 	// ==============================
@@ -267,24 +281,30 @@ private:
 	
 	FName GetDecorationThemeRowName(EDungeonDecorationTheme Theme) const;
 	
+	FIntPoint FindStoreForwardDirection(const FDungeonRoomInfo& Room) const;
+	FRotator GridDirectionToActorRotation(const FIntPoint& Dir) const;
+	FVector2D ConvertLocalStoreOffsetToWorldOffset(const FVector2D& LocalOffset, const FIntPoint& ForwardDir) const;
 	// ==============================
 	// Spawn
 	// ==============================
 	void SetPlayerStartLocation();
+	void SpawnBossRoomTrigger(class ABossRoomEntrance* BossRoomEntranceActor);
 	void SpawnEnemiesByRoomData();
 	void SpawnDecorationByRoomData();
+	void SpawnRoomActorsByRoomData();
 	void SpawnCornerWallOnTile(int32 X, int32 Y, const FIntPoint& DirA, const FIntPoint& DirB);
 	void SpawnWallPiece(int32 X, int32 Y, const FIntPoint& Dir, EDungeonPieceShape Shape, const FRotator& Rotator);
 	
 	void SpawnEnemyAroundPoint(TSubclassOf<AActor> EnemyClass, const FVector2D& Point);
 	void SpawnDecorationAroundPoint(TSubclassOf<AActor> DecorationClass, const FVector2D& Point);
-	void SpawnWallDecorationInRoom(TSubclassOf<AActor> DecorationClass, const FVector2D& Point);
+	void SpawnStoreRoomDecorations(const FDungeonRoomInfo& Room, const FDungeonDecorationDataRow* DecorationDataRow);
 	
 	void PlaceCorridorTile(int32 X, int32 Y);
 
 	const FDungeonEnemySpawnDataRow* GetEnemySpawnData(EDungeonRoomType RoomType) const;
 	const FDungeonDecorationDataRow* GetDecorationData(EDungeonDecorationTheme  RoomType) const;
 	const FDungeonDecorationEntry* PickRandomDecorationEntry(const TArray<FDungeonDecorationEntry>& Entries);
+	const FDungeonRoomActorSpawnDataRow* GetRoomActorSpawnData(EDungeonRoomType RoomType) const;
 
 	EDungeonPieceShape GetWallShapeForEdge(int32 X, int32 Y, const FIntPoint& Dir) const;
 	FDungeonNeighborInfo GetWallNeighborInfoForEdge(int32 X, int32 Y, const FIntPoint& Dir) const;
@@ -294,6 +314,9 @@ private:
 	FDungeonNeighborInfo GetWalkableNeighborInfo(int32 X, int32 Y) const;
 	FDungeonNeighborInfo GetNeighborInfo(int32 X, int32 Y, TFunctionRef<bool(int32, int32)> Predicate) const;
 	FVector GetWallOffset(int32 X, int32 Y) const;
+	
+	AActor* SpawnRoomActorAroundPoint(TSubclassOf<AActor> ActorClass, const FVector2D& Point, float SpawnRadius, float SpawnZ, const FRotator& SpawnRotation);
+	AActor* SpawnDecorationAtGridOffset(TSubclassOf<AActor> DecorationClass, const FVector2D& RoomCenter, const FVector2D& GridOffset, float Z, const FRotator& Rotation);
 	
 	// ==============================
 	// Delaunay / MST Utils
@@ -313,7 +336,11 @@ private:
 	// NavMesh
 	// ==============================
 	void BuildNavMesh();
-
+	
+	// ==============================
+	// 보스 방
+	// ==============================
+	class ABossRoomEntrance* SpawnBossRoomEntrance();
 public:	
 	virtual void BeginPlay() override;
 	UFUNCTION(BlueprintCallable)
