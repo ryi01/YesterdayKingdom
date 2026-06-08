@@ -36,7 +36,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnCurrentQuestChanged OnCurrentQuestChanged;
-	
+private:
+    void PrintCurrentQuestToScreen() const;
 protected:
 	const FQuestDataRow* GetQuestData(FName QuestRowName) const;
 
