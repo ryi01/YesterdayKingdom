@@ -404,12 +404,12 @@ void UDungeonGeneratorComponent::CreateMap()
 	// 지름길 추가
 	for (const FDungeonEdge& Edge :FinalEdges)
 	{
-
 		MakeCorridorInData(Edge);
 	}
+	
+	NormalizeBossRoomEntrance();
 
 	SpawnFloorTiles();
-	
 }
 
 void UDungeonGeneratorComponent::SpawnFloorTiles()
@@ -591,6 +591,10 @@ void UDungeonGeneratorComponent::ClearDungeon()
 	MstEdges.Empty();
 	FinalEdges.Empty();
 	MapData.Empty();
+	
+	BossRoomEntranceGridLocation = FVector2D::ZeroVector;
+	BossRoomEntranceDirection = FIntPoint::ZeroValue;
+	bHasBossRoomEntranceLocation = false;
 	
 	bGenerationCompleted = false;
 }
@@ -1695,59 +1699,193 @@ void UDungeonGeneratorComponent::BuildNavMesh()
 ABossRoomEntrance* UDungeonGeneratorComponent::SpawnBossRoomEntrance()
 {
 	if (!BossRoomEntranceClass || !GetWorld()) return nullptr;
+	if (!bHasBossRoomEntranceLocation) return nullptr;
 
-	for (int32 X = 0; X < MapWidth; X++)
-	{
-		for (int32 Y = 0; Y < MapHeight; Y++)
-		{
-			if (GetTile(X, Y) != EDungeonTileType::BossRoom) continue;
+	FVector Location = GridToWorldLocation(BossRoomEntranceGridLocation, 0.f);
+	FRotator Rotation = DirectionToRotation(BossRoomEntranceDirection);
 
-			const TArray<FIntPoint> Directions =
-			{
-				FIntPoint(0, 1),
-				FIntPoint(0, -1),
-				FIntPoint(1, 0),
-				FIntPoint(-1, 0)
-			};
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-			for (const FIntPoint& Dir : Directions)
-			{
-				const int32 NX = X + Dir.X;
-				const int32 NY = Y + Dir.Y;
+	ABossRoomEntrance* Entrance = GetWorld()->SpawnActor<ABossRoomEntrance>(
+		BossRoomEntranceClass,
+		Location,
+		Rotation,
+		SpawnParams
+	);
 
-				if (GetTile(NX, NY) != EDungeonTileType::Corridor) continue;
+	if (!Entrance) return nullptr;
 
-				FVector Location = GridToWorldLocation(FVector2D(X, Y), 0.f);
-				Location.X += Dir.X * TileSize * 0.5f;
-				Location.Y += Dir.Y * TileSize * 0.5f;
-
-				FRotator Rotation = DirectionToRotation(Dir);
-
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.SpawnCollisionHandlingOverride =
-					ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-				ABossRoomEntrance* Entrance = GetWorld()->SpawnActor<ABossRoomEntrance>(
-					BossRoomEntranceClass,
-					Location,
-					Rotation,
-					SpawnParams
-				);
-
-				if (!Entrance) return nullptr;
-
-				SpawnedDungeonActors.Add(Entrance);
-
+	SpawnedDungeonActors.Add(Entrance);
 #if WITH_EDITOR
 				Entrance->SetActorLabel(TEXT("BossRoomEntrance"));
 #endif
 
-				return Entrance;
+	return Entrance;
+}
+
+// 맵 데이터에서 입구를 한칸만 남기고 나머지는 막아줌
+void UDungeonGeneratorComponent::NormalizeBossRoomEntrance()
+{
+	// 보스방과 복도가 맞닿은 정보 저장용 임시 구조체
+	struct FBossRoomEntranceContact
+	{
+		// 보스방좌표
+		int32 BossX = 0;
+		int32 BossY = 0;
+		// 복도 좌표 
+		int32 CorridorX = 0;
+		int32 CorridorY = 0;
+		FIntPoint Dir = FIntPoint::ZeroValue;
+	};
+	// 보스방과 복도가 맞닿은 지점 저장용 배열
+	TArray<FBossRoomEntranceContact> Contacts;
+	// 4방향 배열
+	const TArray<FIntPoint> Directions = {FIntPoint(0, 1), FIntPoint(0, -1), FIntPoint(1, 0), FIntPoint(-1, 0)};
+	
+	// 맵을 순회하며
+	for (int32 X = 0; X < MapWidth; X++)
+	{
+		for (int32 Y = 0; Y < MapHeight; Y++)
+		{
+			// 보스방이 아니라면 패스
+			if (GetTile(X, Y) != EDungeonTileType::BossRoom) continue;
+			// 보스방이라면, 타일 기준으로 4방향 검사 
+			for (const FIntPoint& Dir : Directions)
+			{
+				const int32 NX = X + Dir.X;
+				const int32 NY = Y + Dir.Y;
+				// 복도가 아니면 패스
+				if (GetTile(NX, NY) != EDungeonTileType::Corridor) continue;
+				// 복도라면 구조체를 만들어서 집어 넣음
+				FBossRoomEntranceContact Contact;
+				Contact.BossX = X;
+				Contact.BossY = Y;
+				Contact.CorridorX = NX;
+				Contact.CorridorY = NY;
+				Contact.Dir = Dir;
+
+				Contacts.Add(Contact);
 			}
 		}
 	}
+	if (Contacts.Num() == 0) return;
+	// 최종적으로 남길 입구
+	TArray<FBossRoomEntranceContact> BestLine;
+	// 방향별로 접촉 지점을 확인하고
+	for (const FIntPoint& Dir : Directions)
+	{
+		// 현재 해당하는 방향에 맞는 지점만 모음
+		TArray<FBossRoomEntranceContact> SameDirContacts;
 
-	return nullptr;
+		for (const FBossRoomEntranceContact& Contact : Contacts)
+		{
+			// 진행방향과 방향이 같으면 추가
+			if (Contact.Dir == Dir)
+			{
+				SameDirContacts.Add(Contact);
+			}
+		}
+		// 아니라면 패스
+		if (SameDirContacts.Num() == 0) continue;
+		
+		// 같은 방향에 있는 지점을 정렬 
+		SameDirContacts.Sort([Dir](const FBossRoomEntranceContact& A, const FBossRoomEntranceContact& B)
+		{
+			if (Dir.X != 0)
+			{
+				if (A.BossX != B.BossX) return A.BossX < B.BossX;
+				return A.BossY < B.BossY;
+			}
+			if (A.BossY != B.BossY) return A.BossY < B.BossY;
+			return A.BossX < B.BossX;
+		});
+		
+		// 현재 검사중인 구간 저장용 배열
+		TArray<FBossRoomEntranceContact> CurrentLine;
+		CurrentLine.Add(SameDirContacts[0]);
+		// 두번째 접촉 지점부터 확인 
+		for (int32 i = 1; i < SameDirContacts.Num(); i++)
+		{
+			const FBossRoomEntranceContact& Prev = SameDirContacts[i - 1];
+			const FBossRoomEntranceContact& Current = SameDirContacts[i];
+			// 이전 지점과 현재지점이 같은 줄인지(세로줄 / 가로줄)
+			const bool bSameLine = Dir.X != 0 ? Prev.BossX == Current.BossX : Prev.BossY == Current.BossY;
+			// 이전지점과 현재지점이 붙어있는지 
+			const bool bContinuous = Dir.X != 0 ? FMath::Abs(Prev.BossY - Current.BossY) == 1 : FMath::Abs(Prev.BossX - Current.BossX) == 1;
+			// 같은줄이고 바로 붙어있으면 추가
+			if (bSameLine && bContinuous) CurrentLine.Add(Current);
+			// 아니면 구간 종료
+			else
+			{
+				// 지금까지 찾은 구간이 길면 갱신
+				if (CurrentLine.Num() > BestLine.Num()) BestLine = CurrentLine;
+				// 구간을 초기화하고 다시 시작
+				CurrentLine.Empty();
+				CurrentLine.Add(Current);
+			}
+		}
+		if (CurrentLine.Num() > BestLine.Num())
+		{
+			BestLine = CurrentLine;
+		}
+	}
+	if (BestLine.Num() == 0) return;
+	
+	// 입구를 남길 접촉지점을 담음 
+	const int32 KeepCount = FMath::Min(3, BestLine.Num());
+	const int32 StartKeepIndex = FMath::Max(0, (BestLine.Num() - KeepCount) / 2);
+	const int32 EndKeepIndex = StartKeepIndex + KeepCount - 1;
+	
+	float SumBossX = 0.f;
+	float SumBossY = 0.f;
+	
+	for (int32 i = StartKeepIndex; i <= EndKeepIndex; i++)
+	{
+		SumBossX += BestLine[i].BossX;
+		SumBossY += BestLine[i].BossY;
+	}
+
+	const float CenterBossX = SumBossX / KeepCount;
+	const float CenterBossY = SumBossY / KeepCount;
+	
+	const FIntPoint EntranceDir = BestLine[StartKeepIndex].Dir;
+
+	BossRoomEntranceGridLocation = FVector2D(CenterBossX, CenterBossY);
+	BossRoomEntranceGridLocation.X += EntranceDir.X * 0.5f;
+	BossRoomEntranceGridLocation.Y += EntranceDir.Y * 0.5f;
+
+	BossRoomEntranceDirection = EntranceDir;
+	bHasBossRoomEntranceLocation = true;
+	
+	// 모든 접촉 지점을 순회하며
+	for (const FBossRoomEntranceContact& Contact : Contacts)
+	{
+		bool bKeep = false;
+		
+		for (int32 i = StartKeepIndex; i <= EndKeepIndex; i++)
+		{
+			const FBossRoomEntranceContact& KeepContact = BestLine[i];
+
+			const bool bSameContact =
+				Contact.BossX == KeepContact.BossX &&
+				Contact.BossY == KeepContact.BossY &&
+				Contact.CorridorX == KeepContact.CorridorX &&
+				Contact.CorridorY == KeepContact.CorridorY;
+
+			if (bSameContact)
+			{
+				bKeep = true;
+				break;
+			}
+		}
+		
+		if (bKeep) continue;
+
+		// 보스방과 닿은 복도 타일을 제거해서 벽이 생기게 함
+		SetTile(Contact.CorridorX, Contact.CorridorY, EDungeonTileType::Empty);
+	}
 }
 
 FVector UDungeonGeneratorComponent::GridToWorldLocation(const FVector2D& Point, float Z) const

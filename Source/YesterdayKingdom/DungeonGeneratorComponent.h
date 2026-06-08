@@ -216,6 +216,15 @@ protected:
 	// ==============================
 	UPROPERTY(EditAnywhere, Category="Dungeon|Boss")
 	TSubclassOf<class ABossRoomEntrance> BossRoomEntranceClass;
+	UPROPERTY()
+	FVector2D BossRoomEntranceGridLocation = FVector2D::ZeroVector;
+
+	UPROPERTY()
+	FIntPoint BossRoomEntranceDirection = FIntPoint::ZeroValue;
+
+	UPROPERTY()
+	bool bHasBossRoomEntranceLocation = false;
+	
 public:	
 	// Sets default values for this component's properties
 	UDungeonGeneratorComponent();
@@ -341,6 +350,7 @@ private:
 	// 보스 방
 	// ==============================
 	class ABossRoomEntrance* SpawnBossRoomEntrance();
+	void NormalizeBossRoomEntrance();
 public:	
 	virtual void BeginPlay() override;
 	UFUNCTION(BlueprintCallable)
