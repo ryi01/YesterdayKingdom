@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "AttackStateComponent.h"
+#include "AttackBossStateComponent.h"
 
 #include "CombatBaseComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "EnemyBase.h"
-void UAttackStateComponent::OnStateEnter()
+void UAttackBossStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
 	if (!OwnerCharacter || !FSMController || !EnemyDefinition) return;
@@ -24,7 +24,7 @@ void UAttackStateComponent::OnStateEnter()
 	bAttackCompletedNormally = false;
 	
 	OwnerCharacter->OnAttackCompleted.Unbind();
-	OwnerCharacter->OnAttackCompleted.BindUObject(this, &UAttackStateComponent::HandleAttackCompleted);
+	OwnerCharacter->OnAttackCompleted.BindUObject(this, &UAttackBossStateComponent::HandleAttackCompleted);
 	
 	FName AttackRowName = OwnerCharacter->GetSelectedAttackRowName();
 	if (AttackRowName.IsNone())
@@ -44,7 +44,7 @@ void UAttackStateComponent::OnStateEnter()
 	OwnerCharacter->ClearSelectedAttackRowName();
 }
 
-void UAttackStateComponent::OnStateExit()
+void UAttackBossStateComponent::OnStateExit()
 {
 	Super::OnStateExit();
 	if (OwnerCharacter)
@@ -60,7 +60,7 @@ void UAttackStateComponent::OnStateExit()
 	UE_LOG(LogTemp, Log, TEXT("[FSM][Attack] Exit"));
 }
 
-void UAttackStateComponent::HandleAttackCompleted()
+void UAttackBossStateComponent::HandleAttackCompleted()
 {
 	if (!FSMController) return;
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][Attack] Attack Completed"));
