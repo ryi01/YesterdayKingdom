@@ -67,7 +67,6 @@ void AEnemyBase::InitializeFromDefinition()
 		{
 			CombatBaseComponent->SetAttackDataTable(EnemyDefinition->AttackDataTable);
 		}
-		
 	}
 
 	SetDefaultMoveSpeed();

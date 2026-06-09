@@ -45,6 +45,7 @@ void AEnemyNomal::BeginPlay()
 			&AEnemyNomal::NotifyAttackEnded
 		);
 	}
+	if (EnemyDefinition->WeaponMesh) WeaponMeshComponent->SetStaticMesh(EnemyDefinition->WeaponMesh);
 }
 
 void AEnemyNomal::DoAIComboAttack()
