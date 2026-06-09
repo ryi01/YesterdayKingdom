@@ -10,6 +10,7 @@
 #include "ReturnStateComponent.h"
 #include "ReviveStateComponent.h"
 #include "DownStateComponent.h"
+#include "DeadStateComponent.h"
 #include "EnemyFSMTypes.h"
 #include "EnemyPuppetMaster.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -28,6 +29,7 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
 	DownState = CreateDefaultSubobject<UDownStateComponent>(TEXT("DownState"));
 	ReviveState = CreateDefaultSubobject<UReviveStateComponent>(TEXT("ReviveState"));
+	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
 }
 
 bool AEnemyElite::IsPuppetMasterDead() const
@@ -47,6 +49,7 @@ void AEnemyElite::BeginPlay()
 	{
 		return;
 	}
+	SetHomeLocation(GetActorLocation());
 
 	FSMController->InitializeFSM(this);
 
@@ -57,7 +60,8 @@ void AEnemyElite::BeginPlay()
 	FSMController->RegisterState(EEnemyFSMStateType::Return, ReturnState);
 	FSMController->RegisterState(EEnemyFSMStateType::Down, DownState);
 	FSMController->RegisterState(EEnemyFSMStateType::Revive, ReviveState);
-
+	FSMController->RegisterState(EEnemyFSMStateType::Dead, DeadState);
+	
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);
 }
 
@@ -107,11 +111,6 @@ void AEnemyElite::ForceTrueDeath()
 	}
 
 	bTrueDead = true;
-
-	if (FSMController)
-	{
-		FSMController->StopFSM();
-	}
 	
 	Super::HandleDeath_Implementation();
 }
