@@ -68,8 +68,6 @@ protected:
 	// ========================================================
 	virtual void OnDead();
 
-	virtual float GetDeathDestroyDelay() const;
-
 	void DestroyAfterDeath();
 	
 public:	
@@ -99,6 +97,8 @@ public:
 	// ========================================================
 	UFUNCTION(BlueprintCallable, Category="Combat|Reaction")
 	void PlayParriedReaction();
+	
+	virtual float GetDeathDestroyDelay() const;
 	
 	// ========================================================
 	// Getter 

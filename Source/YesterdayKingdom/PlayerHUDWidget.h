@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "PlayerHUDWidget.generated.h"
 
+class UProgressBar;
 class UVerticalBox;
 class UImage;
 class UHorizontalBox;
@@ -27,9 +28,11 @@ protected:
 	TObjectPtr<UVerticalBox> HUDBar;
 	
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> HP;
+	TObjectPtr<UProgressBar> HP;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> MP;
+	TObjectPtr<UProgressBar> MP;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UProgressBar> ST;
 	
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> Logo;
@@ -50,11 +53,30 @@ protected:
 	TObjectPtr<UImage> QuickSlot4;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> QuickSlot5;
+	
+	float TargetHPPercent = 1.f;
+	float TargetSTPercent = 1.f;
+	float TargetMPPercent = 1.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
+	float BarInterpSpeed = 8.f;
+	
+protected:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
+	UFUNCTION()
+	void UpdateHP(float CurrentHP, float MaxHP);
+	UFUNCTION()
+	void UpdateST(float CurrentST, float MaxST);
+	UFUNCTION()
+	void UpdateMP(float CurrentMP, float MaxMP);
+	
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindPlayer(class APlayerCharacter* InPlayer);
 
 	UFUNCTION(BlueprintCallable)
 	void SetInventoryVisible(bool bVisible);
+	
+	
 };

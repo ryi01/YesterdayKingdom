@@ -104,7 +104,7 @@ EStateTreeRunStatus FStateTreeComboAttackTask::EnterState(FStateTreeExecutionCon
 		InstanceData.Character->DoAIComboAttack();
 	}
 
-	return EStateTreeRunStatus::Succeeded;
+	return EStateTreeRunStatus::Running;
 }
 
 // 현재 공격 테스크 종교 이벤트 (다른 상태로 전환되어 종료됨)

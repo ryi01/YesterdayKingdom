@@ -55,6 +55,9 @@ protected:
 	void StopMove();
 	// AI 초점
 	UFUNCTION(BlueprintCallable, Category="Enemy|AI")
+	void FacePlayerInstant();
+	
+	UFUNCTION(BlueprintCallable, Category="Enemy|AI")
 	void SetFocusToPlayer();
 
 	UFUNCTION(BlueprintCallable, Category="Enemy|AI")
@@ -62,6 +65,8 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category="Enemy|AI")
 	void ClearFocusTarget();
+	
+	void SetRootMotionFromMontage(bool bEnabled);
 public:	
 	// Called when the game starts
 	virtual void BeginPlay() override;

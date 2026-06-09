@@ -15,6 +15,7 @@ class UPlayerInteractionComponent;
 class UEquipmentComponent;
 class UQuestComponent;
 struct FQuestInstance;
+class UPlayerHUDWidget;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
@@ -93,6 +94,18 @@ public:
 	// 인터렉션 관련 
 	//===============================================================================================
 	FTimerHandle InteractionCheckTimerHandle;
+	//===============================================================================================
+	// 피격 관련 함수
+	//===============================================================================================
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hit|Feedback")
+	TSubclassOf<class UCameraShakeBase> PlayerHitCameraShake;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hit|Feedback")
+	TObjectPtr<class UMaterialInterface> HitOverlayMaterial;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hit|Feedback")
+	float HitFlashDuration = 0.12f;
+
+	FTimerHandle HitFlashTimerHandle;
 	
 	//===============================================================================================
 	// 버프 관련
@@ -146,7 +159,11 @@ public:
 	bool bIsInventoryOpen = false;
 	
 protected:
-
+	//===============================================================================================
+	// 피격 관련 함수
+	//===============================================================================================
+	void PlayHitFlash();
+	void EndHitFlash();
 	//===============================================================================================
 	// 인터렉션 관련 
 	//===============================================================================================
@@ -159,6 +176,12 @@ protected:
 	void SetUIMode(bool bEnableUI);
 	
 	void CreatePlayerHUD();
+	
+	//===============================================================================================
+	// 사망처리
+	//===============================================================================================
+	virtual void OnDead() override;
+	
 public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -182,7 +205,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="Movement")
 	void RefreshMoveSpeed();
-	
+	//===============================================================================================
+	// 피격 관련 함수
+	//===============================================================================================
+	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	//===============================================================================================
 	// 공격 관련 함수
 	//===============================================================================================
@@ -216,11 +242,7 @@ public:
 	void StartGuard();
 	UFUNCTION()
 	void EndGuard();
-	
-	//===============================================================================================
-	// 사망처리
-	//===============================================================================================
-	virtual void OnDead() override;
+
 	
 	//===============================================================================================
 	// Getter
@@ -231,4 +253,5 @@ public:
 	UEquipmentComponent* GetEquipmentComponent() const;
 	UQuestComponent* GetQuestComponent() const;
 	UPlayerSkillComponent* GetSkillComponent() const;
+	UPlayerHUDWidget* GetPlayerHUDWidget() const;
 };

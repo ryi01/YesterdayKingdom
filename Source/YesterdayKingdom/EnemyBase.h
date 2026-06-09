@@ -19,6 +19,8 @@ class YESTERDAYKINGDOM_API AEnemyBase : public ABaseCharacter
 {
 	GENERATED_BODY()
 	
+	float PatternSelectBlockedUntilTime = 0.f;
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM")
 	TObjectPtr<UEnemyFSMControllerComponent> FSMController;
@@ -59,24 +61,28 @@ public:
 protected:
 	virtual void Landed(const FHitResult& Hit) override;
 	virtual void InitializeFromDefinition();
+
 	//===============================================================================================
 	// 죽었을 경우 리워드 지급
 	//===============================================================================================
 	virtual void GiveRewardToKiller();
 	void NotifyQuestKillToKiller();
-	
-	//===============================================================================================
-	// 죽는 상태
-	//===============================================================================================
-	virtual float GetDeathDestroyDelay() const override;
+
 public:
 	virtual void BeginPlay() override;
+	void SetHomeLocation(const FVector& InHomeLocation);
 	//===============================================================================================
 	// 데미지를 입는것
 	//===============================================================================================
 	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse) override;
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	virtual void HandleDeath_Implementation() override;
+	
+	//===============================================================================================
+	// 죽는 상태
+	//===============================================================================================
+	virtual float GetDeathDestroyDelay() const override;
+	
 	//===============================================================================================
 	// 전투관련
 	//===============================================================================================
@@ -92,6 +98,7 @@ public:
 	virtual void ClearAttackAnimation_Implementation() override;
 	virtual void AttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
+
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	void SetSelectedAttackRowName(FName InAttackRowName);
 
@@ -114,6 +121,18 @@ public:
 	void SetCombatMoveSpeed();
 	
 	//===============================================================================================
+	// 꼭두각시 인형 관련
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category="Enemy|Animation")
+	void DownMontage();
+
+	UFUNCTION(BlueprintCallable, Category="Enemy|Animation")
+	void ReviveMontage();
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Animation")
+	bool IsAnyMontagePlaying() const;
+
+	//===============================================================================================
 	// Getter함수
 	//===============================================================================================
 	UEnemyDefinition* GetEnemyDefinition() const { return EnemyDefinition; }
@@ -126,10 +145,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Stat")
 	bool IsDead() const;
 	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Stat")
+	bool IsAttacking() const;
+	
 	const FVector& GetLastDangerLocation() const;
 	
 	float GetLastDangerTime() const;
 	
 	const FVector& GetHomeLocation() const;
 	
+	void BlockPatternSelect(float Duration);
+	bool IsPatternSelectBlocked() const;
 };

@@ -3,17 +3,20 @@
 
 #include "BossEnemy.h"
 
-#include "AttackStateComponent.h"
+#include "AttackBossStateComponent.h"
 #include "BackStepStateComponent.h"
 #include "ChaseStateComponent.h"
 #include "CooldownStateComponent.h"
+#include "DeadStateComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "FlankingStateComponent.h"
+#include "HitStateComponent.h"
 #include "IdleStatComponent.h"
 #include "JumpAttackStateComponent.h"
 #include "PatrolStateComponent.h"
 #include "PatternSelectStateComponent.h"
 #include "ReturnStateComponent.h"
+#include "RotationAttackStateComponent.h"
 
 ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -27,11 +30,14 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
 	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
 	PatternSelectState = CreateDefaultSubobject<UPatternSelectStateComponent>(TEXT("PatternSelectState"));
-	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));
+	AttackState = CreateDefaultSubobject<UAttackBossStateComponent>(TEXT("AttackState"));
 	CooldownState = CreateDefaultSubobject<UCooldownStateComponent>(TEXT("CooldownState"));
 	FlankingState = CreateDefaultSubobject<UFlankingStateComponent>(TEXT("FlankingState"));
 	BackStepState = CreateDefaultSubobject<UBackStepStateComponent>(TEXT("BackStepState"));
 	JumpAttackState = CreateDefaultSubobject<UJumpAttackStateComponent>(TEXT("JumpAttackState"));
+	RotationAttackState = CreateDefaultSubobject<URotationAttackStateComponent>(TEXT("RotationAttackState"));
+	HitState = CreateDefaultSubobject<UHitStateComponent>(TEXT("HitState"));
+	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
 }
 
 void ABossEnemy::BeginPlay()
@@ -83,6 +89,18 @@ void ABossEnemy::BeginPlay()
 	if (JumpAttackState)
 	{
 		FSMController->RegisterState(EEnemyFSMStateType::JumpAttack, JumpAttackState);
+	}
+	if (RotationAttackState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::RotationAttack, RotationAttackState);
+	}
+	if (HitState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Hit, HitState);
+	}
+	if (DeadState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::Dead, DeadState);
 	}
 
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);

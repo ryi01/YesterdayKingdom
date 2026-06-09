@@ -3,10 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AttackActionStateComponent.h"
 #include "EnemyFSMTypes.h"
 #include "FSMStateComponent.h"
 #include "JumpAttackStateComponent.generated.h"
 
+struct FAttackDataRow;
 class UAnimMontage;
 
 UENUM()
@@ -18,59 +20,33 @@ enum class EJumpAttackStep : uint8
 	Attack
 };
 UCLASS()
-class YESTERDAYKINGDOM_API UJumpAttackStateComponent : public UFSMStateComponent
+class YESTERDAYKINGDOM_API UJumpAttackStateComponent : public UAttackActionStateComponent
 {
 	GENERATED_BODY()
-private:
-	float ElapsedTime = 0.f;
-
-	bool bDidJumpToPlayer = false;
-	bool bStartedAttack = false;
-
+protected:
+	// 현재 점프 공격 단계
 	EJumpAttackStep CurrentStep = EJumpAttackStep::None;
 
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Next")
-	EEnemyFSMStateType NextState = EEnemyFSMStateType::Cooldown;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack")
-	TObjectPtr<UAnimMontage> JumpAttackMontage;
+	// DT에서 읽어온 점프 공격 수치
+	float CurrentJumpUpPower = 700.f;
+	float CurrentAttackTriggerDistance = 250.f;
+	float CurrentAttackTriggerHeight = 150.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack|Section")
-	FName JumpStartSectionName = TEXT("JumpStart");
+	// 점프 이동을 이미 했는지
+	bool bDidJumpToPlayer = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack|Section")
-	FName SpinMoveSectionName = TEXT("SpinMove");
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack|Section")
-	FName AttackSectionName = TEXT("Attack");
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack|Move")
-	float JumpUpPower = 600.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack|Move")
-	float JumpForwardPower = 1700.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack|Attack")
-	float AttackTriggerDistance = 500.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack|Attack")
-	float AttackTriggerHeight = 800.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|JumpAttack")
-	float MaxJumpAttackTime = 3.0f;
+	// 공격 섹션으로 넘어갔는지
+	bool bStartedAttack = false;
 	
 private:
 	void TryStartAttackSection();
 	void StartAttackSection();
-	void HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void SetMontageRootMotionEnabled(bool bEnabled);
+
 public:
 	virtual void OnStateEnter() override;
 	virtual void OnStateUpdate(float DeltaTime) override;
 	virtual void OnStateExit() override;
 
-	// AnimNotify 1개만 사용
-	void NotifyJumpToPlayer();
+	virtual void NotifyAttackActionStart() override;
 	
 };

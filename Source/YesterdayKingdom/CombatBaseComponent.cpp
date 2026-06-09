@@ -37,41 +37,56 @@ void UCombatBaseComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 //=====================================================================================================
 // 입력값이 들어오면 실행되는 함수 
 //=====================================================================================================
-void UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
+bool UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
 {
-	if (!OwnerCharacter || !AttackDataTable) return;
+	if (!OwnerCharacter || !AttackDataTable) return false;
+	if (AttackRowName.IsNone()) return false;
 	if (!CurrentAttackRowName.IsNone())
 	{
 		if (CurrentAttackRowName == AttackRowName)
 		{
 			bComboInputBuffered = true;
+			return true;
 		}
-		return;
+		return false;
 	}
 	const FAttackDataRow* AttackDataRow = AttackDataTable->FindRow<FAttackDataRow>(AttackRowName, TEXT("RequestAttack"));
-	
-	if (!AttackDataRow || !AttackDataRow->Montage || AttackDataRow->Nodes.Num() <= 0) return;
+	if (!AttackDataRow || !AttackDataRow->Montage || AttackDataRow->Nodes.Num() <= 0) return false;
 	
 	CurrentAttackRowName = AttackRowName;
 	CurrentAttackNodeIndex = 0;
 	bComboInputBuffered = false;
 	
-	const FAttackNodeData* FirstNode =  AttackDataRow->Nodes.IsValidIndex(CurrentAttackNodeIndex) ? &AttackDataRow->Nodes[CurrentAttackNodeIndex] : nullptr;
+	const FAttackNodeData* FirstNode = AttackDataRow->Nodes.IsValidIndex(CurrentAttackNodeIndex) ? &AttackDataRow->Nodes[CurrentAttackNodeIndex] : nullptr;
 	
-	if (FirstNode)
+	if (!FirstNode)
 	{
-		UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
-		if (!AnimInstance) return;
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(this, &UCombatBaseComponent::OnAttackMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackDataRow->Montage);
-		OwnerCharacter->PlayAnimMontage(AttackDataRow->Montage, 1.f, FirstNode->SectionName);
+		ResetAttackState();
+		return false;
 	}
+	
+	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		ResetAttackState();
+		return false;
+	}
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UCombatBaseComponent::OnAttackMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackDataRow->Montage);
+	const float PlayedLength = OwnerCharacter->PlayAnimMontage(AttackDataRow->Montage, 1.f, FirstNode->SectionName);
+	if (PlayedLength <= 0.f)
+	{
+		ResetAttackState();
+		return false;
+	}
+	return true;
 }
 // 애니메이션 종료
 void UCombatBaseComponent::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	ResetAttackState();
+	OnAttackEnded.Broadcast();
 }
 
 void UCombatBaseComponent::ResetAttackState()
@@ -105,34 +120,75 @@ void UCombatBaseComponent::CheckCombo()
 bool UCombatBaseComponent::JumpToNextAttackSection()
 {
 	if (!OwnerCharacter) return false;
-	// DT에서 필요한 열 추출
 	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentAttackRowName);
 	if (!AttackDataRow || !AttackDataRow->Montage) return false;
 	// 사용되는 Row에서 NodeData 추출
 	const FAttackNodeData* CurrentNode = GetCurrentAttackNodeData();
-	if (!CurrentNode) return false;
-
+	if (!CurrentNode)
+	{
+		return false;
+	}
 	if (CurrentNode->NextIndex == INDEX_NONE || !AttackDataRow->Nodes.IsValidIndex(CurrentNode->NextIndex))
 	{
-		CurrentAttackRowName = NAME_None;
-		CurrentAttackNodeIndex = INDEX_NONE;
 		bComboInputBuffered = false;
 		return false;
 	}
 	// 현재 실행되는 콤보의 인덱스를 올리고
 	CurrentAttackNodeIndex = CurrentNode->NextIndex;
-	
+	const int32 PreviousIndex = CurrentAttackNodeIndex;
+	const int32 NextIndex = CurrentNode->NextIndex;
 	const FAttackNodeData* NextNode = GetCurrentAttackNodeData();
-	if (!NextNode) return false;
+	if (!NextNode)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Failed / NextNode None / PrevIndex=%d / NextIndex=%d"),
+			PreviousIndex,
+			NextIndex);
+		return false;
+	}
 
 	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return false;
+	const bool bIsPlaying = AnimInstance->Montage_IsPlaying(AttackDataRow->Montage);
+	const bool bHasNextSection = AttackDataRow->Montage->IsValidSectionName(NextNode->SectionName);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][JumpToNext] NextNode / PrevIndex=%d / NextIndex=%d / NextSection=%s / Montage=%s / IsPlaying=%d / HasSection=%d"),
+		PreviousIndex,
+		NextIndex,
+		*NextNode->SectionName.ToString(),
+		*AttackDataRow->Montage->GetName(),
+		bIsPlaying,
+		bHasNextSection);
+
+	if (!bHasNextSection)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Failed / Montage Section Not Found / Section=%s / Montage=%s"),
+			*NextNode->SectionName.ToString(),
+			*AttackDataRow->Montage->GetName());
+		return false;
+	}
+
+	if (!bIsPlaying)
+	{
+		UE_LOG(LogTemp, Error,
+			TEXT("[Combat][JumpToNext] Warning / Montage Not Playing Before Jump / Montage=%s"),
+			*AttackDataRow->Montage->GetName());
+	}
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &UCombatBaseComponent::OnAttackMontageEnded);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, AttackDataRow->Montage);
 	// 애니메이션을 실행한다
 	AnimInstance->Montage_JumpToSection(NextNode->SectionName, AttackDataRow->Montage);
-	
+	const FName CurrentSectionAfterJump = AnimInstance->Montage_GetCurrentSection(AttackDataRow->Montage);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][JumpToNext] Success / JumpedTo=%s / CurrentSectionAfterJump=%s / CurrentIndex=%d"),
+		*NextNode->SectionName.ToString(),
+		*CurrentSectionAfterJump.ToString(),
+		CurrentAttackNodeIndex);
+
 	return true;
 }
 //=====================================================================================================
@@ -150,6 +206,7 @@ bool UCombatBaseComponent::StartChargeAttackByRow(FName AttackRowName)
 	if (!OwnerCharacter || !AttackDataTable) return false;
 	if (AttackRowName.IsNone()) return false;
 	if (bIsGuarding) return false;
+	if (!CurrentAttackRowName.IsNone()) return false;
 	
 	const FAttackDataRow* AttackDataRow = GetAttackDataByRow(AttackRowName);
 	if (!AttackDataRow || !AttackDataRow->Montage || AttackDataRow->Nodes.Num() <= 0) return false;
@@ -172,8 +229,17 @@ bool UCombatBaseComponent::StartChargeAttackByRow(FName AttackRowName)
 	
 	OnChargeAttackStarted();
 	
-	RequestAttackByRow(AttackRowName);
-	
+	const bool bRequested = RequestAttackByRow(AttackRowName);
+	if (!bRequested)
+	{
+		bIsCharging = false;
+		ChargeStartTime = 0.f;
+		CurrentChargeRatio = 1.f;
+		CurrentChargeRowName = NAME_None;
+		SetComponentTickEnabled(false);
+		return false;
+	}
+
 	return true;
 }
 
@@ -302,6 +368,7 @@ void UCombatBaseComponent::CloseParryWindow()
 
 void UCombatBaseComponent::EndGuard()
 {
+//
 	if (!bIsGuarding) return;
 	
 	bIsGuarding = false;
@@ -595,5 +662,18 @@ bool UCombatBaseComponent::IsAttacking() const
 bool UCombatBaseComponent::IsCharging() const
 {
 	return bIsCharging;
+}
+
+const FAttackDataRow* UCombatBaseComponent::GetCurrentAttackDataRow() const
+{
+	if (CurrentAttackRowName.IsNone()) return nullptr;
+
+	return GetAttackDataByRow(CurrentAttackRowName);
+}
+
+
+FName UCombatBaseComponent::GetCurrentAttackRowName() const
+{
+	return CurrentAttackRowName;
 }
 

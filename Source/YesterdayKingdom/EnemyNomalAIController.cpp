@@ -13,7 +13,7 @@ AEnemyNomalAIController::AEnemyNomalAIController()
 	check(StateTreeAI); // 컴포넌트 추가가 안되어있을 경우 크러쉬 발생
 
 	// 컨트롤러에 캐릭터 빙의 시 자동으로 StateTree 자동 시작
-	bStartAILogicOnPossess = true;
+	bStartAILogicOnPossess = false;
 
 	// AI컨트롤러와 AI 캐릭터간의 자동 빙의 수행
 	bAttachToPawn = true; 
@@ -52,3 +52,4 @@ void AEnemyNomalAIController::OnUnPossess()
 	
 	Super::OnUnPossess();
 }
+

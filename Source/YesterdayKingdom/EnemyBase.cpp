@@ -28,10 +28,14 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(Obje
 void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	HomeLocation = GetActorLocation();
 	InitializeFromDefinition();
 }
+
+void AEnemyBase::SetHomeLocation(const FVector& InHomeLocation)
+{
+	HomeLocation = InHomeLocation;
+}
+
 //===============================================================================================
 // 초기화
 //===============================================================================================
@@ -74,11 +78,13 @@ void AEnemyBase::InitializeFromDefinition()
 	}
 	InitializeWeaponRoot();
 }
+
 void AEnemyBase::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 	OnEnemyLanded.ExecuteIfBound();
 }
+
 
 //===============================================================================================
 // 전투관련
@@ -93,14 +99,27 @@ void AEnemyBase::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, 
 void AEnemyBase::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
 	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+	if (IsDead())
+	{
+		if (FSMController)
+		{
+			FSMController->ChangeState(EEnemyFSMStateType::Dead);
+		}
+		return;
+	}
 	if (DamageSource && DamageSource->ActorHasTag(TEXT("Player")))
 	{
 		LastDangerLocation = DamageLocation;
 		LastDangerTime = GetWorld()->GetTimeSeconds();
 	}
-	if (EnemyDefinition && EnemyDefinition->HitMontage)
+	// enemy hit state에서 발생
+	/*if (EnemyDefinition && EnemyDefinition->HitMontage)
 	{
 		PlayAnimMontage(EnemyDefinition->HitMontage);
+	}*/
+	if (FSMController)
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::Hit);
 	}
 }
 
@@ -114,11 +133,11 @@ void AEnemyBase::HandleDeath_Implementation()
 	GiveRewardToKiller();
 	NotifyQuestKillToKiller();
 	OnEnemyDied.Broadcast();
-	if (EnemyDefinition && EnemyDefinition->DeathMontage)
-	{
-		PlayAnimMontage(EnemyDefinition->DeathMontage);
-	}
 
+	if (FSMController && EnemyDefinition->EnemyRole != EEnemyRole::Normal)
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::Dead);
+	}
 }
 
 float AEnemyBase::GetDeathDestroyDelay() const
@@ -247,7 +266,6 @@ void AEnemyBase::ClearSelectedAttackRowName()
 {
 	SelectedAttackRowName = NAME_None;
 }
-
 //===============================================================================================
 // 속도 변경
 //===============================================================================================
@@ -271,6 +289,37 @@ void AEnemyBase::SetCombatMoveSpeed()
 	if (!EnemyDefinition) return;
 
 	SetMoveSpeed(EnemyDefinition->CombatMoveSpeed);
+}
+
+void AEnemyBase::DownMontage()
+{
+	if (EnemyDefinition && EnemyDefinition->DownMontage)
+	{
+		PlayAnimMontage(EnemyDefinition->DownMontage);
+	}
+}
+
+void AEnemyBase::ReviveMontage()
+{
+	if (EnemyDefinition && EnemyDefinition->ReviveMontage)
+	{
+		PlayAnimMontage(EnemyDefinition->ReviveMontage);
+	}
+}
+
+bool AEnemyBase::IsAnyMontagePlaying() const
+{
+	if (!GetMesh())
+	{
+		return false;
+	}
+
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		return AnimInstance->IsAnyMontagePlaying();
+	}
+
+	return false;
 }
 
 //===============================================================================================
@@ -302,6 +351,11 @@ bool AEnemyBase::IsDead() const
 	return GetStatComponent()->IsDead();
 }
 
+bool AEnemyBase::IsAttacking() const
+{
+	return bIsAttacking;
+}
+
 const FVector& AEnemyBase::GetLastDangerLocation() const
 {
 	return LastDangerLocation;
@@ -315,4 +369,17 @@ float AEnemyBase::GetLastDangerTime() const
 const FVector& AEnemyBase::GetHomeLocation() const
 {
 	return HomeLocation;
+}
+
+void AEnemyBase::BlockPatternSelect(float Duration)
+{
+	PatternSelectBlockedUntilTime = GetWorld()->GetTimeSeconds() + Duration;
+	UE_LOG(LogTemp, Warning,
+		TEXT("[EnemyBase] BlockPatternSelect / Duration = %.2f"),
+		Duration);
+}
+
+bool AEnemyBase::IsPatternSelectBlocked() const
+{
+	return GetWorld()->GetTimeSeconds() < PatternSelectBlockedUntilTime;
 }

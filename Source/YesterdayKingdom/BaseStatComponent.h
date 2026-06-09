@@ -40,7 +40,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float CurrentMP = 100.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
-	float Attack = 10.f;
+	float Attack = 0.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float Defense = 5.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
@@ -134,6 +134,8 @@ public:
 	// ========================================================
 	// 기타 함수들
 	// ========================================================
+	UFUNCTION(BlueprintCallable)
+	void SetCurrentHP(float NewHP);
 	UFUNCTION(BlueprintCallable)
 	void InitializeStat(UDataTable* InStatTable, FName InRowName);
 	UFUNCTION(BlueprintCallable)

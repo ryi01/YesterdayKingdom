@@ -25,6 +25,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM|Patrol")
 	bool bHasPatrolTarget = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM|Patrol")
+	bool bIsWaitingPatrolEQS = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM|Patrol")
+	bool bIsPatrolActive = false;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM|Patrol")
 	FVector LastPatrolTargetLocation = FVector::ZeroVector;

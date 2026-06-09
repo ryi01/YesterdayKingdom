@@ -108,10 +108,14 @@ void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 	const float StaminaCost = AttackData->StaminaCost;
 	const float MPCost = AttackData->MPCost;
 	
-	if (StaminaCost > 0.f) StatComp->ConsumeST(StaminaCost);
-	if (MPCost > 0.f)StatComp->ConsumeMP(MPCost);
+	if (StaminaCost > 0.f  && StatComp->GetCurrentST() < StaminaCost) StatComp->ConsumeST(StaminaCost);
+	if (MPCost > 0.f && StatComp->GetCurrentMP() < MPCost) return;
 	
-	RequestAttackByRow(AttackRowName);
+	const bool bRequested = RequestAttackByRow(AttackRowName);
+	if (!bRequested) return;
+
+	if (StaminaCost > 0.f) StatComp->ConsumeST(StaminaCost);
+	if (MPCost > 0.f) StatComp->ConsumeMP(MPCost);
 }
 
 void UPlayerCombatComponent::OnChargeAttackStarted()

@@ -4,18 +4,29 @@
 #include "PlayerStatComponent.h"
 
 #include "PlayerDefinition.h"
-
+UPlayerStatComponent::UPlayerStatComponent()
+{
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
+}
 void UPlayerStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	GetWorld()->GetTimerManager().SetTimer(RecoveryTimerHandle, this, &UPlayerStatComponent::RecoverResources, 0.1f, true);
 }
-void UPlayerStatComponent::RecoverResources()
+
+void UPlayerStatComponent::TickComponent(float DeltaTime, enum ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	RecoverResources(DeltaTime);
+}
+
+void UPlayerStatComponent::RecoverResources(float DeltaTime)
 {
 	if (!PlayerDefinition || IsDead()) return;
 	const float Delta = 0.1f;
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime - GetLastMPConsumeTime() >= PlayerDefinition->StaminaRecoveryDelay)
+	if (CurrentTime - GetLastSTConsumeTime() >= PlayerDefinition->StaminaRecoveryDelay)
 	{
 		RecoverST(PlayerDefinition->StaminaRecoveryPerSecond * Delta);
 	}
@@ -24,8 +35,6 @@ void UPlayerStatComponent::RecoverResources()
 		RecoverMP(PlayerDefinition->ManaRecoveryPerSecond * Delta);
 	}
 }
-
-
 
 const UPlayerDefinition* UPlayerStatComponent::GetPlayerDefinition() const
 {

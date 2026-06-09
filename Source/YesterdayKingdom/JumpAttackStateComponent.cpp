@@ -3,6 +3,7 @@
 
 #include "JumpAttackStateComponent.h"
 
+#include "CombatBaseComponent.h"
 #include "EnemyBase.h"
 #include "EnemyFSMControllerComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -15,46 +16,64 @@ void UJumpAttackStateComponent::OnStateEnter()
 	bDidJumpToPlayer = false;
 	bStartedAttack = false;
 	CurrentStep = EJumpAttackStep::JumpStart;
-	
 
 	if (!OwnerCharacter || !FSMController) return;
 	
 	APawn* PlayerPawn = GetTargetPlayer();
-	if (!PlayerPawn || !JumpAttackMontage)
+	if (!PlayerPawn)
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Idle);
+		FSMController->ChangeState(NextState);
 		return;
 	}
-	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
-	if (!AnimInstance) 
+	if (!InitializeActionTarget())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Idle);
+		FSMController->ChangeState(NextState);
+		return;
+	}
+	if (!InitializeAttackActionFromData())
+	{
+		FSMController->ChangeState(NextState);
 		return;
 	}
 	
+	ApplyMovePowerFromAttackData();
+	CurrentJumpUpPower = CurrentAttackDataRow->JumpUpPower;
+	CurrentAttackTriggerDistance = CurrentAttackDataRow->AttackTriggerDistance;
+	CurrentAttackTriggerHeight = CurrentAttackDataRow->AttackTriggerHeight;
+	
+	UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent();
+	if (!CombatComp)
+	{
+		FSMController->ChangeState(NextState);
+		return;
+	}
 	StopMove();
-
 	if (UCharacterMovementComponent* MovementComponent = OwnerCharacter->GetCharacterMovement())
 	{
 		MovementComponent->StopMovementImmediately();
 	}
-
-	SetFocusToPlayer();
-	SetMontageRootMotionEnabled(false);
 	
-	OwnerCharacter->PlayAnimMontage(JumpAttackMontage);
-	AnimInstance->Montage_JumpToSection(JumpStartSectionName, JumpAttackMontage);
-
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &UJumpAttackStateComponent::HandleMontageEnded);
-	AnimInstance->Montage_SetEndDelegate(EndDelegate, JumpAttackMontage);
+	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
+	if (!AnimInstance) 
+	{
+		FSMController->ChangeState(NextState);
+		return;
+	}
 	
-	OwnerCharacter->LaunchCharacter(FVector(0.f, 0.f, JumpUpPower), false, true);
+	FacePlayerInstant();
+	SetRootMotionFromMontage(false);
+
+	CombatComp->RequestAttackByRow(CurrentAttackRowName);
+
+	OwnerCharacter->LaunchCharacter(FVector(0.f, 0.f, CurrentJumpUpPower), false, true);
+
+	OwnerCharacter->ClearSelectedAttackRowName();
 	
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][JumpAttack] Enter : %s / Distance = %.2f"),
 		*OwnerCharacter->GetName(),
 		GetDistanceToPlayer());
 }
+
 
 void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 {
@@ -67,9 +86,11 @@ void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 		return;
 	}
 
+	if (bFinished) return;
+	
 	ElapsedTime += DeltaTime;
 
-	if (ElapsedTime >= MaxJumpAttackTime)
+	if (ElapsedTime >= MaxActionTime)
 	{
 		FSMController->ChangeState(NextState);
 		return;
@@ -85,27 +106,57 @@ void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 void UJumpAttackStateComponent::OnStateExit()
 {
 	Super::OnStateExit();
-	
-	SetMontageRootMotionEnabled(false);
+
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->ClearSelectedAttackRowName();
+
+		if (UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent())
+		{
+			CombatComp->EndAttackTrace();
+			CombatComp->ResetAttackState();
+		}
+	}
+
 	ClearFocusTarget();
 
-	ElapsedTime = 0.f;
+	SetRootMotionFromMontage(false);
+
 	bDidJumpToPlayer = false;
 	bStartedAttack = false;
 	CurrentStep = EJumpAttackStep::None;
+
+	ClearActionTargetData();
+	ClearAttackActionData();
+
+	UE_LOG(LogTemp, Log, TEXT("[FSM][JumpAttack] Exit"));
 }
+
+void UJumpAttackStateComponent::NotifyAttackActionStart()
+{
+	if (bDidJumpToPlayer) return;
+	if (!OwnerCharacter || !FSMController) return;
+
+	bDidJumpToPlayer = true;
+	CurrentStep = EJumpAttackStep::Flying;
+	if (!JumpToNextAttackSection()) return;
+	SetRootMotionFromMontage(false);
+	MoveToActionTargetLocation(true, false);
+	ClearFocusTarget();
+}
+
 
 void UJumpAttackStateComponent::TryStartAttackSection()
 {
 	if (bStartedAttack) return;
 	if (!OwnerCharacter || !FSMController) return;
 
-	APawn* PlayerPawn = GetTargetPlayer();
-	
-	const float DistanceToPlayer = GetDistance2DToPlayer();
-	const float HeightDiff = FMath::Abs(OwnerCharacter->GetActorLocation().Z - PlayerPawn->GetActorLocation().Z);
+	const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
 
-	if (DistanceToPlayer <= AttackTriggerDistance && HeightDiff <= AttackTriggerHeight)
+	const float DistanceToTarget = FVector::Dist2D(OwnerLocation, ActionTargetLocation);
+	const float HeightDiff = FMath::Abs(OwnerLocation.Z - ActionTargetLocation.Z);
+
+	if (DistanceToTarget <= CurrentAttackTriggerDistance && HeightDiff <= CurrentAttackTriggerHeight)
 	{
 		StartAttackSection();
 	}
@@ -114,74 +165,20 @@ void UJumpAttackStateComponent::TryStartAttackSection()
 void UJumpAttackStateComponent::StartAttackSection()
 {
 	if (bStartedAttack) return;
-	if (!OwnerCharacter || !FSMController || !JumpAttackMontage) return;
+	if (!OwnerCharacter || !FSMController) return;
+	
+	UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent();
+	if (!CombatComp) return;
+	
 	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
 	if (!AnimInstance) return;
 
-	const int32 SectionIndex = JumpAttackMontage->GetSectionIndex(AttackSectionName);
-	const bool bIsPlaying = AnimInstance->Montage_IsPlaying(JumpAttackMontage);
-
-	if (SectionIndex == INDEX_NONE) return;
-	if (!bIsPlaying)
-	{
-		bStartedAttack = true;
-		FSMController->ChangeState(NextState);
-		return;
-	}
 	bStartedAttack = true;
 	CurrentStep = EJumpAttackStep::Attack;
-
-	AnimInstance->Montage_JumpToSection(AttackSectionName, JumpAttackMontage);
-}
-
-void UJumpAttackStateComponent::HandleMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (Montage != JumpAttackMontage) return;
-	if (!FSMController) return;
-
-	FSMController->ChangeState(NextState);
-}
-
-void UJumpAttackStateComponent::SetMontageRootMotionEnabled(bool bEnabled)
-{
-	if (!OwnerCharacter) return;
-	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
-	if (!AnimInstance) return;
-	AnimInstance->SetRootMotionMode(bEnabled ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::IgnoreRootMotion);
-	
-}
-void UJumpAttackStateComponent::NotifyJumpToPlayer()
-{
-	if (bDidJumpToPlayer) return;
-	if (!OwnerCharacter || !FSMController || !JumpAttackMontage) return;
-
-	APawn* PlayerPawn = GetTargetPlayer();
-	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
-	if (!AnimInstance) return;
-
-	bDidJumpToPlayer = true;
-	CurrentStep = EJumpAttackStep::Flying;
-	// JumpStart에서 spinMove로 변경
-	AnimInstance->Montage_JumpToSection(SpinMoveSectionName, JumpAttackMontage);
-	
-	// 앞으로 이동은 RootMotion 끄고 코드로 제어
-	SetMontageRootMotionEnabled(false);
-	
-	FVector JumpDirection = PlayerPawn->GetActorLocation() - OwnerCharacter->GetActorLocation();
-	JumpDirection.Z = 0.f;
-
-	if (JumpDirection.IsNearlyZero())
+	if (!CombatComp->JumpToNextAttackSection())
 	{
-		JumpDirection = OwnerCharacter->GetActorForwardVector();
-		JumpDirection.Z = 0.f;
+		FSMController->ChangeState(NextState);
 	}
 
-	JumpDirection.Normalize();
-
-	const FVector LaunchVelocity = JumpDirection * JumpForwardPower;
-	
-	OwnerCharacter->LaunchCharacter(LaunchVelocity, true, false);
-
-	ClearFocusTarget();
-	
 }
+

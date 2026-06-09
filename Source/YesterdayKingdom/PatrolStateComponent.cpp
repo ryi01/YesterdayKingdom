@@ -13,9 +13,12 @@
 void UPatrolStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
+	
+	bIsPatrolActive = true;
 	bHasPatrolTarget = false;
-
+	bIsWaitingPatrolEQS = false;
 	PatrolTargetLocation = FVector::ZeroVector;
+	
 	if (!FSMController || !OwnerCharacter) return;
 	if (IsOwnerDead())
 	{
@@ -45,11 +48,15 @@ void UPatrolStateComponent::OnStateUpdate(float DeltaTime)
 		FSMController->ChangeState(EEnemyFSMStateType::Chase);
 		return;
 	}
-	if (!bHasPatrolTarget) return;
+
 	// 목표가 없으면 다시 EQS 실행
 	if (!bHasPatrolTarget)
 	{
-		RunPatrolEQS();
+		if (!bIsWaitingPatrolEQS)
+		{
+			RunPatrolEQS();
+		}
+
 		return;
 	}
 	
@@ -59,6 +66,13 @@ void UPatrolStateComponent::OnStateUpdate(float DeltaTime)
 	{
 		FinalAcceptanceRadius += OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
 	}
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Patrol] Distance: %.2f / Acceptance: %.2f / Target: %s / Owner: %s"),
+		DistanceToPatrolTarget,
+		FinalAcceptanceRadius,
+		*PatrolTargetLocation.ToString(),
+		*OwnerCharacter->GetName());
+
+	
 	if (DistanceToPatrolTarget <= FinalAcceptanceRadius)
 	{
 		StopMove();
@@ -72,8 +86,12 @@ void UPatrolStateComponent::OnStateExit()
 {
 	Super::OnStateExit();
 	StopMove();
+	
+	bIsPatrolActive = false;
 	bHasPatrolTarget = false;
+	bIsWaitingPatrolEQS = false;
 	PatrolTargetLocation = FVector::ZeroVector;
+	
 	if (OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Patrol] Exit : %s"), *OwnerCharacter->GetName());
@@ -82,7 +100,12 @@ void UPatrolStateComponent::OnStateExit()
 void UPatrolStateComponent::RunPatrolEQS()
 {
 	if (!FSMController || !OwnerCharacter) return;
-	if (!EnemyDefinition)
+	if (!bIsPatrolActive) return;
+	if (bIsWaitingPatrolEQS) return;
+	
+	const UEnemyDefinition* Definition = OwnerCharacter->GetEnemyDefinition();
+	
+	if (!Definition)
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Idle);
 		return;
@@ -95,13 +118,20 @@ void UPatrolStateComponent::RunPatrolEQS()
 	}
 
 	const float MinPatrolDistance = 100.f;
-	const float MaxPatrolDistance = EnemyDefinition->PatrolRadius;
+	const float MaxPatrolDistance = Definition->PatrolRadius;
 	
 	if (MaxPatrolDistance <= MinPatrolDistance)
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Idle);
 		return;
 	}
+	
+	bIsWaitingPatrolEQS = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Patrol] Run EQS : %s / Min: %.2f / Max: %.2f"),
+		*OwnerCharacter->GetName(),
+		MinPatrolDistance,
+		MaxPatrolDistance);
 	
 	FEnvQueryRequest QueryRequest(PatrolQuery, OwnerCharacter);
 
@@ -113,7 +143,10 @@ void UPatrolStateComponent::RunPatrolEQS()
 
 void UPatrolStateComponent::OnPatrolQueryFinished(TSharedPtr<FEnvQueryResult> Result)
 {
+	bIsWaitingPatrolEQS = false;
+
 	if (!FSMController || !OwnerCharacter) return;
+	
 	if (!Result.IsValid() || !Result->IsSuccessful())
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Idle);
@@ -121,6 +154,11 @@ void UPatrolStateComponent::OnPatrolQueryFinished(TSharedPtr<FEnvQueryResult> Re
 	}
 	TArray<FVector> Locations;
 	Result->GetAllAsLocations(Locations);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Patrol] EQS Locations Count : %d / Owner: %s"),
+	Locations.Num(),
+	*OwnerCharacter->GetName());
+	
 	if (Locations.IsEmpty())
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Idle);
@@ -139,11 +177,15 @@ void UPatrolStateComponent::OnPatrolQueryFinished(TSharedPtr<FEnvQueryResult> Re
 	}
 
 	const TArray<FVector>& PickPool = ValidLocations.IsEmpty() ? Locations : ValidLocations;
-
 	const int32 RandomIndex = FMath::RandRange(0, PickPool.Num() - 1);
 
 	PatrolTargetLocation = PickPool[RandomIndex];
 	LastPatrolTargetLocation = PatrolTargetLocation;
 	bHasPatrolTarget = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Patrol] Pick Target : %s / Owner: %s"),
+		*PatrolTargetLocation.ToString(),
+		*OwnerCharacter->GetName());
+
 	MoveToLocation(PatrolTargetLocation, PatrolAcceptanceRadius);
 }
