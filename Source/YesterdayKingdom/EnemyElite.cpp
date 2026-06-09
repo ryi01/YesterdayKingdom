@@ -14,6 +14,7 @@
 #include "EnemyPuppetMaster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnemyFSMControllerComponent.h"
+#include "PatrolStateComponent.h"
 
 AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -21,6 +22,7 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 	
 	IdleState = CreateDefaultSubobject<UIdleStatComponent>(TEXT("IdleState"));
+	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
 	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
@@ -49,6 +51,7 @@ void AEnemyElite::BeginPlay()
 	FSMController->InitializeFSM(this);
 
 	FSMController->RegisterState(EEnemyFSMStateType::Idle, IdleState);
+	FSMController->RegisterState(EEnemyFSMStateType::Patrol, PatrolState);
 	FSMController->RegisterState(EEnemyFSMStateType::Chase, ChaseState);
 	FSMController->RegisterState(EEnemyFSMStateType::Attack, AttackState);
 	FSMController->RegisterState(EEnemyFSMStateType::Return, ReturnState);
@@ -77,13 +80,6 @@ void AEnemyElite::Tick(float DeltaTime)
 	if (FSMController)
 	{
 		FSMController->TickFSM(DeltaTime);
-	}
-	
-	if (PuppetMaster)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Elite] Master: %s / MasterDead: %d"),
-			*GetNameSafe(PuppetMaster),
-			PuppetMaster->IsDead());
 	}
 	
 }

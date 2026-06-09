@@ -23,12 +23,10 @@ void AEnemyPuppetMaster::BeginPlay()
 
 void AEnemyPuppetMaster::RegisterPuppet(AEnemyElite* Puppet)
 {
-	if (!Puppet)
-	{
-		return;
-	}
-
-	Puppets.AddUnique(Puppet);
+	if (!IsValid(Puppet)) return;
+	if (Puppets.Contains(Puppet)) return;
+	
+	Puppets.Add(Puppet);
 	Puppet->SetPuppetMaster(this);
 	
 	UE_LOG(LogTemp, Warning, TEXT("[Master] Register Puppet: %s"),
@@ -49,7 +47,9 @@ void AEnemyPuppetMaster::HandleDeath_Implementation()
 			Puppet->ForceTrueDeath();
 		}
 	}
-
+	
+	Puppets.Empty();
+	
 	Super::HandleDeath_Implementation();
 }
 

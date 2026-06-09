@@ -6,6 +6,7 @@
 #include "EnemyBase.h"
 #include "EnemyElite.generated.h"
 
+class UPatrolStateComponent;
 class UEnemyFSMControllerComponent;
 class UIdleStatComponent;
 class UChaseStateComponent;
@@ -48,6 +49,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UIdleStatComponent> IdleState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
+	TObjectPtr<UPatrolStateComponent> PatrolState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UChaseStateComponent> ChaseState;
