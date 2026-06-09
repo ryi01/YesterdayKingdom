@@ -14,6 +14,7 @@ class UAttackStateComponent;
 class UReturnStateComponent;
 class UDownStateComponent;
 class UReviveStateComponent;
+class UDeadStateComponent;
 class AEnemyPuppetMaster;
 
 UCLASS()
@@ -67,6 +68,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UReviveStateComponent> ReviveState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
+	TObjectPtr<UDeadStateComponent> DeadState;
 	
 	virtual void HandleDeath_Implementation() override;
 };
