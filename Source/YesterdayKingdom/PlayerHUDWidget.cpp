@@ -4,9 +4,13 @@
 #include "PlayerHUDWidget.h"
 
 #include "BaseStatComponent.h"
+#include "BossWidget.h"
+#include "EnemyBase.h"
 #include "PlayerCharacter.h"
 #include "InventoryWidget.h"
 #include "Components/ProgressBar.h"
+
+
 
 void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 {
@@ -27,6 +31,7 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 		WBP_Inventory->BindInventory(OwnerPlayer->GetInventoryComponent());
 		WBP_Inventory->SetVisibility(ESlateVisibility::Collapsed);
 	}
+	if (WBP_BossHP) SetVisibleBossHPBar(false);
 }
 
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -77,4 +82,52 @@ void UPlayerHUDWidget::UpdateST(float CurrentST, float MaxST)
 void UPlayerHUDWidget::UpdateMP(float CurrentMP, float MaxMP)
 {
 	TargetMPPercent = MaxMP > 0.f ? CurrentMP / MaxMP : 0.f;
+}
+//=====================================================================================================
+// 보스 체력바 관련
+//=====================================================================================================
+
+void UPlayerHUDWidget::BindBoss(AEnemyBase* Boss)
+{
+	if (!Boss || !WBP_BossHP) return;
+	UnbindBoss();
+	
+	BoundBoss = Boss;
+	BoundBossStatComponent = Boss->GetStatComponent();
+	
+	if (!BoundBossStatComponent) return;
+	
+	BoundBossStatComponent->OnHPChanged.AddDynamic(this, &UPlayerHUDWidget::HandleBossHPChanged);
+	SetVisibleBossHPBar(true);
+	WBP_BossHP->SetBossHP(BoundBossStatComponent->GetCurrentHP(), BoundBossStatComponent->GetMaxHP());
+}
+
+void UPlayerHUDWidget::UnbindBoss()
+{
+	if (BoundBossStatComponent)
+	{
+		BoundBossStatComponent->OnHPChanged.RemoveDynamic(this,&UPlayerHUDWidget::HandleBossHPChanged);
+	}
+	BoundBoss = nullptr;
+	BoundBossStatComponent = nullptr;
+
+	SetVisibleBossHPBar(false);
+}
+
+void UPlayerHUDWidget::HandleBossHPChanged(float CurrentHP, float MaxHP)
+{
+	if (!WBP_BossHP) return;
+
+	WBP_BossHP->SetBossHP(CurrentHP, MaxHP);
+
+	if (CurrentHP <= 0.f)
+	{
+		SetVisibleBossHPBar(false);
+	}
+}
+
+void UPlayerHUDWidget::SetVisibleBossHPBar(bool bEnable)
+{
+	const ESlateVisibility NewVisibility  = bEnable ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+	WBP_BossHP->SetVisibility(NewVisibility );
 }

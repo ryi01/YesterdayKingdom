@@ -369,6 +369,22 @@ void APlayerCharacter::EndGuard()
 {
 	if (CombatBaseComponent) CombatBaseComponent->EndGuard();
 }
+//===============================================================================================
+// UI 관련
+//===============================================================================================
+void APlayerCharacter::ShowBossHP(AEnemyBase* Boss)
+{
+	if (!PlayerHUDWidget) return;
+
+	PlayerHUDWidget->BindBoss(Boss);
+}
+
+void APlayerCharacter::HideBossHP()
+{
+	if (!PlayerHUDWidget) return;
+
+	PlayerHUDWidget->UnbindBoss();
+}
 
 void APlayerCharacter::OnDead()
 {

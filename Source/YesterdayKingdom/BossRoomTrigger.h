@@ -22,6 +22,9 @@ protected:
 	
 	UPROPERTY()
 	TObjectPtr<class ABossRoomEntrance> BossRoomEntrance;
+	
+	UPROPERTY()
+	TObjectPtr<class AEnemyBase> Boss;
 public:	
 	// Sets default values for this actor's properties
 	ABossRoomTrigger();
@@ -34,4 +37,5 @@ protected:
 public:
 	void SetTriggerExtent(const FVector& NewExtent);
 	void SetBossRoomEntrance(class ABossRoomEntrance* EntranceActor);
+	void SetBoss(AEnemyBase* InBoss);
 };
