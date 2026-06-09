@@ -225,6 +225,15 @@ protected:
 	UPROPERTY()
 	bool bHasBossRoomEntranceLocation = false;
 	
+	// ==============================
+	// 스토어 
+	// ==============================
+	UPROPERTY()
+	FVector2D SelectedStorePoint = FVector2D::ZeroVector;
+
+	UPROPERTY()
+	bool bHasSelectedStorePoint = false;
+	
 public:	
 	// Sets default values for this component's properties
 	UDungeonGeneratorComponent();
@@ -347,10 +356,15 @@ private:
 	void BuildNavMesh();
 	
 	// ==============================
-	// 보스 방
+	// 정규화 관련
 	// ==============================
 	class ABossRoomEntrance* SpawnBossRoomEntrance();
 	void NormalizeBossRoomEntrance();
+	
+	bool NormalizeRoomEntrance(const FDungeonRoomInfo& Room, EDungeonTileType RoomTileType, int32 DesiredKeepCount, bool bSaveAsBossEntrance);
+	
+	bool CanReachStartToEndByMapData() const;
+	bool TryCloseCorridorTileSafely(int32 X, int32 Y);
 public:	
 	virtual void BeginPlay() override;
 	UFUNCTION(BlueprintCallable)
