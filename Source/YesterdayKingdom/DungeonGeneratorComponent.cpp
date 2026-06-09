@@ -866,6 +866,7 @@ void UDungeonGeneratorComponent::SpawnBossRoomTrigger(ABossRoomEntrance* BossRoo
 
 	Trigger->SetTriggerExtent(TriggerExtent);
 	Trigger->SetBossRoomEntrance(BossRoomEntranceActor);
+	Trigger->SetBoss(SpawnedBoss);
 
 	SpawnedDungeonActors.Add(Trigger);
 #if WITH_EDITOR
