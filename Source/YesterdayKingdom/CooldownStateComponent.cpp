@@ -11,7 +11,15 @@ void UCooldownStateComponent::OnStateEnter()
 	Super::OnStateEnter();
 	CooldownElapsedTime = 0.f;
 	
-	if (OwnerCharacter) StopMove();
+	StopMove(); 
+	ClearFocusTarget();
+	SetRootMotionFromMontage(false);
+	if (OwnerCharacter)
+	{
+		FacePlayerInstant();
+		SetFocusToPlayer();
+	}
+
 	if (EnemyDefinition) CooldownDuration = EnemyDefinition->FSMTimeConfig.CooldownTime.GetRandomTime();
 	else CooldownDuration = 1.f;
 	
@@ -46,6 +54,7 @@ void UCooldownStateComponent::OnStateExit()
 	Super::OnStateExit();
 	
 	CooldownElapsedTime = 0.f;
+	ClearFocusTarget();
 
 	UE_LOG(LogTemp, Log, TEXT("[FSM][Cooldown] Exit : %s"),
 		OwnerCharacter ? *OwnerCharacter->GetName() : TEXT("None"));
@@ -54,12 +63,25 @@ void UCooldownStateComponent::OnStateExit()
 EEnemyFSMStateType UCooldownStateComponent::SelectNextStateAfterCooldown() const
 {
 	if (!EnemyDefinition) return NextState;
+	
+	const float DistanceToPlayer = GetDistance2DToPlayer();
+
+	const FEnemyFSMActionConfig& ActionConfig = EnemyDefinition->FSMActionConfig;
 
 	const float SafeBackStepChance = FMath::Clamp(EnemyDefinition->FSMActionConfig.BackStepChance, 0.f, 1.f);	
 	const float SafeFlankingChance = FMath::Clamp(EnemyDefinition->FSMActionConfig.FlankingChance, 0.f, 1.f);	
 	const float RandomValue = FMath::FRand();
-	if (RandomValue < SafeBackStepChance) return EEnemyFSMStateType::BackStep;
-	if (RandomValue < SafeBackStepChance + SafeFlankingChance) return EEnemyFSMStateType::Flanking;
-	
+	if (DistanceToPlayer <= ActionConfig.ForceBackStepDistance)
+	{
+		const float CloseBackStepChance = FMath::Clamp(SafeBackStepChance + ActionConfig.CloseBackStepChanceBonus, 0.f, 1.f);
+		if (RandomValue < CloseBackStepChance) return EEnemyFSMStateType::BackStep;
+	}
+	const bool bCanFlank = DistanceToPlayer >= ActionConfig.FlankingMinDistance && DistanceToPlayer <= ActionConfig.FlankingMaxDistance;
+	if (bCanFlank && RandomValue < SafeBackStepChance + SafeFlankingChance) return EEnemyFSMStateType::Flanking;
+	if (DistanceToPlayer <= ActionConfig.FlankingMinDistance && RandomValue < SafeBackStepChance)
+	{
+		return EEnemyFSMStateType::BackStep;
+	}
+
 	return EEnemyFSMStateType::Chase;
 }

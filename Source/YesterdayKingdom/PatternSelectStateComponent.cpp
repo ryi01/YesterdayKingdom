@@ -3,76 +3,150 @@
 
 #include "PatternSelectStateComponent.h"
 
+#include "BaseStatComponent.h"
 #include "EnemyBase.h"
 #include "EnemyFSMControllerComponent.h"
 
 void UPatternSelectStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
-	if (!OwnerCharacter || !FSMController || !EnemyDefinition) return;
-	const FName SelectedPattern = SelectBossAttackPattern();
-	
-	if (SelectedPattern.IsNone())
+	if (!OwnerCharacter || !FSMController || !EnemyDefinition)
 	{
-		if (!EnemyDefinition->AttackSet.MainAttackRowName.IsNone())
+		if (FSMController)
 		{
-			OwnerCharacter->SetSelectedAttackRowName(EnemyDefinition->AttackSet.MainAttackRowName);
-			FSMController->ChangeState(NextState);
+			FSMController->ChangeState(EEnemyFSMStateType::Chase);
 		}
 		return;
 	}
-	
-	OwnerCharacter->SetSelectedAttackRowName(SelectedPattern);
-	
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][PatternSelect] Selected Pattern : %s"),
-		*SelectedPattern.ToString());
-
-	FSMController->ChangeState(NextState);
-}
-
-FName UPatternSelectStateComponent::SelectBossAttackPattern() const
-{
-	if (!EnemyDefinition) return NAME_None;
+	StopMove();
 	const float DistanceToPlayer = GetDistanceToPlayer();
-	// 사용 가능한 공격 패턴 후보 
-	TArray<const FBossAttackPattern*> Candidates;
+	const int32 CurrentPhase = GetCurrentPhase();
+	
+	UE_LOG(LogTemp, Warning,
+	TEXT("[FSM][PatternSelect] Enter / Distance = %.2f / PatternCount = %d / Phase = %d"),
+	GetDistanceToPlayer(),
+	EnemyDefinition ? EnemyDefinition->BossAttackPatterns.Num() : -1,
+	CurrentPhase);
+	
+	TArray<const FBossAttackPattern*> ValidPatterns;
 	float TotalWeight = 0.f;
 	
 	for (const FBossAttackPattern& Pattern : EnemyDefinition->BossAttackPatterns)
 	{
-		// 거리 기반으로 가능한 패턴만 후보에 추가 
-		if (!CanUseBossPattern(Pattern, DistanceToPlayer)) continue;
-		// 공격 확률을 확인해서 추가
-		const float SafeWeight = FMath::Max(0.f, Pattern.Weight);
-		if (SafeWeight <= 0.f) continue;
-		Candidates.Add(&Pattern);
-		// 전체 weight 누적 => 랜덤 확률 계산을 위함 
-		TotalWeight += SafeWeight;
+		if (Pattern.AttackRowName.IsNone()) continue;
+		if (DistanceToPlayer < Pattern.MinRange || DistanceToPlayer > Pattern.MaxRange) continue;
+		if (CurrentPhase < Pattern.MinPhase || CurrentPhase > Pattern.MaxPhase) continue;
+		if (!bHasSelectedOpeningPattern && !Pattern.bCanUseAsOpeningPattern) continue;
+		if (IsPatternOnCooldown(Pattern)) continue;
+		if (Pattern.Weight <= 0.f) continue;
+		ValidPatterns.Add(&Pattern);
+		TotalWeight += Pattern.Weight;
 	}
-	if (Candidates.IsEmpty() || TotalWeight <= 0.f) return NAME_None;
-	
-	// weight 총합에서 랜덤값 뽑기 
-	float RandomValue = FMath::FRandRange(0.f, TotalWeight);
-	for (const FBossAttackPattern* Pattern : Candidates)
+	if (ValidPatterns.Num() <= 0 || TotalWeight <= 0.f)
 	{
-		// 구간을 만들기 위해 뽑힌 랜덤 값에서 Weight를 제거 
-		RandomValue -= FMath::Max(0.f, Pattern->Weight);
-		if (RandomValue <= 0.f) return Pattern->AttackRowName;
+		OwnerCharacter->BlockPatternSelect(NoValidPatternChaseTime);
+		FSMController->ChangeState(EEnemyFSMStateType::Chase);
+		return;
 	}
-	return Candidates.Last()->AttackRowName;
+	const float RandomValue = FMath::FRandRange(0.f, TotalWeight);
+	float AccumulatedWeight = 0.f;
+
+	const FBossAttackPattern* SelectedPattern = nullptr;
+
+	for (const FBossAttackPattern* Pattern : ValidPatterns)
+	{
+		AccumulatedWeight += Pattern->Weight;
+
+		if (RandomValue <= AccumulatedWeight)
+		{
+			SelectedPattern = Pattern;
+			break;
+		}
+	}
+	if (!SelectedPattern)
+	{
+		SelectedPattern = ValidPatterns[0];
+	}
+
+	OwnerCharacter->SetSelectedAttackRowName(SelectedPattern->AttackRowName);
+	MarkPatternUsed(*SelectedPattern);
+	
+	bHasSelectedOpeningPattern = true;
+	
+	UE_LOG(LogTemp, Warning,
+		TEXT("[FSM][PatternSelect] Selected / Row=%s / State=%d / Distance=%.2f / Cooldown=%.2f"),
+		*SelectedPattern->AttackRowName.ToString(),
+		static_cast<uint8>(SelectedPattern->ExecuteState),
+		DistanceToPlayer,
+		SelectedPattern->Cooldown);
+
+	FSMController->ChangeState(SelectedPattern->ExecuteState);
 }
 
-bool UPatternSelectStateComponent::CanUseBossPattern(const FBossAttackPattern& Pattern, float DistanceToPlayer) const
+bool UPatternSelectStateComponent::IsPatternOnCooldown(const FBossAttackPattern& Pattern) const
 {
-	if (Pattern.AttackRowName.IsNone() || DistanceToPlayer < Pattern.MinRange || DistanceToPlayer > Pattern.MaxRange) return false;
-	const int32 CurrentPhase = GetCurrentPhase();
-	if (CurrentPhase < Pattern.MinPhase || CurrentPhase > Pattern.MaxPhase) return false;
-	return true;
+	if (!OwnerCharacter) return true;
+	if (Pattern.AttackRowName.IsNone()) return true;
+	if (Pattern.Cooldown <= 0.f)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[FSM][PatternSelect] Cooldown Disabled / Row=%s / Cooldown=%.2f"),
+			*Pattern.AttackRowName.ToString(),
+			Pattern.Cooldown);
+
+		return false;
+	}
+	const float* LastUsedTime = LastPatternUsedTimeMap.Find(Pattern.AttackRowName);
+	
+	if (!LastUsedTime) return false;
+	
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	const float ElapsedTime = CurrentTime - *LastUsedTime;
+	const bool bOnCooldown = ElapsedTime < Pattern.Cooldown;
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[FSM][PatternSelect] Cooldown Check / Row=%s / Elapsed=%.2f / Cooldown=%.2f / OnCooldown=%d"),
+		*Pattern.AttackRowName.ToString(),
+		ElapsedTime,
+		Pattern.Cooldown,
+		bOnCooldown);
+
+	return bOnCooldown;
+}
+
+void UPatternSelectStateComponent::MarkPatternUsed(const FBossAttackPattern& Pattern)
+{
+	if (!OwnerCharacter || Pattern.AttackRowName.IsNone()) return;
+	
+	LastPatternUsedTimeMap.Add(Pattern.AttackRowName, GetWorld()->GetTimeSeconds());
+	
+	UE_LOG(LogTemp, Warning,
+	TEXT("[FSM][PatternSelect] Mark Used / Row=%s / Time=%.2f / Cooldown=%.2f"),
+	*Pattern.AttackRowName.ToString(),
+	GetWorld()->GetTimeSeconds(),
+	Pattern.Cooldown);
 }
 
 int32 UPatternSelectStateComponent::GetCurrentPhase() const
 {
+	if (!OwnerCharacter) return 1;
+	
+	UBaseStatComponent* StatComponent = OwnerCharacter->GetStatComponent();
+	if (!StatComponent) return 1;
+	
+	const float MaxHP = StatComponent->GetMaxHP();
+	if (MaxHP <= 0.f) return 1;
+
+	const float CurrentHP = StatComponent->GetCurrentHP();
+	const float HPRatio = CurrentHP / MaxHP;
+
+	if (HPRatio <= 0.5f)
+	{
+		return 2;
+	}
+
 	return 1;
 }
+
 
 

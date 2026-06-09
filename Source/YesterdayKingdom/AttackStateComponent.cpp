@@ -2,56 +2,63 @@
 
 
 #include "AttackStateComponent.h"
-#include "EnemyFSMControllerComponent.h"
+#include "EnemyDefinition.h"
 #include "EnemyBase.h"
+#include "EnemyFSMTypes.h"
+#include "EnemyFSMControllerComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+
 void UAttackStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
-	if (!OwnerCharacter || !FSMController || !EnemyDefinition) return;
-	if (IsOwnerDead())
+	
+	if (!OwnerCharacter || !EnemyDefinition)
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
+
 	StopMove();
-	
-	OwnerCharacter->OnAttackCompleted.Unbind();
-	OwnerCharacter->OnAttackCompleted.BindUObject(this, &UAttackStateComponent::HandleAttackCompleted);
-	
-	FName AttackRowName = OwnerCharacter->GetSelectedAttackRowName();
-	if (AttackRowName.IsNone())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[FSM][Attack] AttackRowName is None : %s"),
-			*OwnerCharacter->GetName());
 
-		FSMController->ChangeState(NextState);
+	const FEnemyAttackSet& AttackSet = EnemyDefinition->AttackSet;
+
+	// 서브 공격 사용 여부 판단
+	if (!AttackSet.SubAttackRowName.IsNone() &&
+		FMath::FRand() <= AttackSet.SubAttackChance)
+	{
+		OwnerCharacter->DoSubAttack();
+	}
+	else
+	{
+		OwnerCharacter->DoMainAttack();
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[FSM][Attack] Enter : %s"), *OwnerCharacter->GetName());
+}
+
+void UAttackStateComponent::OnStateUpdate(float DeltaTime)
+{
+	Super::OnStateUpdate(DeltaTime);
+	
+	if (!OwnerCharacter || !FSMController)
+	{
 		return;
 	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][Attack] Start Attack : %s / RowName = %s"),
-		*OwnerCharacter->GetName(),
-		*AttackRowName.ToString());
 
-	OwnerCharacter->DoAttackByRowName(AttackRowName);
-	OwnerCharacter->ClearSelectedAttackRowName();
+	// 죽었으면 Down
+	if (OwnerCharacter->IsDead())
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::Down);
+		return;
+	}
+
+	// 공격 끝나면 Chase 복귀
+	if (!OwnerCharacter->IsAttacking())
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::Chase);
+	}
 }
 
 void UAttackStateComponent::OnStateExit()
 {
 	Super::OnStateExit();
-	if (OwnerCharacter)
-	{
-		OwnerCharacter->OnAttackCompleted.Unbind();
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("[FSM][Attack] Exit"));
 }
-
-void UAttackStateComponent::HandleAttackCompleted()
-{
-	if (!FSMController) return;
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][Attack] Attack Completed"));
-
-	FSMController->ChangeState(NextState);
-}
-

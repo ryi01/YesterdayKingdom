@@ -11,7 +11,6 @@
 #include "EnhancedInputComponent.h"
 #include "EquipmentComponent.h"
 #include "GoldComponent.h"
-#include "InputMappingContext.h"
 #include "InputActionValue.h"
 #include "InventoryComponent.h"
 #include "PlayerCombatComponent.h"
@@ -53,7 +52,8 @@ void APlayerCharacter::BeginPlay()
 			Subsystem->AddMappingContext(InputMappingContext, 0);
 		}
 	}
-	
+	if (WeaponMesh) WeaponMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocketName);
+
 	MoveComp = GetCharacterMovement();
 	if (MoveComp)
 	{
@@ -211,7 +211,35 @@ void APlayerCharacter::RefreshMoveSpeed()
 	MoveComp->MaxWalkSpeed = NewSpeed;
 	MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
 }
+//===============================================================================================
+// 피격 관련 함수
+//===============================================================================================
+void APlayerCharacter::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
+{
+	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+	PlayHitFlash();
 
+	if (PlayerHitCameraShake)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PC->ClientStartCameraShake(PlayerHitCameraShake);
+		}
+	}
+}
+void APlayerCharacter::PlayHitFlash()
+{
+	if (!HitOverlayMaterial) return;
+	GetMesh()->SetOverlayMaterial(HitOverlayMaterial);
+	
+	GetWorld()->GetTimerManager().ClearTimer(HitFlashTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(HitFlashTimerHandle, this, &APlayerCharacter::EndHitFlash, HitFlashDuration, false);
+}
+
+void APlayerCharacter::EndHitFlash()
+{
+	GetMesh()->SetOverlayMaterial(nullptr);
+}
 
 //===============================================================================================
 // 공격 관련
@@ -382,13 +410,40 @@ void APlayerCharacter::TestUnlockSkill()
 	}
 	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Attack Before: %f"), StatComponent->GetFinalAttack());
 	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Gold Before: %d"), GoldComponent->GetGold());
+	
+	const float AttackBefore = StatComponent ? StatComponent->GetFinalAttack() : 0.f;
+	const int32 GoldBefore = GoldComponent->GetGold();
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
+			FString::Printf(TEXT("[SkillTest] Attack Before: %.1f"), AttackBefore));
 
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow,
+			FString::Printf(TEXT("[SkillTest] Gold Before: %d"), GoldBefore));
+	}
 	const bool bResult = SkillComponent->TryUnlockSkill(TEXT("SK_Charge_01"));
 
 	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Unlock Result: %s"), bResult ? TEXT("Success") : TEXT("Failed"));
 	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] Gold After: %d"), GoldComponent->GetGold());
 	UE_LOG(LogTemp, Warning, TEXT("[SkillTest] FinalAttack: %f"), StatComponent->GetFinalAttack());
+	const int32 GoldAfter = GoldComponent->GetGold();
+	const float AttackAfter = StatComponent ? StatComponent->GetFinalAttack() : 0.f;
+	if (GEngine)
+	{
+		const FColor ResultColor = bResult ? FColor::Green : FColor::Red;
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, ResultColor,
+			FString::Printf(TEXT("[SkillTest] Unlock Result: %s"), bResult ? TEXT("Success") : TEXT("Failed")));
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan,
+			FString::Printf(TEXT("[SkillTest] Gold After: %d"), GoldAfter));
+
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan,
+			FString::Printf(TEXT("[SkillTest] FinalAttack: %.1f"), AttackAfter));
+	}
 }
+
+
 
 void APlayerCharacter::UpdateInteractionTarget()
 {
@@ -428,5 +483,10 @@ UQuestComponent* APlayerCharacter::GetQuestComponent() const
 UPlayerSkillComponent* APlayerCharacter::GetSkillComponent() const
 {
 	return SkillComponent;
+}
+
+UPlayerHUDWidget* APlayerCharacter::GetPlayerHUDWidget() const
+{
+	return PlayerHUDWidget;
 }
 

@@ -12,6 +12,7 @@
 void UFlankingStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
+	SetRootMotionFromMontage(false);
 	ElapsedTime = 0.f;
 	MoveTargetLocation  = FVector::ZeroVector;
 	CurrentMaxFlankingDuration = MaxFlankingDuration;

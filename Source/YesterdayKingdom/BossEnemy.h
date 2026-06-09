@@ -41,7 +41,7 @@ protected:
 	TObjectPtr<class UPatternSelectStateComponent> PatternSelectState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
-	TObjectPtr<class UAttackStateComponent> AttackState;
+	TObjectPtr<class UAttackBossStateComponent> AttackState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UCooldownStateComponent> CooldownState;
@@ -55,6 +55,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UJumpAttackStateComponent> JumpAttackState;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM")
+	TObjectPtr<class URotationAttackStateComponent> RotationAttackState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UHitStateComponent> HitState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UDeadStateComponent> DeadState;
 public:
 	ABossEnemy(const FObjectInitializer& ObjectInitializer);
 

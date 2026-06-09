@@ -24,7 +24,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Chase", meta = (ClampMin = "0.0"))
 	float AcceptanceRadius = 80.f;
 protected:
-	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="FSM|Chase")
+	float ChaseStartDelay = 0.15f;
+
+	float ChaseElapsedTime = 0.f;
 public:
 	// 대기 상태 초기화 처리 메소드 (대기 상태로 전이시 1회 호출)
 	virtual void OnStateEnter() override;

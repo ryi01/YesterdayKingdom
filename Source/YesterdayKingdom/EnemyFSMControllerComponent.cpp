@@ -66,6 +66,7 @@ static FString GetEnemyFSMStateName(EEnemyFSMStateType StateType)
 }
 void UEnemyFSMControllerComponent::ChangeState(EEnemyFSMStateType NewStateType)
 {
+	if (CurrentStateType == EEnemyFSMStateType::Dead) return;
 	if (!bIsRunning || CurrentStateType == NewStateType) return;
 	UFSMStateComponent* NewState = FindState(NewStateType);
 	if (!NewState) return;
@@ -79,11 +80,6 @@ void UEnemyFSMControllerComponent::ChangeState(EEnemyFSMStateType NewStateType)
 	
 	const FString PrevStateName = GetEnemyFSMStateName(PreviousStateType);
 	const FString NewStateName = GetEnemyFSMStateName(NewStateType);
-	GEngine->AddOnScreenDebugMessage(-1,
-			3.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("[FSM] %s -> %s"), *PrevStateName, *NewStateName)
-		);
 	CurrentStateComponent->OnStateEnter();
 }
 

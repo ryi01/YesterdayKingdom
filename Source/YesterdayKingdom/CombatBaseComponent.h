@@ -10,6 +10,8 @@
 class ABaseCharacter;
 class UDataTable;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API UCombatBaseComponent : public UActorComponent
 {
@@ -112,6 +114,10 @@ protected:
 public:	
 	// Sets default values for this component's properties
 	UCombatBaseComponent();
+	
+	UPROPERTY(BlueprintAssignable, Category = "Combat|Event")
+	FOnAttackEnded OnAttackEnded;
+	
 protected:
 	//=====================================================================================================
 	// 차지 공격
@@ -142,7 +148,6 @@ protected:
 	//=====================================================================================================
 	virtual bool IsValidHitActor(AActor* HitActor) const;
 	const FAttackNodeData* GetCurrentAttackNodeData() const;
-	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
 	
 	//=====================================================================================================
 	// Hit시 발생되는 효과
@@ -151,7 +156,6 @@ protected:
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
 	void ResetHitStop();
 	
-	bool JumpToNextAttackSection();
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
@@ -170,7 +174,7 @@ public:
 	virtual void EndAttackTrace();
 	
 	//=====================================================================================================
-	// 코모 공격
+	// 콤보 공격
 	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void CheckCombo();
@@ -203,13 +207,16 @@ public:
 	// AttackRow 탐색
 	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category="Combat")
-	virtual void RequestAttackByRow(FName AttackRowName);
+	virtual bool RequestAttackByRow(FName AttackRowName);
 	
 	//=====================================================================================================
 	// 리셋 및 셋팅
 	//=====================================================================================================
 	void ResetAttackState();
 	void SetAttackDataTable(UDataTable* NewTable);
+	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
+	bool JumpToNextAttackSection();
+	
 	//=====================================================================================================
 	// Getter
 	//=====================================================================================================
@@ -217,5 +224,7 @@ public:
 	bool IsAttacking() const;
 	UFUNCTION(BlueprintPure, Category="Combat")
 	bool IsCharging() const;
+	const FAttackDataRow* GetCurrentAttackDataRow() const;
+	FName GetCurrentAttackRowName() const;
 
 };

@@ -2,6 +2,10 @@
 
 
 #include "DungeonGeneratorComponent.h"
+
+#include "BossRoomEntrance.h"
+#include "BossRoomTrigger.h"
+#include "EnemyBase.h"
 #include "NavigationSystem.h"
 #include "Containers/Queue.h"
 
@@ -14,6 +18,12 @@ UDungeonGeneratorComponent::UDungeonGeneratorComponent()
 
 	// ...
 }
+// Called when the game starts
+void UDungeonGeneratorComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	GenerateDungeon();
+}
 
 void UDungeonGeneratorComponent::GenerateDungeon()
 {
@@ -24,16 +34,22 @@ void UDungeonGeneratorComponent::GenerateDungeon()
 	GeneratePoint();
 	Delaunay();
 	DoMST();
-	CreateFinalPath();
 	
 	CalculateStartAndEnd();
 	AssignRoomTypes();
 	
+	CreateFinalPath();
+	
 	CreateMap();
 	CreateWalls();
 	
+	SetPlayerStartLocation();
+	
+	SpawnRoomActorsByRoomData();
 	SpawnDecorationByRoomData();
 	SpawnEnemiesByRoomData();
+	ABossRoomEntrance* BossRoomEntranceActor = SpawnBossRoomEntrance();
+	SpawnBossRoomTrigger(BossRoomEntranceActor);
 	
 	BuildNavMesh();
 	
@@ -252,8 +268,12 @@ void UDungeonGeneratorComponent::CreateFinalPath()
 				break;
 			}
 		}
+		if (bIsMST) continue;
+
+		// 보스방으로 바로 이어지는 지름길 방지
+		if (Edge.U.Equals(EndPoint) || Edge.V.Equals(EndPoint)) continue;
 		
-		if (!bIsMST && FMath::FRand() < 0.3f) FinalEdges.Add(Edge);
+		if (FMath::FRand() < 0.3f) FinalEdges.Add(Edge);
 	}
 }
 #pragma endregion
@@ -286,6 +306,7 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 	// 연결된 경로를 따라 방을 array로 모음
 	// S -- A -- B -- C -- Boss순으로 있을 때, [S,A,B,C,Boss]로 저장
 	const TArray<FVector2D> MainPath = FindPathBFS(StartPoint, EndPoint, Graph);
+	const int32 StorePathIndex = MainPath.Num() >= 3 ?  FMath::Clamp(FMath::RoundToInt((MainPath.Num() - 1) * 0.5f), 1, MainPath.Num() - 2) : INDEX_NONE;
 	// 모든 방을 순회하며
 	for (const FVector2D& Point : Points)
 	{
@@ -293,11 +314,20 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 		FDungeonRoomInfo RoomInfo;
 		RoomInfo.Center = Point;
 		RoomInfo.RoomType =  EDungeonRoomType::Normal;
+		RoomInfo.DecorationTheme = EDungeonDecorationTheme::Basic;
 		
 		// 시작 방이면 type을 start
-		if (Point.Equals(StartPoint)) RoomInfo.RoomType = EDungeonRoomType::Start;
+		if (Point.Equals(StartPoint))
+		{
+			RoomInfo.RoomType = EDungeonRoomType::Start;
+			RoomInfo.DecorationTheme = EDungeonDecorationTheme::StartRoom;
+		}
 		// 마지막 방이면 type을 boss
-		else if (Point.Equals(EndPoint)) RoomInfo.RoomType = EDungeonRoomType::Boss;
+		else if (Point.Equals(EndPoint))
+		{
+			RoomInfo.RoomType = EDungeonRoomType::Boss;
+			RoomInfo.DecorationTheme = EDungeonDecorationTheme::BossEntrance;
+		}
 		else
 		{
 			// IndexOfByPredicate : 특정 조건에 부합한 엘리먼트의 인덱스 반환
@@ -307,8 +337,14 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 			{
 				return PathPoint.Equals(Point);
 			});
+			
+			if (PathIndex != INDEX_NONE && PathIndex == StorePathIndex)
+			{
+				RoomInfo.RoomType = EDungeonRoomType::Store;
+				RoomInfo.DecorationTheme = EDungeonDecorationTheme::StoreRoom;
+			}
 			// pathindex가 있고 MainPath에 있는 방이 2개 이상일 때
-			if (PathIndex != INDEX_NONE && MainPath.Num() > 2)
+			else if (PathIndex != INDEX_NONE && MainPath.Num() > 2)
 			{
 				// 던전의 전체 진행률에 따라 방에 스폰되는 적 지정 => 방이 5개 있는데 포인트의 위치가 2인경우
 				// 2 / 4 = 0.5f
@@ -317,13 +353,19 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 				if (Progress >= 0.65f)
 				{
 					RoomInfo.RoomType = EDungeonRoomType::Elite;
+					RoomInfo.DecorationTheme = EDungeonDecorationTheme::WeaponRoom;
 				}
 				else
 				{
 					RoomInfo.RoomType = EDungeonRoomType::Normal;
+					RoomInfo.DecorationTheme = FMath::RandBool() ? EDungeonDecorationTheme::Basic : EDungeonDecorationTheme::Broken;
 				}
 			}
-			else RoomInfo.RoomType = EDungeonRoomType::Normal;
+			else
+			{
+				RoomInfo.RoomType = EDungeonRoomType::Normal;
+				RoomInfo.DecorationTheme = FMath::RandBool() ? EDungeonDecorationTheme::Basic : EDungeonDecorationTheme::Broken;
+			}
 		}
 		
 		Rooms.Add(RoomInfo);
@@ -335,15 +377,17 @@ void UDungeonGeneratorComponent::CreateMap()
 	if (MapData.Num() == 0) return;
 	for (const FVector2D& Point : Points)
 	{
+		const FDungeonRoomInfo* RoomInfo = FindRoomInfoByCenter(Point);
+		const EDungeonRoomType RoomType = RoomInfo ? RoomInfo->RoomType : EDungeonRoomType::Normal;
+		
 		// 방 크기를 랜덤으로 잡고
-		const int32 RoomSize = FMath::RandRange(3, 4);
+		const int32 CurrentRoomSize = GetRoomSizeByRoomType(RoomType);
 		// 방의 중심좌표를 구함
 		const int32 CX = FMath::RoundToInt(Point.X);
 		const int32 CY = FMath::RoundToInt(Point.Y);
 		
 		// 보스 방인가를 확인하고 사이즈를 조절함 
-		const bool bIsBossRoom = Point.Equals(EndPoint);
-		const int32 CurrentRoomSize = bIsBossRoom ? RoomSize + 1 : RoomSize;
+		const bool bIsBossRoom = RoomType == EDungeonRoomType::Boss;
 		
 		for (int32 X = CX - CurrentRoomSize; X <= CX + CurrentRoomSize; X++ )
 		{
@@ -360,23 +404,12 @@ void UDungeonGeneratorComponent::CreateMap()
 	// 지름길 추가
 	for (const FDungeonEdge& Edge :FinalEdges)
 	{
-		DrawDebugLine(
-			GetWorld(),
-			FVector(Edge.U.X * TileSize, Edge.U.Y * TileSize, 100.f),
-			FVector(Edge.V.X * TileSize, Edge.V.Y * TileSize, 100.f),
-			FColor::Green,
-			true,
-			20.f,
-			0,
-			20.f
-		);
-
 		MakeCorridorInData(Edge);
 	}
+	
+	NormalizeBossRoomEntrance();
 
 	SpawnFloorTiles();
-	DebugPrintMapData();
-	
 }
 
 void UDungeonGeneratorComponent::SpawnFloorTiles()
@@ -469,22 +502,26 @@ void UDungeonGeneratorComponent::CreateWalls()
 			// 코너에 사용되지 않은 edge만 Straight 생성
 			if (bN && !bUsedN)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(0, 1), EDungeonPieceShape::Straight, FRotator::ZeroRotator);
+				const FIntPoint Dir(0, 1);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 
 			if (bS && !bUsedS)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(0, -1), EDungeonPieceShape::Straight, FRotator::ZeroRotator);
+				const FIntPoint Dir(0, -1);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 
 			if (bE && !bUsedE)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(1, 0), EDungeonPieceShape::Straight, FRotator(0.f, 90.f, 0.f));
+				const FIntPoint Dir(1, 0);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 
 			if (bW && !bUsedW)
 			{
-				SpawnWallPiece(X, Y, FIntPoint(-1, 0), EDungeonPieceShape::Straight, FRotator(0.f, 90.f, 0.f));
+				const FIntPoint Dir(-1, 0);
+				SpawnWallPiece(X, Y, Dir, EDungeonPieceShape::Straight, DirectionToRotation(Dir));
 			}
 		}
 	}
@@ -554,6 +591,10 @@ void UDungeonGeneratorComponent::ClearDungeon()
 	MstEdges.Empty();
 	FinalEdges.Empty();
 	MapData.Empty();
+	
+	BossRoomEntranceGridLocation = FVector2D::ZeroVector;
+	BossRoomEntranceDirection = FIntPoint::ZeroValue;
+	bHasBossRoomEntranceLocation = false;
 	
 	bGenerationCompleted = false;
 }
@@ -634,12 +675,12 @@ FRotator UDungeonGeneratorComponent::DirectionToRotation(const FIntPoint& Dir) c
 {
 	if (Dir == FIntPoint(-1, 0))
 	{
-		return FRotator(0.f, 90.f, 0.f);
+		return FRotator(0.f, -90.f, 0.f);
 	}
 
 	if (Dir == FIntPoint(1, 0))
 	{
-		return FRotator(0.f, -90.f, 0.f);
+		return FRotator(0.f, 90.f, 0.f);
 	}
 
 	if (Dir == FIntPoint(0, -1))
@@ -660,7 +701,7 @@ AActor* UDungeonGeneratorComponent::SpawnTileActor(TSubclassOf<AActor> ActorClas
 {
 	if (!ActorClass || !GetWorld()) return nullptr;
 	
-	const FVector Location(X * TileSize, Y * TileSize, 0.f);
+	const FVector Location = GridToWorldLocation(FVector2D(X, Y), 0.f);
 	AActor* Spawned = GetWorld()->SpawnActor<AActor>(ActorClass, Location, FRotator::ZeroRotator);
 	
 	if (Spawned)
@@ -717,13 +758,114 @@ FName UDungeonGeneratorComponent::GetRoomTypeRowName(EDungeonRoomType RoomType) 
 	return FName(*NameString);
 }
 
+FName UDungeonGeneratorComponent::GetDecorationThemeRowName(EDungeonDecorationTheme Theme) const
+{
+	switch (Theme)
+	{
+	case EDungeonDecorationTheme::Basic:
+		return FName(TEXT("Basic"));
+	case EDungeonDecorationTheme::Storage:
+		return FName(TEXT("Storage"));
+	case EDungeonDecorationTheme::Broken:
+		return FName(TEXT("Broken"));
+	case EDungeonDecorationTheme::WeaponRoom:
+		return FName(TEXT("WeaponRoom"));
+	case EDungeonDecorationTheme::BossEntrance:
+		return FName(TEXT("BossEntrance"));
+	case EDungeonDecorationTheme::StartRoom:
+		return FName(TEXT("StartRoom"));
+	case EDungeonDecorationTheme::StoreRoom:
+		return FName(TEXT("StoreRoom"));
+	default:
+		return NAME_None;
+	}
+}
+
+void UDungeonGeneratorComponent::SetPlayerStartLocation()
+{
+	APawn* PlayerPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+	if (!PlayerPawn) return;
+	const FVector Location = GridToWorldLocation(StartPoint, 100.f);
+	PlayerPawn->SetActorLocation(Location);
+}
+
+void UDungeonGeneratorComponent::SpawnBossRoomTrigger(ABossRoomEntrance* BossRoomEntranceActor)
+{
+	if (!BossRoomTriggerClass || !GetWorld()) return;
+
+	bool bFoundBossTile = false;
+
+	int32 MinX = TNumericLimits<int32>::Max();
+	int32 MaxX = TNumericLimits<int32>::Lowest();
+	int32 MinY = TNumericLimits<int32>::Max();
+	int32 MaxY = TNumericLimits<int32>::Lowest();
+	for (int32 X = 0; X < MapWidth; X++)
+	{
+		for (int32 Y = 0; Y < MapHeight; Y++)
+		{
+			if (GetTile(X, Y) != EDungeonTileType::BossRoom) continue;
+
+			bFoundBossTile = true;
+
+			MinX = FMath::Min(MinX, X);
+			MaxX = FMath::Max(MaxX, X);
+			MinY = FMath::Min(MinY, Y);
+			MaxY = FMath::Max(MaxY, Y);
+		}
+	}
+	
+	if (!bFoundBossTile) return;
+
+	const float CenterX = (MinX + MaxX) * 0.5f;
+	const float CenterY = (MinY + MaxY) * 0.5f;
+
+	const FVector Location = GridToWorldLocation(FVector2D(CenterX, CenterY), 100.f);
+
+	const float Width = (MaxX - MinX + 1) * TileSize;
+	const float Height = (MaxY - MinY + 1) * TileSize;
+	
+	const FVector TriggerExtent(Width * 0.5f, Height * 0.5f, 300.f);
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ABossRoomTrigger* Trigger = GetWorld()->SpawnActor<ABossRoomTrigger>(BossRoomTriggerClass, Location, FRotator::ZeroRotator, SpawnParams);
+
+	if (!Trigger) return;
+
+	Trigger->SetTriggerExtent(TriggerExtent);
+	Trigger->SetBossRoomEntrance(BossRoomEntranceActor);
+
+	SpawnedDungeonActors.Add(Trigger);
+#if WITH_EDITOR
+	Trigger->SetActorLabel(TEXT("BossRoomTrigger"));
+#endif
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Dungeon] BossRoomTrigger Spawned / Min=(%d,%d) Max=(%d,%d) Extent=%s Location=%s"),
+		MinX,
+		MinY,
+		MaxX,
+		MaxY,
+		*TriggerExtent.ToString(),
+		*Location.ToString()
+	);
+}
+
 void UDungeonGeneratorComponent::SpawnEnemiesByRoomData()
 {
 	for (const FDungeonRoomInfo& Room : Rooms)
 	{
 		if (Room.RoomType == EDungeonRoomType::Start) continue;
+		if (Room.RoomType == EDungeonRoomType::Store) continue;
 		const FDungeonEnemySpawnDataRow* SpawnDataRow = GetEnemySpawnData(Room.RoomType);
-		if (!SpawnDataRow) continue;
+		if (!SpawnDataRow)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Dungeon] SpawnDataRow NULL / RoomType=%s / RowName=%s"),
+				*StaticEnum<EDungeonRoomType>()->GetNameStringByValue(static_cast<int64>(Room.RoomType)),
+				*GetRoomTypeRowName(Room.RoomType).ToString()
+			);
+			continue;
+		}
 		for (const FDungeonEnemySpawnEntry& Entry : SpawnDataRow->EnemySpawnEntries)
 		{
 			if (!Entry.EnemyClass) continue;;
@@ -740,19 +882,104 @@ void UDungeonGeneratorComponent::SpawnDecorationByRoomData()
 {
 	for (const FDungeonRoomInfo& Room : Rooms)
 	{
-		const FDungeonDecorationDataRow* DecorationDataRow = GetDecorationData(Room.RoomType);
+		const FDungeonDecorationDataRow* DecorationDataRow = GetDecorationData(Room.DecorationTheme);
 		if (!DecorationDataRow) continue;
-		for (const FDungeonDecorationEntry& Entry : DecorationDataRow->Decorations)
+
+		if (Room.DecorationTheme == EDungeonDecorationTheme::StoreRoom)
 		{
-			if (!Entry.DecorationClass) continue;
-			if (FMath::FRand() > Entry.SpawnChance) continue;
+			SpawnStoreRoomDecorations(Room, DecorationDataRow);
+			continue;
+		}
+		if (DecorationDataRow->Decorations.Num() == 0) continue;
+		
+		const int32 TotalCount = FMath::RandRange(DecorationDataRow->MinTotalCount,DecorationDataRow->MaxTotalCount);
+
+		for (int32 i = 0; i < TotalCount; i++)
+		{
+			const FDungeonDecorationEntry* PickedEntry = PickRandomDecorationEntry(DecorationDataRow->Decorations);
+			if (!PickedEntry || !PickedEntry->DecorationClass) continue;
+
+			SpawnDecorationAroundPoint(PickedEntry->DecorationClass, Room.Center);
+		}
+	}
+}
+
+void UDungeonGeneratorComponent::SpawnRoomActorsByRoomData()
+{
+	for (const FDungeonRoomInfo& Room : Rooms)
+	{
+		const FDungeonRoomActorSpawnDataRow* SpawnDataRow = GetRoomActorSpawnData(Room.RoomType);
+		if (!SpawnDataRow) continue;
+
+		for (const FDungeonRoomActorSpawnEntry& Entry : SpawnDataRow->ActorSpawnEntries)
+		{
+			if (!Entry.ActorClass) continue;
+
 			const int32 Count = FMath::RandRange(Entry.MinCount, Entry.MaxCount);
+
 			for (int32 i = 0; i < Count; i++)
 			{
-				SpawnDecorationAroundPoint(Entry.DecorationClass, Room.Center);
+				FVector2D SpawnPoint = Room.Center;
+				FRotator SpawnRotation = FRotator::ZeroRotator;
+
+				if (Room.RoomType == EDungeonRoomType::Store)
+				{
+					const FIntPoint StoreForwardDir = FindStoreForwardDirection(Room);
+					const FVector2D BackOffset = ConvertLocalStoreOffsetToWorldOffset(FVector2D(0.f, -2.f),StoreForwardDir);
+					SpawnPoint = Room.Center + BackOffset;
+					SpawnRotation = GridDirectionToActorRotation(StoreForwardDir);
+				}
+
+				AActor* Spawned = SpawnRoomActorAroundPoint(Entry.ActorClass, SpawnPoint, Entry.SpawnRadius, Entry.SpawnZ, SpawnRotation);
+				if (Spawned)
+				{
+					UE_LOG(LogTemp, Warning,
+						TEXT("[Dungeon] RoomActor Spawned / RoomType=%s / Actor=%s / Location=%s"),
+						*GetRoomTypeRowName(Room.RoomType).ToString(),
+						*GetNameSafe(Spawned),
+						*Spawned->GetActorLocation().ToString()
+					);
+				}
 			}
 		}
 	}
+}
+
+AActor* UDungeonGeneratorComponent::SpawnRoomActorAroundPoint(TSubclassOf<AActor> ActorClass, const FVector2D& Point,
+	float SpawnRadius, float SpawnZ, const FRotator& SpawnRotation)
+{
+	if (!ActorClass || !GetWorld()) return nullptr;
+
+	FVector Location = GridToWorldLocation(Point, SpawnZ);
+
+	if (SpawnRadius > 0.f)
+	{
+		const FVector2D Offset = FMath::RandPointInCircle(SpawnRadius);
+		Location.X += Offset.X;
+		Location.Y += Offset.Y;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AActor* Spawned = GetWorld()->SpawnActor<AActor>(ActorClass, Location, SpawnRotation, SpawnParams);
+
+	if (!Spawned) return nullptr;
+
+	SpawnedDungeonActors.Add(Spawned);
+
+#if WITH_EDITOR
+	Spawned->SetActorLabel(TEXT("RoomActor"));
+#endif
+
+	return Spawned;
+}
+
+const FDungeonRoomActorSpawnDataRow* UDungeonGeneratorComponent::GetRoomActorSpawnData(EDungeonRoomType RoomType) const
+{
+	if (!DungeonRoomActorSpawnDataTable) return nullptr;
+
+	return DungeonRoomActorSpawnDataTable->FindRow<FDungeonRoomActorSpawnDataRow>(GetRoomTypeRowName(RoomType),TEXT("DungeonRoomActorSpawnData"));
 }
 
 void UDungeonGeneratorComponent::SpawnCornerWallOnTile(int32 X, int32 Y, const FIntPoint& DirA, const FIntPoint& DirB)
@@ -784,7 +1011,7 @@ void UDungeonGeneratorComponent::SpawnWallPiece(int32 X, int32 Y, const FIntPoin
 	TSubclassOf<AActor> WallClass = GetTileVisualClass(EDungeonVisualTileType::Wall, Shape);
 	if (!WallClass || !GetWorld()) return;
 	
-	FVector Location(X * TileSize, Y * TileSize, 0.f);
+	FVector Location = GridToWorldLocation(FVector2D(X, Y), 0.f);
 	const float Half = TileSize * 0.5f;
 	
 	if (Shape == EDungeonPieceShape::Straight)
@@ -792,7 +1019,6 @@ void UDungeonGeneratorComponent::SpawnWallPiece(int32 X, int32 Y, const FIntPoin
 		Location.X += Dir.X * Half;
 		Location.Y += Dir.Y * Half;
 	}
-	
 	AActor* Wall = GetWorld()->SpawnActor<AActor>(WallClass, Location, Rotator);
 	if (Wall)
 	{
@@ -814,23 +1040,145 @@ void UDungeonGeneratorComponent::SpawnEnemyAroundPoint(TSubclassOf<AActor> Enemy
 {
 	if (!EnemyClass || !GetWorld()) return;
 	const FVector2D Offset = FMath::RandPointInCircle(EnemySpawnRadius);
-	const FVector Location((Point.X * TileSize) + Offset.X,(Point.Y * TileSize) + Offset.Y, 0.5f);
-	AActor* Spawned = GetWorld()->SpawnActor<AActor>(EnemyClass, Location, FRotator::ZeroRotator);
-	if (Spawned) SpawnedDungeonActors.Add(Spawned);
+	FVector Location = GridToWorldLocation(Point, 100.f);
+	Location.X += Offset.X;
+	Location.Y += Offset.Y;
+	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	AActor* Spawned = GetWorld()->SpawnActor<AActor>(EnemyClass, Location, FRotator::ZeroRotator, SpawnParams);
+	if (!Spawned) return;
+	SpawnedDungeonActors.Add(Spawned);
+	if (AEnemyBase* EnemyBase = Cast<AEnemyBase>(Spawned))
+	{
+		const FVector RoomCenterLocation = GridToWorldLocation(Point, 100.f);
+		EnemyBase->SetHomeLocation(RoomCenterLocation);
+	}
 }
 
 void UDungeonGeneratorComponent::SpawnDecorationAroundPoint(TSubclassOf<AActor> DecorationClass, const FVector2D& Point)
 {
 	if (!DecorationClass || !GetWorld()) return;
 
-	const FVector2D Offset = FMath::RandPointInCircle(DecorationSpawnRadius);
+	const int32 CX = FMath::RoundToInt(Point.X);
+	const int32 CY = FMath::RoundToInt(Point.Y);
+
+	const int32 SearchRadius = 5;
+
+	TArray<FIntPoint> CandidateTiles;
 	
-	const FVector Location((Point.X * TileSize) + Offset.X,(Point.Y * TileSize) + Offset.Y, DecorationHeight); 
-	
-	AActor* Spawned = GetWorld()->SpawnActor<AActor>(DecorationClass, Location, FRotator::ZeroRotator);
-	if (Spawned) SpawnedDungeonActors.Add(Spawned);
+	for (int32 X = CX - SearchRadius; X <= CX + SearchRadius; X++)
+	{
+		for (int32 Y = CY - SearchRadius; Y <= CY + SearchRadius; Y++)
+		{
+			if (!IsWalkableTile(X, Y)) continue;
+
+			// 너무 벽에 붙는 걸 피하고 싶으면 가장자리 제외
+			if (GetTile(X + 1, Y) == EDungeonTileType::Empty) continue;
+			if (GetTile(X - 1, Y) == EDungeonTileType::Empty) continue;
+			if (GetTile(X, Y + 1) == EDungeonTileType::Empty) continue;
+			if (GetTile(X, Y - 1) == EDungeonTileType::Empty) continue;
+
+			CandidateTiles.Add(FIntPoint(X, Y));
+		}
+	}
+
+	if (CandidateTiles.Num() == 0)
+	{
+		return;
+	}
+
+	const int32 Index = FMath::RandRange(0, CandidateTiles.Num() - 1);
+	const FIntPoint Tile = CandidateTiles[Index];
+
+	FVector Location = GridToWorldLocation(FVector2D(Tile.X, Tile.Y), DecorationHeight);
+
+	const float InnerRandom = TileSize * 0.35f;
+	Location.X += FMath::RandRange(-InnerRandom, InnerRandom);
+	Location.Y += FMath::RandRange(-InnerRandom, InnerRandom);
+
+	const FRotator Rotation(0.f, FMath::RandRange(0.f, 360.f), 0.f);
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AActor* Spawned = GetWorld()->SpawnActor<AActor>(DecorationClass, Location, Rotation, SpawnParams);
+	if (Spawned)
+	{
+		SpawnedDungeonActors.Add(Spawned);
+	}
 }
 
+void UDungeonGeneratorComponent::SpawnStoreRoomDecorations(const FDungeonRoomInfo& Room,
+	const FDungeonDecorationDataRow* DecorationDataRow)
+{
+	if (!DecorationDataRow) return;
+
+	const FIntPoint StoreForwardDir = FindStoreForwardDirection(Room);
+	const FVector2D StoreBackOffset = ConvertLocalStoreOffsetToWorldOffset(FVector2D(0.f, -2.f),StoreForwardDir);
+	const FRotator FurnitureRotationOffset(0.f, -90.f, 0.f);
+	
+	FDungeonRoomInfo StoreLayoutRoom = Room;
+	StoreLayoutRoom.Center = Room.Center + StoreBackOffset;
+
+#pragma region NPC Direction
+	const FIntPoint BackDir(-StoreForwardDir.X, -StoreForwardDir.Y);
+	const FIntPoint RightDir(StoreForwardDir.Y, -StoreForwardDir.X);
+	const FIntPoint LeftDir(-RightDir.X, -RightDir.Y);
+
+	TArray<FVector2D> BackOffsets;
+	BackOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(-2.f, -1.f), StoreForwardDir));
+	BackOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(0.f, -1.f), StoreForwardDir));
+	BackOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(2.f, -1.f), StoreForwardDir));
+
+	TArray<FVector2D> FrontOffsets;
+	FrontOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(0.f, 0.75f), StoreForwardDir));
+	FrontOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(-1.f, 0.75f), StoreForwardDir));
+	FrontOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(1.f, 0.75f), StoreForwardDir));
+
+	TArray<FVector2D> LeftOffsets;
+	LeftOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(-2.f, 0.f), StoreForwardDir));
+	LeftOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(-2.f, 1.f), StoreForwardDir));
+
+	TArray<FVector2D> RightOffsets;
+	RightOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(2.f, 0.f), StoreForwardDir));
+	RightOffsets.Add(ConvertLocalStoreOffsetToWorldOffset(FVector2D(2.f, 1.f), StoreForwardDir));
+
+#pragma endregion
+	int32 SpawnedCount = 0;
+	SpawnedCount += SpawnStoreDecorationGroup(DecorationDataRow->StoreBackDecorations, BackOffsets, StoreLayoutRoom, GridDirectionToActorRotation(StoreForwardDir) + FurnitureRotationOffset);
+	SpawnedCount += SpawnStoreDecorationGroup(DecorationDataRow->StoreFrontDecorations, FrontOffsets, StoreLayoutRoom, GridDirectionToActorRotation(BackDir) + FurnitureRotationOffset);
+	SpawnedCount += SpawnStoreDecorationGroup(DecorationDataRow->StoreLeftDecorations, LeftOffsets, StoreLayoutRoom, GridDirectionToActorRotation(RightDir) + FurnitureRotationOffset);
+	SpawnedCount += SpawnStoreDecorationGroup(DecorationDataRow->StoreRightDecorations, RightOffsets, StoreLayoutRoom, GridDirectionToActorRotation(LeftDir) + FurnitureRotationOffset);
+
+}
+
+AActor* UDungeonGeneratorComponent::SpawnDecorationAtGridOffset(TSubclassOf<AActor> DecorationClass,
+	const FVector2D& RoomCenter, const FVector2D& GridOffset, float Z, const FRotator& Rotation)
+{
+	if (!DecorationClass) return nullptr;
+	const FVector2D TargetGrid = RoomCenter + GridOffset;
+	const int32 X = FMath::RoundToInt(TargetGrid.X);
+	const int32 Y = FMath::RoundToInt(TargetGrid.Y);
+
+	if (!IsWalkableTile(X, Y)) return nullptr;
+	FVector Location = GridToWorldLocation(TargetGrid, Z);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AActor* Spawned = GetWorld()->SpawnActor<AActor>(DecorationClass, Location, Rotation, SpawnParams);
+
+	if (!Spawned) return nullptr;
+
+	SpawnedDungeonActors.Add(Spawned);
+
+#if WITH_EDITOR
+	Spawned->SetActorLabel(TEXT("StoreDecoration"));
+#endif
+
+	return Spawned;
+	
+}
 void UDungeonGeneratorComponent::PlaceCorridorTile(int32 X, int32 Y)
 {
 	for (int32 OffsetX = -1; OffsetX <= 1; OffsetX++)
@@ -867,10 +1215,10 @@ const FDungeonEnemySpawnDataRow* UDungeonGeneratorComponent::GetEnemySpawnData(E
 	return DungeonEnemySpawnDataTable->FindRow<FDungeonEnemySpawnDataRow>(GetRoomTypeRowName(RoomType), TEXT("DungeonSpawnData"));
 }
 
-const FDungeonDecorationDataRow* UDungeonGeneratorComponent::GetDecorationData(EDungeonRoomType RoomType) const
+const FDungeonDecorationDataRow* UDungeonGeneratorComponent::GetDecorationData(EDungeonDecorationTheme  RoomType) const
 {
 	if (!DungeonDecorationDataTable) return  nullptr;
-	return DungeonDecorationDataTable->FindRow<FDungeonDecorationDataRow>(GetRoomTypeRowName(RoomType),TEXT("DungeonSpawnData"));
+	return DungeonDecorationDataTable->FindRow<FDungeonDecorationDataRow>(GetDecorationThemeRowName(RoomType),TEXT("DungeonSpawnData"));
 }
 
 EDungeonPieceShape UDungeonGeneratorComponent::GetWallShapeForEdge(int32 X, int32 Y, const FIntPoint& Dir) const
@@ -1009,6 +1357,12 @@ FRotator UDungeonGeneratorComponent::GetRotationByNeighborInfo(const FDungeonNei
 	return FRotator::ZeroRotator;
 }
 
+FRotator UDungeonGeneratorComponent::DirectionToInnerWallRotation(const FIntPoint& Dir) const
+{
+	const FIntPoint InnerDir(-Dir.X, -Dir.Y);
+	return DirectionToRotation(InnerDir);
+}
+
 FDungeonNeighborInfo UDungeonGeneratorComponent::GetNeighborInfo(int32 X, int32 Y, TFunctionRef<bool(int32, int32)> Predicate) const
 {
 	// 4방향의 정보를 확인하고 반환 
@@ -1088,7 +1442,91 @@ TArray<FDungeonEdge> UDungeonGeneratorComponent::CollectUniqueEdges() const
 	
 	return Result;
 }
+FIntPoint UDungeonGeneratorComponent::FindStoreForwardDirection(const FDungeonRoomInfo& Room) const
+{
+	const int32 RoomSize = GetRoomSizeByRoomType(Room.RoomType);
+	const int32 CX = FMath::RoundToInt(Room.Center.X);
+	const int32 CY = FMath::RoundToInt(Room.Center.Y);
 
+	int32 NorthWallScore = 0;
+	int32 SouthWallScore = 0;
+	int32 EastWallScore = 0;
+	int32 WestWallScore = 0;
+	
+	// 방 바로 바깥쪽이 Empty인 쪽을 "벽 방향"으로 판단
+	for (int32 Offset = -RoomSize; Offset <= RoomSize; Offset++)
+	{
+		if (GetTile(CX + Offset, CY + RoomSize + 1) == EDungeonTileType::Empty)
+		{
+			NorthWallScore++;
+		}
+
+		if (GetTile(CX + Offset, CY - RoomSize - 1) == EDungeonTileType::Empty)
+		{
+			SouthWallScore++;
+		}
+
+		if (GetTile(CX + RoomSize + 1, CY + Offset) == EDungeonTileType::Empty)
+		{
+			EastWallScore++;
+		}
+
+		if (GetTile(CX - RoomSize - 1, CY + Offset) == EDungeonTileType::Empty)
+		{
+			WestWallScore++;
+		}
+	}
+	
+	// 가장 벽다운 방향 선택
+	int32 BestScore = NorthWallScore;
+	FIntPoint BackWallDir(0, 1);
+
+	if (SouthWallScore > BestScore)
+	{
+		BestScore = SouthWallScore;
+		BackWallDir = FIntPoint(0, -1);
+	}
+
+	if (EastWallScore > BestScore)
+	{
+		BestScore = EastWallScore;
+		BackWallDir = FIntPoint(1, 0);
+	}
+
+	if (WestWallScore > BestScore)
+	{
+		BestScore = WestWallScore;
+		BackWallDir = FIntPoint(-1, 0);
+	}
+	
+	// NPC는 벽을 등지고 서야 하니까 벽 반대 방향을 바라봄
+	const FIntPoint ForwardDir(-BackWallDir.X, -BackWallDir.Y);
+
+	return ForwardDir;
+}
+
+FRotator UDungeonGeneratorComponent::GridDirectionToActorRotation(const FIntPoint& Dir) const
+{
+	const FVector Direction(static_cast<float>(Dir.X), static_cast<float>(Dir.Y), 0.f);
+
+	if (Direction.IsNearlyZero())
+	{
+		return FRotator::ZeroRotator;
+	}
+
+	return Direction.Rotation();
+}
+
+FVector2D UDungeonGeneratorComponent::ConvertLocalStoreOffsetToWorldOffset(const FVector2D& LocalOffset,
+	const FIntPoint& ForwardDir) const
+{
+	const FVector2D Forward(static_cast<float>(ForwardDir.X), static_cast<float>(ForwardDir.Y));
+
+	// Forward 기준 오른쪽 방향
+	const FVector2D Right(-Forward.Y, Forward.X);
+
+	return Right * LocalOffset.X + Forward * LocalOffset.Y;
+}
 
 bool UDungeonGeneratorComponent::IsSameTriangle(const FDungeonTriangle& A, const FDungeonTriangle& B) const
 {
@@ -1249,8 +1687,8 @@ void UDungeonGeneratorComponent::BuildNavMesh()
 	if (!World)return;
 	if (UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World))
 	{
-		const FVector Center((MapWidth * TileSize) * 0.5f,(MapHeight * TileSize) * 0.5f, 0.f);
-		const FVector Extent(MapWidth * TileSize, MapHeight * TileSize, 500.f);
+		const FVector Center = FVector::ZeroVector;
+		const FVector Extent(MapWidth  * TileSize * 0.5f, MapHeight * TileSize * 0.5f, 500.f);
 		const FBox DirtyBox(Center - Extent, Center + Extent);
 		
 		NavSys->AddDirtyArea(DirtyBox, ENavigationDirtyFlag::All);
@@ -1258,45 +1696,300 @@ void UDungeonGeneratorComponent::BuildNavMesh()
 	}
 }
 
-void UDungeonGeneratorComponent::DebugPrintMapData() const
+ABossRoomEntrance* UDungeonGeneratorComponent::SpawnBossRoomEntrance()
 {
-	for (int32 Y = MapHeight - 1; Y >= 0; Y--)
-	{
-		FString Line;
+	if (!BossRoomEntranceClass || !GetWorld()) return nullptr;
+	if (!bHasBossRoomEntranceLocation) return nullptr;
 
-		for (int32 X = 0; X < MapWidth; X++)
+	FVector Location = GridToWorldLocation(BossRoomEntranceGridLocation, 0.f);
+	FRotator Rotation = DirectionToRotation(BossRoomEntranceDirection);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride =
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	ABossRoomEntrance* Entrance = GetWorld()->SpawnActor<ABossRoomEntrance>(
+		BossRoomEntranceClass,
+		Location,
+		Rotation,
+		SpawnParams
+	);
+
+	if (!Entrance) return nullptr;
+
+	SpawnedDungeonActors.Add(Entrance);
+#if WITH_EDITOR
+				Entrance->SetActorLabel(TEXT("BossRoomEntrance"));
+#endif
+
+	return Entrance;
+}
+
+// 맵 데이터에서 입구를 한칸만 남기고 나머지는 막아줌
+void UDungeonGeneratorComponent::NormalizeBossRoomEntrance()
+{
+	// 보스방과 복도가 맞닿은 정보 저장용 임시 구조체
+	struct FBossRoomEntranceContact
+	{
+		// 보스방좌표
+		int32 BossX = 0;
+		int32 BossY = 0;
+		// 복도 좌표 
+		int32 CorridorX = 0;
+		int32 CorridorY = 0;
+		FIntPoint Dir = FIntPoint::ZeroValue;
+	};
+	// 보스방과 복도가 맞닿은 지점 저장용 배열
+	TArray<FBossRoomEntranceContact> Contacts;
+	// 4방향 배열
+	const TArray<FIntPoint> Directions = {FIntPoint(0, 1), FIntPoint(0, -1), FIntPoint(1, 0), FIntPoint(-1, 0)};
+	
+	// 맵을 순회하며
+	for (int32 X = 0; X < MapWidth; X++)
+	{
+		for (int32 Y = 0; Y < MapHeight; Y++)
 		{
-			switch (GetTile(X, Y))
+			// 보스방이 아니라면 패스
+			if (GetTile(X, Y) != EDungeonTileType::BossRoom) continue;
+			// 보스방이라면, 타일 기준으로 4방향 검사 
+			for (const FIntPoint& Dir : Directions)
 			{
-			case EDungeonTileType::Empty:
-				Line += TEXT(".");
-				break;
-			case EDungeonTileType::Room:
-				Line += TEXT("R");
-				break;
-			case EDungeonTileType::BossRoom:
-				Line += TEXT("B");
-				break;
-			case EDungeonTileType::Corridor:
-				Line += TEXT("C");
-				break;
-			case EDungeonTileType::Wall:
-				Line += TEXT("W");
-				break;
-			default:
-				Line += TEXT("?");
+				const int32 NX = X + Dir.X;
+				const int32 NY = Y + Dir.Y;
+				// 복도가 아니면 패스
+				if (GetTile(NX, NY) != EDungeonTileType::Corridor) continue;
+				// 복도라면 구조체를 만들어서 집어 넣음
+				FBossRoomEntranceContact Contact;
+				Contact.BossX = X;
+				Contact.BossY = Y;
+				Contact.CorridorX = NX;
+				Contact.CorridorY = NY;
+				Contact.Dir = Dir;
+
+				Contacts.Add(Contact);
+			}
+		}
+	}
+	if (Contacts.Num() == 0) return;
+	// 최종적으로 남길 입구
+	TArray<FBossRoomEntranceContact> BestLine;
+	// 방향별로 접촉 지점을 확인하고
+	for (const FIntPoint& Dir : Directions)
+	{
+		// 현재 해당하는 방향에 맞는 지점만 모음
+		TArray<FBossRoomEntranceContact> SameDirContacts;
+
+		for (const FBossRoomEntranceContact& Contact : Contacts)
+		{
+			// 진행방향과 방향이 같으면 추가
+			if (Contact.Dir == Dir)
+			{
+				SameDirContacts.Add(Contact);
+			}
+		}
+		// 아니라면 패스
+		if (SameDirContacts.Num() == 0) continue;
+		
+		// 같은 방향에 있는 지점을 정렬 
+		SameDirContacts.Sort([Dir](const FBossRoomEntranceContact& A, const FBossRoomEntranceContact& B)
+		{
+			if (Dir.X != 0)
+			{
+				if (A.BossX != B.BossX) return A.BossX < B.BossX;
+				return A.BossY < B.BossY;
+			}
+			if (A.BossY != B.BossY) return A.BossY < B.BossY;
+			return A.BossX < B.BossX;
+		});
+		
+		// 현재 검사중인 구간 저장용 배열
+		TArray<FBossRoomEntranceContact> CurrentLine;
+		CurrentLine.Add(SameDirContacts[0]);
+		// 두번째 접촉 지점부터 확인 
+		for (int32 i = 1; i < SameDirContacts.Num(); i++)
+		{
+			const FBossRoomEntranceContact& Prev = SameDirContacts[i - 1];
+			const FBossRoomEntranceContact& Current = SameDirContacts[i];
+			// 이전 지점과 현재지점이 같은 줄인지(세로줄 / 가로줄)
+			const bool bSameLine = Dir.X != 0 ? Prev.BossX == Current.BossX : Prev.BossY == Current.BossY;
+			// 이전지점과 현재지점이 붙어있는지 
+			const bool bContinuous = Dir.X != 0 ? FMath::Abs(Prev.BossY - Current.BossY) == 1 : FMath::Abs(Prev.BossX - Current.BossX) == 1;
+			// 같은줄이고 바로 붙어있으면 추가
+			if (bSameLine && bContinuous) CurrentLine.Add(Current);
+			// 아니면 구간 종료
+			else
+			{
+				// 지금까지 찾은 구간이 길면 갱신
+				if (CurrentLine.Num() > BestLine.Num()) BestLine = CurrentLine;
+				// 구간을 초기화하고 다시 시작
+				CurrentLine.Empty();
+				CurrentLine.Add(Current);
+			}
+		}
+		if (CurrentLine.Num() > BestLine.Num())
+		{
+			BestLine = CurrentLine;
+		}
+	}
+	if (BestLine.Num() == 0) return;
+	
+	// 입구를 남길 접촉지점을 담음 
+	const int32 KeepCount = FMath::Min(3, BestLine.Num());
+	const int32 StartKeepIndex = FMath::Max(0, (BestLine.Num() - KeepCount) / 2);
+	const int32 EndKeepIndex = StartKeepIndex + KeepCount - 1;
+	
+	float SumBossX = 0.f;
+	float SumBossY = 0.f;
+	
+	for (int32 i = StartKeepIndex; i <= EndKeepIndex; i++)
+	{
+		SumBossX += BestLine[i].BossX;
+		SumBossY += BestLine[i].BossY;
+	}
+
+	const float CenterBossX = SumBossX / KeepCount;
+	const float CenterBossY = SumBossY / KeepCount;
+	
+	const FIntPoint EntranceDir = BestLine[StartKeepIndex].Dir;
+
+	BossRoomEntranceGridLocation = FVector2D(CenterBossX, CenterBossY);
+	BossRoomEntranceGridLocation.X += EntranceDir.X * 0.5f;
+	BossRoomEntranceGridLocation.Y += EntranceDir.Y * 0.5f;
+
+	BossRoomEntranceDirection = EntranceDir;
+	bHasBossRoomEntranceLocation = true;
+	
+	// 모든 접촉 지점을 순회하며
+	for (const FBossRoomEntranceContact& Contact : Contacts)
+	{
+		bool bKeep = false;
+		
+		for (int32 i = StartKeepIndex; i <= EndKeepIndex; i++)
+		{
+			const FBossRoomEntranceContact& KeepContact = BestLine[i];
+
+			const bool bSameContact =
+				Contact.BossX == KeepContact.BossX &&
+				Contact.BossY == KeepContact.BossY &&
+				Contact.CorridorX == KeepContact.CorridorX &&
+				Contact.CorridorY == KeepContact.CorridorY;
+
+			if (bSameContact)
+			{
+				bKeep = true;
 				break;
 			}
 		}
+		
+		if (bKeep) continue;
 
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *Line);
+		// 보스방과 닿은 복도 타일을 제거해서 벽이 생기게 함
+		SetTile(Contact.CorridorX, Contact.CorridorY, EDungeonTileType::Empty);
 	}
 }
 
-
-// Called when the game starts
-void UDungeonGeneratorComponent::BeginPlay()
+FVector UDungeonGeneratorComponent::GridToWorldLocation(const FVector2D& Point, float Z) const
 {
-	Super::BeginPlay();
-	GenerateDungeon();
+	const float CenterX = MapWidth * 0.5f;
+	const float CenterY = MapHeight * 0.5f;
+	return FVector((Point.X - CenterX) * TileSize, (Point.Y - CenterY) * TileSize, Z);
+}
+
+const FDungeonRoomInfo* UDungeonGeneratorComponent::FindRoomInfoByCenter(const FVector2D& Center) const
+{
+	for (const FDungeonRoomInfo& Room : Rooms)
+	{
+		if (Room.Center.Equals(Center)) return &Room;
+	}
+
+	return nullptr;
+}
+
+int32 UDungeonGeneratorComponent::GetRoomSizeByRoomType(EDungeonRoomType RoomType) const
+{
+	switch (RoomType)
+	{
+	case EDungeonRoomType::Boss:
+		return 5;
+
+	case EDungeonRoomType::Store:
+		return 3;
+
+	case EDungeonRoomType::Start:
+		return 3;
+
+	case EDungeonRoomType::Elite:
+		return FMath::RandRange(3, 4);
+
+	case EDungeonRoomType::Normal:
+		return FMath::RandRange(3, 4);
+
+	default:
+		return FMath::RandRange(3, 4);
+	}
+}
+
+int32 UDungeonGeneratorComponent::SpawnStoreDecorationGroup(const TArray<FDungeonDecorationEntry>& Entries,
+	const TArray<FVector2D>& Offsets, const FDungeonRoomInfo& Room, const FRotator& Rotation)
+{
+	if (Entries.Num() == 0 || Offsets.Num() == 0) return 0;
+
+	TArray<FVector2D> AvailableOffsets = Offsets;
+	int32 SpawnedCount = 0;
+	for (const FDungeonDecorationEntry& Entry : Entries)
+	{
+		if (!Entry.DecorationClass) continue;
+		if (AvailableOffsets.Num() == 0) break;
+
+		const int32 SafeMinCount = FMath::Max(0, Entry.MinCount);
+		const int32 SafeMaxCount = FMath::Max(SafeMinCount, Entry.MaxCount);
+		const int32 TargetCount = FMath::RandRange(SafeMinCount, SafeMaxCount);
+
+		for (int32 i = 0; i < TargetCount; i++)
+		{
+			if (AvailableOffsets.Num() == 0) break;
+
+			const int32 OffsetIndex = FMath::RandRange(0, AvailableOffsets.Num() - 1);
+			const FVector2D Offset = AvailableOffsets[OffsetIndex];
+			AvailableOffsets.RemoveAt(OffsetIndex);
+
+			AActor* Spawned = SpawnDecorationAtGridOffset(Entry.DecorationClass, Room.Center, Offset, DecorationHeight, Rotation);
+
+			if (Spawned)
+			{
+				SpawnedCount++;
+			}
+		}
+	}
+
+	return SpawnedCount;
+}
+
+const FDungeonDecorationEntry* UDungeonGeneratorComponent::PickRandomDecorationEntry(
+	const TArray<FDungeonDecorationEntry>& Entries)
+{
+	float TotalWeight = 0.f;
+	for (const FDungeonDecorationEntry& Entry : Entries)
+	{
+		if (!Entry.DecorationClass) continue;
+		TotalWeight += FMath::Max(0.f, Entry.SpawnWeight);
+	}
+	
+	if (TotalWeight <= 0.f) return nullptr;
+
+	float RandomValue = FMath::FRandRange(0.f, TotalWeight);
+
+	for (const FDungeonDecorationEntry& Entry : Entries)
+	{
+		if (!Entry.DecorationClass) continue;
+
+		RandomValue -= FMath::Max(0.f, Entry.SpawnWeight);
+
+		if (RandomValue <= 0.f)
+		{
+			return &Entry;
+		}
+	}
+
+	return nullptr;
 }

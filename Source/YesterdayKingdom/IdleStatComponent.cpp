@@ -12,7 +12,7 @@
 void UIdleStatComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
-	
+	SetRootMotionFromMontage(false);
 	CurrentStateDuration = 0.f;
 
 	if (!OwnerCharacter) return;
@@ -38,7 +38,8 @@ void UIdleStatComponent::OnStateUpdate(float DeltaTime)
 	if (StateElapsedTime < CurrentStateDuration) return;
 	if (IsPlayerInDetectRange())
 	{
-		FSMController->ChangeState(NextIdleState);
+		FSMController->ChangeState(EEnemyFSMStateType::Chase);
+		return;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][Idle] Idle Finished -> %s"),
 	*UEnum::GetValueAsString(NextIdleState));

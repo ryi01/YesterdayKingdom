@@ -214,5 +214,5 @@ void ABaseCharacter::OnDead()
 }
 void ABaseCharacter::DestroyAfterDeath()
 {
-	GetOwner()->Destroy();
+	Destroy();
 }

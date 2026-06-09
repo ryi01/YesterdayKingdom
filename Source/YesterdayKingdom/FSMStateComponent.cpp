@@ -7,6 +7,7 @@
 #include "EnemyBase.h"
 #include "EnemyDefinition.h"
 #include "EnemyFSMControllerComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
@@ -42,6 +43,7 @@ void UFSMStateComponent::OnStateUpdate(float)
 
 void UFSMStateComponent::OnStateExit()
 {
+	
 }
 
 APawn* UFSMStateComponent::GetTargetPlayer() const
@@ -154,6 +156,28 @@ void UFSMStateComponent::StopMove()
 	AAIController* AIController = Cast<AAIController>(OwnerCharacter->GetController());
 	if (!AIController) return;
 	AIController->StopMovement();
+	if (UCharacterMovementComponent* MovementComponent = OwnerCharacter->GetCharacterMovement())
+	{
+		MovementComponent->StopMovementImmediately();
+		MovementComponent->Velocity = FVector::ZeroVector;
+		MovementComponent->ClearAccumulatedForces();
+	}
+}
+
+void UFSMStateComponent::FacePlayerInstant()
+{
+	if (!OwnerCharacter) return;
+
+	APawn* PlayerPawn = GetTargetPlayer();
+	if (!PlayerPawn) return;
+
+	FVector Direction = PlayerPawn->GetActorLocation() - OwnerCharacter->GetActorLocation();
+	Direction.Z = 0.f;
+
+	if (Direction.IsNearlyZero()) return;
+
+	const FRotator LookRotation = Direction.Rotation();
+	OwnerCharacter->SetActorRotation(LookRotation);
 }
 
 void UFSMStateComponent::SetFocusToPlayer()
@@ -182,6 +206,15 @@ void UFSMStateComponent::ClearFocusTarget()
 	if (!AIController) return;
 
 	AIController->ClearFocus(EAIFocusPriority::Gameplay);
+}
+
+void UFSMStateComponent::SetRootMotionFromMontage(bool bEnabled)
+{
+	if (!OwnerCharacter) return;
+	UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+	AnimInstance->SetRootMotionMode(bEnabled ? ERootMotionMode::RootMotionFromMontagesOnly : ERootMotionMode::IgnoreRootMotion);
+	
 }
 
 AEnemyBase* UFSMStateComponent::GetOwnerEnemy() const
