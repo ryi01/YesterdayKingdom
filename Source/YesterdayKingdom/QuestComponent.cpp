@@ -6,7 +6,6 @@
 #include "GoldComponent.h"
 #include "InventoryComponent.h"
 #include "PlayerCharacter.h"
-#include "QuestDataAsset.h"
 #include "QuestTypes.h"
 
 // Sets default values for this component's properties
