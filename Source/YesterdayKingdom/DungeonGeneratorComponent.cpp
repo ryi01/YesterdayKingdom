@@ -272,6 +272,11 @@ void UDungeonGeneratorComponent::CreateFinalPath()
 
 		// 보스방으로 바로 이어지는 지름길 방지
 		if (Edge.U.Equals(EndPoint) || Edge.V.Equals(EndPoint)) continue;
+		// StoreRoom에 랜덤 지름길이 추가로 붙는 것 방지
+		if (bHasSelectedStorePoint)
+		{
+			if (Edge.U.Equals(SelectedStorePoint) || Edge.V.Equals(SelectedStorePoint)) continue;
+		}
 		
 		if (FMath::FRand() < 0.3f) FinalEdges.Add(Edge);
 	}
@@ -299,75 +304,96 @@ void UDungeonGeneratorComponent::CalculateStartAndEnd()
 void UDungeonGeneratorComponent::AssignRoomTypes()
 {
 	Rooms.Empty();
+	SelectedStorePoint = FVector2D::ZeroVector;
+	bHasSelectedStorePoint = false;
 	// 그래프 생성
 	TMap<FVector2D, TArray<FVector2D>> Graph;
 	BuildMSTGraph(Graph);
 	
 	// 연결된 경로를 따라 방을 array로 모음
 	// S -- A -- B -- C -- Boss순으로 있을 때, [S,A,B,C,Boss]로 저장
+	// Start -> Boss 메인 경로
+	// Start -> Boss 메인 경로
 	const TArray<FVector2D> MainPath = FindPathBFS(StartPoint, EndPoint, Graph);
-	const int32 StorePathIndex = MainPath.Num() >= 3 ?  FMath::Clamp(FMath::RoundToInt((MainPath.Num() - 1) * 0.5f), 1, MainPath.Num() - 2) : INDEX_NONE;
+
+	// ========================================================
+	// Store는 MainPath 위가 아니라 MainPath 옆 사이드룸으로 선택
+	// ========================================================
+	for (const FVector2D& PathPoint : MainPath)
+	{
+		const TArray<FVector2D>* Neighbors = Graph.Find(PathPoint);
+		if (!Neighbors) continue;
+
+		for (const FVector2D& Neighbor : *Neighbors)
+		{
+			if (Neighbor.Equals(StartPoint)) continue;
+			if (Neighbor.Equals(EndPoint)) continue;
+
+			const bool bIsOnMainPath = MainPath.ContainsByPredicate([&Neighbor](const FVector2D& MainPathPoint)
+			{
+				return MainPathPoint.Equals(Neighbor);
+			});
+
+			if (bIsOnMainPath) continue;
+
+			SelectedStorePoint = Neighbor;
+			bHasSelectedStorePoint = true;
+			break;
+		}
+
+		if (bHasSelectedStorePoint) break;
+	}
+	int32 GuaranteedElitePathIndex = INDEX_NONE;
+
+	if (MainPath.Num() >= 3)
+	{
+		GuaranteedElitePathIndex = MainPath.Num() - 2;
+	}
+	
 	// 모든 방을 순회하며
 	for (const FVector2D& Point : Points)
 	{
-		// 방정보 구조체를 생성
 		FDungeonRoomInfo RoomInfo;
 		RoomInfo.Center = Point;
-		RoomInfo.RoomType =  EDungeonRoomType::Normal;
+		RoomInfo.RoomType = EDungeonRoomType::Normal;
 		RoomInfo.DecorationTheme = EDungeonDecorationTheme::Basic;
-		
-		// 시작 방이면 type을 start
+
 		if (Point.Equals(StartPoint))
 		{
 			RoomInfo.RoomType = EDungeonRoomType::Start;
 			RoomInfo.DecorationTheme = EDungeonDecorationTheme::StartRoom;
 		}
-		// 마지막 방이면 type을 boss
 		else if (Point.Equals(EndPoint))
 		{
 			RoomInfo.RoomType = EDungeonRoomType::Boss;
 			RoomInfo.DecorationTheme = EDungeonDecorationTheme::BossEntrance;
 		}
+		else if (bHasSelectedStorePoint && Point.Equals(SelectedStorePoint))
+		{
+			RoomInfo.RoomType = EDungeonRoomType::Store;
+			RoomInfo.DecorationTheme = EDungeonDecorationTheme::StoreRoom;
+		}
 		else
 		{
-			// IndexOfByPredicate : 특정 조건에 부합한 엘리먼트의 인덱스 반환
-			// MainPath를 보며 Point가 있는 위치 
-			// 포인트가 A라면 [S,A,B,C,Boss]에서 해당하는 위치인 1을 반환
 			const int32 PathIndex = MainPath.IndexOfByPredicate([&Point](const FVector2D& PathPoint)
 			{
 				return PathPoint.Equals(Point);
 			});
-			
-			if (PathIndex != INDEX_NONE && PathIndex == StorePathIndex)
+
+			if (PathIndex != INDEX_NONE && PathIndex == GuaranteedElitePathIndex)
 			{
-				RoomInfo.RoomType = EDungeonRoomType::Store;
-				RoomInfo.DecorationTheme = EDungeonDecorationTheme::StoreRoom;
-			}
-			// pathindex가 있고 MainPath에 있는 방이 2개 이상일 때
-			else if (PathIndex != INDEX_NONE && MainPath.Num() > 2)
-			{
-				// 던전의 전체 진행률에 따라 방에 스폰되는 적 지정 => 방이 5개 있는데 포인트의 위치가 2인경우
-				// 2 / 4 = 0.5f
-				const float Progress = static_cast<float>(PathIndex) / static_cast<float>(MainPath.Num() -1);
-				
-				if (Progress >= 0.65f)
-				{
-					RoomInfo.RoomType = EDungeonRoomType::Elite;
-					RoomInfo.DecorationTheme = EDungeonDecorationTheme::WeaponRoom;
-				}
-				else
-				{
-					RoomInfo.RoomType = EDungeonRoomType::Normal;
-					RoomInfo.DecorationTheme = FMath::RandBool() ? EDungeonDecorationTheme::Basic : EDungeonDecorationTheme::Broken;
-				}
+				RoomInfo.RoomType = EDungeonRoomType::Elite;
+				RoomInfo.DecorationTheme = EDungeonDecorationTheme::WeaponRoom;
 			}
 			else
 			{
 				RoomInfo.RoomType = EDungeonRoomType::Normal;
-				RoomInfo.DecorationTheme = FMath::RandBool() ? EDungeonDecorationTheme::Basic : EDungeonDecorationTheme::Broken;
+				RoomInfo.DecorationTheme = FMath::RandBool()
+					? EDungeonDecorationTheme::Basic
+					: EDungeonDecorationTheme::Broken;
 			}
 		}
-		
+
 		Rooms.Add(RoomInfo);
 	}
 }
@@ -595,6 +621,9 @@ void UDungeonGeneratorComponent::ClearDungeon()
 	BossRoomEntranceGridLocation = FVector2D::ZeroVector;
 	BossRoomEntranceDirection = FIntPoint::ZeroValue;
 	bHasBossRoomEntranceLocation = false;
+	
+	SelectedStorePoint = FVector2D::ZeroVector;
+	bHasSelectedStorePoint = false;
 	
 	bGenerationCompleted = false;
 }
@@ -1728,40 +1757,54 @@ ABossRoomEntrance* UDungeonGeneratorComponent::SpawnBossRoomEntrance()
 // 맵 데이터에서 입구를 한칸만 남기고 나머지는 막아줌
 void UDungeonGeneratorComponent::NormalizeBossRoomEntrance()
 {
-	// 보스방과 복도가 맞닿은 정보 저장용 임시 구조체
-	struct FBossRoomEntranceContact
+	const FDungeonRoomInfo* BossRoom = Rooms.FindByPredicate([](const FDungeonRoomInfo& Room)
 	{
-		// 보스방좌표
-		int32 BossX = 0;
-		int32 BossY = 0;
-		// 복도 좌표 
+		return Room.RoomType == EDungeonRoomType::Boss;
+	});
+
+	if (!BossRoom) return;
+
+	NormalizeRoomEntrance(*BossRoom, EDungeonTileType::BossRoom, 3, true);
+}
+
+bool UDungeonGeneratorComponent::NormalizeRoomEntrance(const FDungeonRoomInfo& Room, EDungeonTileType RoomTileType,
+	int32 DesiredKeepCount, bool bSaveAsBossEntrance)
+{
+	struct FRoomEntranceContact
+	{
+		int32 RoomX = 0;
+		int32 RoomY = 0;
+
 		int32 CorridorX = 0;
 		int32 CorridorY = 0;
+
 		FIntPoint Dir = FIntPoint::ZeroValue;
 	};
-	// 보스방과 복도가 맞닿은 지점 저장용 배열
-	TArray<FBossRoomEntranceContact> Contacts;
-	// 4방향 배열
-	const TArray<FIntPoint> Directions = {FIntPoint(0, 1), FIntPoint(0, -1), FIntPoint(1, 0), FIntPoint(-1, 0)};
+
+	TArray<FRoomEntranceContact> Contacts;
 	
-	// 맵을 순회하며
-	for (int32 X = 0; X < MapWidth; X++)
+	const TArray<FIntPoint> Directions = { FIntPoint(0, 1), FIntPoint(0, -1), FIntPoint(1, 0), FIntPoint(-1, 0)};
+
+	const int32 RoomSize = GetRoomSizeByRoomType(Room.RoomType);
+	const int32 CX = FMath::RoundToInt(Room.Center.X);
+	const int32 CY = FMath::RoundToInt(Room.Center.Y);
+	for (int32 X = CX - RoomSize; X <= CX + RoomSize; X++)
 	{
-		for (int32 Y = 0; Y < MapHeight; Y++)
+		for (int32 Y = CY - RoomSize; Y <= CY + RoomSize; Y++)
 		{
-			// 보스방이 아니라면 패스
-			if (GetTile(X, Y) != EDungeonTileType::BossRoom) continue;
-			// 보스방이라면, 타일 기준으로 4방향 검사 
+			if (!IsInMap(X, Y)) continue;
+			if (GetTile(X, Y) != RoomTileType) continue;
+
 			for (const FIntPoint& Dir : Directions)
 			{
 				const int32 NX = X + Dir.X;
 				const int32 NY = Y + Dir.Y;
-				// 복도가 아니면 패스
+
 				if (GetTile(NX, NY) != EDungeonTileType::Corridor) continue;
-				// 복도라면 구조체를 만들어서 집어 넣음
-				FBossRoomEntranceContact Contact;
-				Contact.BossX = X;
-				Contact.BossY = Y;
+
+				FRoomEntranceContact Contact;
+				Contact.RoomX = X;
+				Contact.RoomY = Y;
 				Contact.CorridorX = NX;
 				Contact.CorridorY = NY;
 				Contact.Dir = Dir;
@@ -1770,58 +1813,46 @@ void UDungeonGeneratorComponent::NormalizeBossRoomEntrance()
 			}
 		}
 	}
-	if (Contacts.Num() == 0) return;
-	// 최종적으로 남길 입구
-	TArray<FBossRoomEntranceContact> BestLine;
-	// 방향별로 접촉 지점을 확인하고
+	if (Contacts.Num() == 0) return false;
+
+	TArray<FRoomEntranceContact> BestLine;
+	
 	for (const FIntPoint& Dir : Directions)
 	{
-		// 현재 해당하는 방향에 맞는 지점만 모음
-		TArray<FBossRoomEntranceContact> SameDirContacts;
-
-		for (const FBossRoomEntranceContact& Contact : Contacts)
+		TArray<FRoomEntranceContact> SameDirContacts;
+		for (const FRoomEntranceContact& Contact : Contacts)
 		{
-			// 진행방향과 방향이 같으면 추가
-			if (Contact.Dir == Dir)
-			{
-				SameDirContacts.Add(Contact);
-			}
+			if (Contact.Dir == Dir) SameDirContacts.Add(Contact);
 		}
-		// 아니라면 패스
 		if (SameDirContacts.Num() == 0) continue;
-		
-		// 같은 방향에 있는 지점을 정렬 
-		SameDirContacts.Sort([Dir](const FBossRoomEntranceContact& A, const FBossRoomEntranceContact& B)
+		SameDirContacts.Sort([Dir](const FRoomEntranceContact& A, const FRoomEntranceContact& B)
 		{
 			if (Dir.X != 0)
 			{
-				if (A.BossX != B.BossX) return A.BossX < B.BossX;
-				return A.BossY < B.BossY;
+				if (A.RoomX != B.RoomX) return A.RoomX < B.RoomX;
+				return A.RoomY < B.RoomY;
 			}
-			if (A.BossY != B.BossY) return A.BossY < B.BossY;
-			return A.BossX < B.BossX;
+
+			if (A.RoomY != B.RoomY) return A.RoomY < B.RoomY;
+			return A.RoomX < B.RoomX;
 		});
-		
-		// 현재 검사중인 구간 저장용 배열
-		TArray<FBossRoomEntranceContact> CurrentLine;
+		TArray<FRoomEntranceContact> CurrentLine;
 		CurrentLine.Add(SameDirContacts[0]);
-		// 두번째 접촉 지점부터 확인 
-		for (int32 i = 1; i < SameDirContacts.Num(); i++)
+		for (int32 i = 1; i < SameDirContacts.Num() ; i++)
 		{
-			const FBossRoomEntranceContact& Prev = SameDirContacts[i - 1];
-			const FBossRoomEntranceContact& Current = SameDirContacts[i];
-			// 이전 지점과 현재지점이 같은 줄인지(세로줄 / 가로줄)
-			const bool bSameLine = Dir.X != 0 ? Prev.BossX == Current.BossX : Prev.BossY == Current.BossY;
-			// 이전지점과 현재지점이 붙어있는지 
-			const bool bContinuous = Dir.X != 0 ? FMath::Abs(Prev.BossY - Current.BossY) == 1 : FMath::Abs(Prev.BossX - Current.BossX) == 1;
-			// 같은줄이고 바로 붙어있으면 추가
+			const FRoomEntranceContact& Prev = SameDirContacts[i - 1];
+			const FRoomEntranceContact& Current = SameDirContacts[i];
+			
+			const bool bSameLine = Dir.X != 0 ? Prev.RoomX == Current.RoomX : Prev.RoomY == Current.RoomY;
+			const bool bContinuous = Dir.X != 0 ? FMath::Abs(Prev.RoomY - Current.RoomY) == 1 : FMath::Abs(Prev.RoomX - Current.RoomX) == 1;
 			if (bSameLine && bContinuous) CurrentLine.Add(Current);
-			// 아니면 구간 종료
 			else
 			{
-				// 지금까지 찾은 구간이 길면 갱신
-				if (CurrentLine.Num() > BestLine.Num()) BestLine = CurrentLine;
-				// 구간을 초기화하고 다시 시작
+				if (CurrentLine.Num() > BestLine.Num())
+				{
+					BestLine = CurrentLine;
+				}
+
 				CurrentLine.Empty();
 				CurrentLine.Add(Current);
 			}
@@ -1830,47 +1861,47 @@ void UDungeonGeneratorComponent::NormalizeBossRoomEntrance()
 		{
 			BestLine = CurrentLine;
 		}
-	}
-	if (BestLine.Num() == 0) return;
+	}	
+	if (BestLine.Num() == 0) return false;
 	
-	// 입구를 남길 접촉지점을 담음 
-	const int32 KeepCount = FMath::Min(3, BestLine.Num());
-	const int32 StartKeepIndex = FMath::Max(0, (BestLine.Num() - KeepCount) / 2);
-	const int32 EndKeepIndex = StartKeepIndex + KeepCount - 1;
-	
-	float SumBossX = 0.f;
-	float SumBossY = 0.f;
-	
-	for (int32 i = StartKeepIndex; i <= EndKeepIndex; i++)
+	const int32 ActualKeepCount = FMath::Min(DesiredKeepCount, BestLine.Num());
+	const int32 StartKeepIndex = FMath::Max(0, (BestLine.Num() - ActualKeepCount) / 2);
+	const int32 EndKeepIndex = StartKeepIndex + ActualKeepCount - 1;
+
+	if (bSaveAsBossEntrance)
 	{
-		SumBossX += BestLine[i].BossX;
-		SumBossY += BestLine[i].BossY;
-	}
+		float SumRoomX = 0.f;
+		float SumRoomY = 0.f;
 
-	const float CenterBossX = SumBossX / KeepCount;
-	const float CenterBossY = SumBossY / KeepCount;
-	
-	const FIntPoint EntranceDir = BestLine[StartKeepIndex].Dir;
-
-	BossRoomEntranceGridLocation = FVector2D(CenterBossX, CenterBossY);
-	BossRoomEntranceGridLocation.X += EntranceDir.X * 0.5f;
-	BossRoomEntranceGridLocation.Y += EntranceDir.Y * 0.5f;
-
-	BossRoomEntranceDirection = EntranceDir;
-	bHasBossRoomEntranceLocation = true;
-	
-	// 모든 접촉 지점을 순회하며
-	for (const FBossRoomEntranceContact& Contact : Contacts)
-	{
-		bool bKeep = false;
-		
 		for (int32 i = StartKeepIndex; i <= EndKeepIndex; i++)
 		{
-			const FBossRoomEntranceContact& KeepContact = BestLine[i];
+			SumRoomX += BestLine[i].RoomX;
+			SumRoomY += BestLine[i].RoomY;
+		}
+
+		const float CenterRoomX = SumRoomX / ActualKeepCount;
+		const float CenterRoomY = SumRoomY / ActualKeepCount;
+
+		const FIntPoint EntranceDir = BestLine[StartKeepIndex].Dir;
+
+		BossRoomEntranceGridLocation = FVector2D(CenterRoomX, CenterRoomY);
+		BossRoomEntranceGridLocation.X += EntranceDir.X * 0.5f;
+		BossRoomEntranceGridLocation.Y += EntranceDir.Y * 0.5f;
+
+		BossRoomEntranceDirection = EntranceDir;
+		bHasBossRoomEntranceLocation = true;
+	}
+	for (const FRoomEntranceContact& Contact : Contacts)
+	{
+		bool bKeep = false;
+
+		for (int32 i = StartKeepIndex; i <= EndKeepIndex; i++)
+		{
+			const FRoomEntranceContact& KeepContact = BestLine[i];
 
 			const bool bSameContact =
-				Contact.BossX == KeepContact.BossX &&
-				Contact.BossY == KeepContact.BossY &&
+				Contact.RoomX == KeepContact.RoomX &&
+				Contact.RoomY == KeepContact.RoomY &&
 				Contact.CorridorX == KeepContact.CorridorX &&
 				Contact.CorridorY == KeepContact.CorridorY;
 
@@ -1880,12 +1911,68 @@ void UDungeonGeneratorComponent::NormalizeBossRoomEntrance()
 				break;
 			}
 		}
-		
+
 		if (bKeep) continue;
 
-		// 보스방과 닿은 복도 타일을 제거해서 벽이 생기게 함
-		SetTile(Contact.CorridorX, Contact.CorridorY, EDungeonTileType::Empty);
+		if (Room.RoomType == EDungeonRoomType::Store)
+		{
+			TryCloseCorridorTileSafely(Contact.CorridorX, Contact.CorridorY);
+		}
+		else
+		{
+			SetTile(Contact.CorridorX, Contact.CorridorY, EDungeonTileType::Empty);
+		}
 	}
+	return true;
+}
+bool UDungeonGeneratorComponent::TryCloseCorridorTileSafely(int32 X, int32 Y)
+{
+	if (GetTile(X, Y) != EDungeonTileType::Corridor) return false;
+
+	SetTile(X, Y, EDungeonTileType::Empty);
+
+	if (CanReachStartToEndByMapData())
+	{
+		return true;
+	}
+
+	SetTile(X, Y, EDungeonTileType::Corridor);
+	return false;
+}
+
+bool UDungeonGeneratorComponent::CanReachStartToEndByMapData() const
+{
+	const FIntPoint Start(FMath::RoundToInt(StartPoint.X), FMath::RoundToInt(StartPoint.Y));
+	const FIntPoint End(FMath::RoundToInt(EndPoint.X), FMath::RoundToInt(EndPoint.Y));
+	
+	if (!IsWalkableTile(Start.X, Start.Y)) return false;
+	if (!IsWalkableTile(End.X, End.Y)) return false;
+
+	TQueue<FIntPoint> Queue;
+	TSet<FIntPoint> Visited;
+
+	Queue.Enqueue(Start);
+	Visited.Add(Start);
+	
+	const TArray<FIntPoint> Directions = { FIntPoint(0, 1), FIntPoint(0, -1), FIntPoint(1, 0), FIntPoint(-1, 0)};
+
+	while (!Queue.IsEmpty())
+	{
+		FIntPoint Current;
+		Queue.Dequeue(Current);
+		
+		for (const FIntPoint& Dir : Directions)
+		{
+			const FIntPoint Next(Current.X + Dir.X, Current.Y + Dir.Y);
+
+			if (Visited.Contains(Next)) continue;
+			if (!IsWalkableTile(Next.X, Next.Y)) continue;
+
+			Visited.Add(Next);
+			Queue.Enqueue(Next);
+		}
+	}
+	return false;
 }
 
 FVector UDungeonGeneratorComponent::GridToWorldLocation(const FVector2D& Point, float Z) const
