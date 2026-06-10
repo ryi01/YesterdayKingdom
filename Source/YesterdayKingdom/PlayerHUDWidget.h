@@ -18,6 +18,8 @@ class YESTERDAYKINGDOM_API UPlayerHUDWidget : public UUserWidget
 protected:
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<class UInventoryWidget> WBP_Inventory;
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<class UBossWidget> WBP_BossHP;
 	
 	UPROPERTY()
 	TObjectPtr<class APlayerCharacter> OwnerPlayer;
@@ -60,6 +62,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	float BarInterpSpeed = 8.f;
+	//=====================================================================================================
+	// 보스 체력바 관련
+	//=====================================================================================================
+	UPROPERTY()
+	TObjectPtr<class AEnemyBase> BoundBoss;
+
+	UPROPERTY()
+	TObjectPtr<class UBaseStatComponent> BoundBossStatComponent;
 	
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -70,13 +80,23 @@ protected:
 	void UpdateST(float CurrentST, float MaxST);
 	UFUNCTION()
 	void UpdateMP(float CurrentMP, float MaxMP);
-	
+	//=====================================================================================================
+	// 보스 체력바 관련
+	//=====================================================================================================
+
+	UFUNCTION()
+	void HandleBossHPChanged(float CurrentHP, float MaxHP);
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindPlayer(class APlayerCharacter* InPlayer);
 
 	UFUNCTION(BlueprintCallable)
+	void BindBoss(AEnemyBase* Boss);
+	void UnbindBoss();
+	
+	UFUNCTION(BlueprintCallable)
 	void SetInventoryVisible(bool bVisible);
 	
+	void SetVisibleBossHPBar(bool bEnable);
 	
 };
