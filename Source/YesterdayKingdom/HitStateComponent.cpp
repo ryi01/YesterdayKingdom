@@ -56,10 +56,8 @@ void UHitStateComponent::HandleHitMontageEnded(UAnimMontage* Montage, bool bInte
 void UHitStateComponent::DecideNextState()
 {
 	if (!FSMController) return;
-
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 

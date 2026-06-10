@@ -59,6 +59,9 @@ protected:
 	TObjectPtr<class URotationAttackStateComponent> RotationAttackState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
+	TObjectPtr<class UPhaseChangeStateComponent> PhaseChangeState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")
 	TObjectPtr<class UHitStateComponent> HitState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|FSM|State")

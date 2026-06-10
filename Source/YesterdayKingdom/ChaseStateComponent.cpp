@@ -29,7 +29,6 @@ void UChaseStateComponent::OnStateUpdate(float X)
 	if (!FSMController) return;
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 	

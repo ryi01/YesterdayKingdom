@@ -12,7 +12,6 @@ void UAttackBossStateComponent::OnStateEnter()
 	if (!OwnerCharacter || !FSMController || !EnemyDefinition) return;
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 	SetRootMotionFromMontage(true);

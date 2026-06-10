@@ -15,6 +15,7 @@
 #include "JumpAttackStateComponent.h"
 #include "PatrolStateComponent.h"
 #include "PatternSelectStateComponent.h"
+#include "PhaseChangeStateComponent.h"
 #include "ReturnStateComponent.h"
 #include "RotationAttackStateComponent.h"
 
@@ -36,6 +37,7 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	BackStepState = CreateDefaultSubobject<UBackStepStateComponent>(TEXT("BackStepState"));
 	JumpAttackState = CreateDefaultSubobject<UJumpAttackStateComponent>(TEXT("JumpAttackState"));
 	RotationAttackState = CreateDefaultSubobject<URotationAttackStateComponent>(TEXT("RotationAttackState"));
+	PhaseChangeState = CreateDefaultSubobject<UPhaseChangeStateComponent>(TEXT("PhaseChangeState"));
 	HitState = CreateDefaultSubobject<UHitStateComponent>(TEXT("HitState"));
 	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
 }
@@ -93,6 +95,10 @@ void ABossEnemy::BeginPlay()
 	if (RotationAttackState)
 	{
 		FSMController->RegisterState(EEnemyFSMStateType::RotationAttack, RotationAttackState);
+	}
+	if (PhaseChangeState)
+	{
+		FSMController->RegisterState(EEnemyFSMStateType::PhaseChange, PhaseChangeState);
 	}
 	if (HitState)
 	{

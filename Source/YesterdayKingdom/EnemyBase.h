@@ -48,7 +48,20 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
 	FName SelectedAttackRowName = NAME_None;
-	
+	//===============================================================================================
+	// 페이지 변경
+	//===============================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	bool bUsePhaseSystem = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	int32 CurrentPhase = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	int32 MaxPhase = 2;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	bool bIsPhaseChanging = false;
 public:
 	AEnemyBase(const FObjectInitializer& ObjectInitializer);
 	
@@ -132,6 +145,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Animation")
 	bool IsAnyMontagePlaying() const;
 
+	//===============================================================================================
+	// 페이지 변경
+	//===============================================================================================
+	int32 GetCurrentPhase() const { return CurrentPhase; }
+
+	bool TryStartNextPhase();
+
+	void FinishPhaseChange();
+	
 	//===============================================================================================
 	// Getter함수
 	//===============================================================================================

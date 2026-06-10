@@ -18,14 +18,6 @@ void UPatrolStateComponent::OnStateEnter()
 	bHasPatrolTarget = false;
 	bIsWaitingPatrolEQS = false;
 	PatrolTargetLocation = FVector::ZeroVector;
-	
-	if (!FSMController || !OwnerCharacter) return;
-	if (IsOwnerDead())
-	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
-		return;
-	}
-
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->SetDefaultMoveSpeed();
@@ -40,7 +32,6 @@ void UPatrolStateComponent::OnStateUpdate(float DeltaTime)
 	if (!FSMController || !OwnerCharacter) return;
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 	if (IsPlayerInDetectRange())
