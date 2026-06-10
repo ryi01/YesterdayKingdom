@@ -15,7 +15,9 @@
 #include "EnemyPuppetMaster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnemyFSMControllerComponent.h"
+#include "BaseStatComponent.h"
 #include "PatrolStateComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -30,6 +32,12 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	DownState = CreateDefaultSubobject<UDownStateComponent>(TEXT("DownState"));
 	ReviveState = CreateDefaultSubobject<UReviveStateComponent>(TEXT("ReviveState"));
 	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
+	
+	StringSocketName = TEXT("StringSocket");
+	
+	StringMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("StringMeshComponent"));
+	StringMeshComponent->SetupAttachment(GetMesh(),StringSocketName);
+	StringMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 bool AEnemyElite::IsPuppetMasterDead() const
@@ -63,6 +71,22 @@ void AEnemyElite::BeginPlay()
 	FSMController->RegisterState(EEnemyFSMStateType::Dead, DeadState);
 	
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);
+	
+	if (StringMeshComponent)
+	{
+		if (StringMesh)
+		{
+			StringMeshComponent->SetSkeletalMesh(StringMesh);
+		}
+
+		StringMeshComponent->AttachToComponent(
+			GetMesh(),
+			FAttachmentTransformRules::SnapToTargetIncludingScale,
+			StringSocketName
+		);
+
+		StringMeshComponent->SetLeaderPoseComponent(GetMesh());
+	}
 }
 
 void AEnemyElite::Tick(float DeltaTime)
@@ -76,8 +100,7 @@ void AEnemyElite::Tick(float DeltaTime)
 
 	if (PuppetMaster && IsPuppetMasterDead())
 	{
-		bTrueDead = true;
-		Super::HandleDeath_Implementation();
+		ForceTrueDeath();
 		return;
 	}
 
@@ -86,21 +109,6 @@ void AEnemyElite::Tick(float DeltaTime)
 		FSMController->TickFSM(DeltaTime);
 	}
 	
-}
-
-void AEnemyElite::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-
-	if (bPendingDownAfterLanded)
-	{
-		bPendingDownAfterLanded = false;
-
-		if (FSMController)
-		{
-			FSMController->ChangeState(EEnemyFSMStateType::Down);
-		}
-	}	
 }
 
 void AEnemyElite::ForceTrueDeath()
@@ -123,11 +131,11 @@ void AEnemyElite::SetPuppetMaster(AEnemyPuppetMaster* InMaster)
 		*GetNameSafe(PuppetMaster));
 }
 
-void AEnemyElite::HandleDeath_Implementation()
+void AEnemyElite::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
 	// 나중에 본체 죽었는지 체크해서 진짜 Dead 처리
 	const bool bMasterDead = IsPuppetMasterDead();
-
+	
 	if (!bMasterDead)
 	{
 		// 공중에서 죽었으면 바로 Down으로 가지 말고,
@@ -140,15 +148,10 @@ void AEnemyElite::HandleDeath_Implementation()
 				return;
 			}
 		}
-
+	
 		if (FSMController)
 		{
 			FSMController->ChangeState(EEnemyFSMStateType::Down);
 		}
-
-		return;
 	}
-
-	Super::HandleDeath_Implementation();
 }
-

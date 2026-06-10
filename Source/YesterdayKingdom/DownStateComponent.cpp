@@ -13,13 +13,6 @@
 void UDownStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
-	
-	StopMove();
-	
-	if (OwnerCharacter)
-	{
-		OwnerCharacter->DownMontage();
-	}
 
 	StopMove();
 	OwnerCharacter->DownMontage();
