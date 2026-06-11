@@ -11,6 +11,7 @@ class UEnemyFSMControllerComponent;
 class UIdleStatComponent;
 class UChaseStateComponent;
 class UAttackStateComponent;
+class UHitStateComponent;
 class UReturnStateComponent;
 class UDownStateComponent;
 class UReviveStateComponent;
@@ -70,6 +71,9 @@ protected:
 	TObjectPtr<UAttackStateComponent> AttackState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
+	TObjectPtr<UHitStateComponent> HitState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UReturnStateComponent> ReturnState;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
@@ -85,4 +89,5 @@ protected:
 	TObjectPtr<USkeletalMeshComponent> StringMeshComponent;
 public:
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
+	virtual void ApplyDamage_Implementation(float Damage,AActor* DamageCauser,const FVector& DamageLocation,const FVector& DamageImpulse) override;
 };

@@ -346,6 +346,7 @@ EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext
 		{
 			InstanceData.DetectRange = Definition->DetectRange;
 			InstanceData.AttackRange = Definition->AttackRange;
+			InstanceData.ReturnRange = Definition->ReturnRadius;
 		}
 	}
 

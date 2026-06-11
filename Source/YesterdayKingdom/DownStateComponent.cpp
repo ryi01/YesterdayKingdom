@@ -30,13 +30,18 @@ void UDownStateComponent::OnStateUpdate(float DeltaTime)
 		return;
 	}
 
-	const float DownTime =
-		EnemyDefinition->ReviveDelay;
+	const float DownTime = EnemyDefinition->ReviveDelay;
 
 	if (FSMController->GetStateElapsedTime() >= DownTime)
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Revive);
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Down] Time: %.2f / ReviveDelay: %.2f"),
+	FSMController->GetStateElapsedTime(),
+	EnemyDefinition->ReviveDelay);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Down] Go Revive"));
 }
 
 void UDownStateComponent::OnStateExit()

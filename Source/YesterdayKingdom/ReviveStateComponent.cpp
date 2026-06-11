@@ -27,9 +27,15 @@ void UReviveStateComponent::OnStateEnter()
 			StatComp->GetMaxHP() * EnemyDefinition->ReviveHPPercent;
 
 		StatComp->SetCurrentHP(ReviveHP);
+		UE_LOG(LogTemp, Warning, TEXT("[Revive] HP: %.1f / MaxHP: %.1f / IsDead: %d"),
+		StatComp->GetCurrentHP(),
+		StatComp->GetMaxHP(),
+		StatComp->IsDead());
 	}
 
 	OwnerCharacter->ReviveMontage();
+	
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Revive] Enter"));
 
 }
 
@@ -51,9 +57,23 @@ void UReviveStateComponent::OnStateUpdate(float DeltaTime)
 	}
 
 	FSMController->ChangeState(EEnemyFSMStateType::Chase);
+	
 }
 
 void UReviveStateComponent::OnStateExit()
 {
 	Super::OnStateExit();
+
+	if (!OwnerCharacter || !EnemyDefinition)
+	{
+		return;
+	}
+
+	if (UBaseStatComponent* StatComp = OwnerCharacter->GetStatComponent())
+	{
+		const float ReviveHP =
+			StatComp->GetMaxHP() * EnemyDefinition->ReviveHPPercent;
+
+		StatComp->SetCurrentHP(ReviveHP);
+	}
 }

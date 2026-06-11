@@ -7,6 +7,7 @@
 #include "IdleStatComponent.h"
 #include "ChaseStateComponent.h"
 #include "AttackStateComponent.h"
+#include "HitStateComponent.h"
 #include "ReturnStateComponent.h"
 #include "ReviveStateComponent.h"
 #include "DownStateComponent.h"
@@ -28,6 +29,7 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
 	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));
+	HitState = CreateDefaultSubobject<UHitStateComponent>(TEXT("HitState"));
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
 	DownState = CreateDefaultSubobject<UDownStateComponent>(TEXT("DownState"));
 	ReviveState = CreateDefaultSubobject<UReviveStateComponent>(TEXT("ReviveState"));
@@ -65,6 +67,7 @@ void AEnemyElite::BeginPlay()
 	FSMController->RegisterState(EEnemyFSMStateType::Patrol, PatrolState);
 	FSMController->RegisterState(EEnemyFSMStateType::Chase, ChaseState);
 	FSMController->RegisterState(EEnemyFSMStateType::Attack, AttackState);
+	FSMController->RegisterState(EEnemyFSMStateType::Hit, HitState);
 	FSMController->RegisterState(EEnemyFSMStateType::Return, ReturnState);
 	FSMController->RegisterState(EEnemyFSMStateType::Down, DownState);
 	FSMController->RegisterState(EEnemyFSMStateType::Revive, ReviveState);
@@ -133,25 +136,40 @@ void AEnemyElite::SetPuppetMaster(AEnemyPuppetMaster* InMaster)
 
 void AEnemyElite::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
-	// 나중에 본체 죽었는지 체크해서 진짜 Dead 처리
-	const bool bMasterDead = IsPuppetMasterDead();
-	
-	if (!bMasterDead)
+	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+}
+
+void AEnemyElite::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
+	const FVector& DamageImpulse)
+{
+	if (DamageCauser)
 	{
-		// 공중에서 죽었으면 바로 Down으로 가지 말고,
-		// 착지 후 Down으로 전환
-		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		LastDamageCauser = DamageCauser;
+	}
+
+	UBaseStatComponent* StatComp = GetStatComponent();
+	if (!StatComp)
+	{
+		return;
+	}
+
+	StatComp->ApplyDamage(Damage);
+
+	if (StatComp->IsDead())
+	{
+		if (bTrueDead)
 		{
-			if (!Movement->IsMovingOnGround())
-			{
-				bPendingDownAfterLanded = true;
-				return;
-			}
+			ForceTrueDeath();
+			return;
 		}
-	
+
 		if (FSMController)
 		{
 			FSMController->ChangeState(EEnemyFSMStateType::Down);
 		}
+
+		return;
 	}
+
+	Super::NotifyDamage_Implementation(DamageLocation, DamageCauser);
 }

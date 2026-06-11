@@ -374,6 +374,9 @@ struct FStateTreeGetPlayerInfoInstanceData
 	UPROPERTY(VisibleAnywhere)
 	float AttackRange = 0.f;
 	
+	UPROPERTY(VisibleAnywhere)
+	float ReturnRange = 0.f;
+	
 };
 
 // 플레이어 정보 구하기 (글로벌 테스크)
