@@ -55,7 +55,10 @@ public:
 	int32 SlotIndex = -1;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText Description;
+	FText ItemDescription;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText EffectDescription;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EItemRarity Rarity = EItemRarity::Common;

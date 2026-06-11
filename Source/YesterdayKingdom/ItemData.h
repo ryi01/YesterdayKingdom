@@ -101,7 +101,10 @@ struct FItemData : public FTableRowBase
 
     // 툴팁에 표시될 아이템 설명 문구
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common")
-    FText Description;
+    FText ItemDescription;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common")
+	FText EffectDescription;
 
     // 아이템 희귀도 — Common / Uncommon / Rare / Epic / Legendary
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common")

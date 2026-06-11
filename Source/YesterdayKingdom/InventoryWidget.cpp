@@ -32,11 +32,30 @@ void UInventoryWidget::RefreshInventory()
 
 	GP_Item->ClearChildren();
 
-	const int32 SlotCount = InventoryComponent->GetItemSlots().Num();
-	for (int32 SlotIndex = 0; SlotIndex < SlotCount; SlotIndex++)
+	const TArray<FInventorySlot>& InventorySlots = InventoryComponent->GetItemSlots();
+	const TArray<FInventorySlotViewData> ViewDataList = InventoryComponent->GetAllSlotViewData();
+
+	TMap<int32, FInventorySlotViewData> ViewDataMap;
+	
+	for (const FInventorySlotViewData& ViewData : ViewDataList)
+	{
+		ViewDataMap.Add(ViewData.SlotIndex, ViewData);
+	}
+	
+	for (int32 SlotIndex = 0; SlotIndex < InventorySlots.Num(); SlotIndex++)
 	{
 		UItemSlotWidget* SlotWidget = CreateWidget<UItemSlotWidget>(GetOwningPlayer(), ItemSlotWidgetClass);
 		if (!SlotWidget) continue;
+
+		if (const FInventorySlotViewData* FoundViewData = ViewDataMap.Find(SlotIndex))
+		{
+			SlotWidget->SetSlotData(*FoundViewData);
+		}
+		else
+		{
+			SlotWidget->SetEmptySlot(SlotIndex);
+		}
+
 		const int32 Row = SlotIndex / ColumnCount;
 		const int32 Column = SlotIndex % ColumnCount;
 
