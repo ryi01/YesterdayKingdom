@@ -6,10 +6,10 @@
 #include "BaseStatComponent.h"
 #include "BossWidget.h"
 #include "EnemyBase.h"
+#include "InventoryTabBtnWidget.h"
 #include "PlayerCharacter.h"
-#include "InventoryWidget.h"
 #include "Components/ProgressBar.h"
-
+#include "Components/WidgetSwitcher.h"
 
 
 void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
@@ -26,12 +26,13 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 		UpdateST(StatComponent->GetCurrentST(), StatComponent->GetMaxST());
 		UpdateMP(StatComponent->GetCurrentMP(), StatComponent->GetMaxMP());
 	}
-	if (WBP_Inventory)
-	{
-		WBP_Inventory->BindInventory(OwnerPlayer->GetInventoryComponent());
-		WBP_Inventory->SetVisibility(ESlateVisibility::Collapsed);
-	}
+
 	if (WBP_BossHP) SetVisibleBossHPBar(false);
+	if (WBP_InventoryTab)
+	{
+		WBP_InventoryTab->SetInventoryComponent(OwnerPlayer->GetInventoryComponent());
+	}
+	SetSwitcherIndex(0);
 }
 
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -59,13 +60,19 @@ void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 	}
 }
 
+void UPlayerHUDWidget::SetSwitcherIndex(int32 index)
+{
+	WS_HUD->SetActiveWidgetIndex(index);
+}
+
 
 void UPlayerHUDWidget::SetInventoryVisible(bool bVisible)
 {
-	const ESlateVisibility NewVisibility = bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 	FString InventoryOpen = bVisible ? TEXT("OPEN INVENTORY") :  TEXT("CLOSE INVENTORY") ;
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *InventoryOpen);
-	if (WBP_Inventory) WBP_Inventory->SetVisibility(NewVisibility);
+	if (bVisible) SetSwitcherIndex(1);
+	else SetSwitcherIndex(0);
+	
 }
 
 

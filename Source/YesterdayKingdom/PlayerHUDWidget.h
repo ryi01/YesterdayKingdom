@@ -17,7 +17,7 @@ class YESTERDAYKINGDOM_API UPlayerHUDWidget : public UUserWidget
 	GENERATED_BODY()
 protected:
 	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<class UInventoryWidget> WBP_Inventory;
+	TObjectPtr<class UInventoryTabBtnWidget> WBP_InventoryTab;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<class UBossWidget> WBP_BossHP;
 	
@@ -26,6 +26,8 @@ protected:
 	
 	// ===============================================================================
 	
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<class UWidgetSwitcher> WS_HUD;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UVerticalBox> HUDBar;
 	
@@ -73,7 +75,14 @@ protected:
 	
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-
+	//=====================================================================================================
+	// 스위처
+	//=====================================================================================================
+	UFUNCTION()
+	void SetSwitcherIndex(int32 index);
+	//=====================================================================================================
+	// 플레이어 체력바
+	//=====================================================================================================
 	UFUNCTION()
 	void UpdateHP(float CurrentHP, float MaxHP);
 	UFUNCTION()

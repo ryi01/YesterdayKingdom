@@ -2,78 +2,104 @@
 
 
 #include "InventoryTabBtnWidget.h"
+
+#include "InventoryWidget.h"
 #include "Components/Border.h"
+#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Components/WidgetSwitcher.h"
+
 
 void UInventoryTabBtnWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	if (BTN_Map)
+	{
+		BTN_Map->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnMapClicked);
+	}
+
+	if (BTN_Quest)
+	{
+		BTN_Quest->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnQuestClicked);
+	}
+
+	if (BTN_Item)
+	{
+		BTN_Item->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnItemClicked);
+	}
+
+	if (BTN_Weapon)
+	{
+		BTN_Weapon->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnWeaponClicked);
+	}
+
+	if (BTN_System)
+	{
+		BTN_System->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnSystemClicked);
+	}
+
+	ChangeTab(EMenuTabType::Item);
+}
+
+void UInventoryTabBtnWidget::SetInventoryComponent(UInventoryComponent* InInventory)
+{
+	Wbp_InventoryWidget->BindInventory(InInventory);
 	
 }
 
-void UInventoryTabBtnWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+void UInventoryTabBtnWidget::OnMapClicked()
 {
-	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
-	
-	if (!bIsActive)
+	ChangeTab(EMenuTabType::Map);
+}
+
+void UInventoryTabBtnWidget::OnQuestClicked()
+{
+	ChangeTab(EMenuTabType::Quest);
+}
+
+void UInventoryTabBtnWidget::OnItemClicked()
+{
+	ChangeTab(EMenuTabType::Item);
+}
+
+void UInventoryTabBtnWidget::OnWeaponClicked()
+{
+	ChangeTab(EMenuTabType::Weapon);
+}
+
+void UInventoryTabBtnWidget::OnSystemClicked()
+{
+	ChangeTab(EMenuTabType::System);
+}
+
+int32 UInventoryTabBtnWidget::GetTabIndex(EMenuTabType TabType) const
+{
+	switch (TabType)
 	{
-		bIsHovered = true;
-		RefreshStyle();
+	case EMenuTabType::Map:
+		return 0;
+
+	case EMenuTabType::Quest:
+		return 1;
+
+	case EMenuTabType::Item:
+		return 2;
+
+	case EMenuTabType::Weapon:
+		return 3;
+
+	case EMenuTabType::System:
+		return 4;
+
+	default:
+		return 0;
 	}
 }
 
-void UInventoryTabBtnWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+void UInventoryTabBtnWidget::ChangeTab(EMenuTabType TabType)
 {
-	Super::NativeOnMouseLeave(InMouseEvent);
-	
-	bIsHovered = false;
-	RefreshStyle();
-}
+	if (!WS_Window) return;
 
-FReply UInventoryTabBtnWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-	
-	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
-	{
-		OnTabClicked.Broadcast(TabType);
-		return FReply::Handled();
-	}
-	
-	return FReply::Unhandled();
-}
-
-void UInventoryTabBtnWidget::RefreshStyle()
-{
-	if (Border_Background)
-	{
-		FLinearColor BgColor = bIsActive ? ActiveBgColor : bIsHovered ? HoverBgColor : InActiveBgColor;
-		Border_Background->SetBrushColor(BgColor);
-	}
-	
-	if (Border_ActiveLine)
-	{
-		FLinearColor LineColor = bIsActive ? ActiveLineColor : InActiveLineColor;
-		Border_ActiveLine->SetBrushColor(LineColor);
-	}
-	
-	if (Img_Icon)
-	{
-		float Opacity = bIsActive ? ActiveOpacity : bIsHovered ? HoverOpacity : InActiveOpacity;
-		Img_Icon->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, Opacity));
-	}
-	
-	if (Text_TabName)
-	{
-		float Opacity = bIsActive ? ActiveOpacity : bIsHovered ? HoverOpacity : InActiveOpacity;
-		Text_TabName->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, Opacity));
-	}
-}
-
-void UInventoryTabBtnWidget::SetActive(bool bActive)
-{
-	bIsActive = bActive;
-	bIsHovered = false;
-	RefreshStyle();
+	WS_Window->SetActiveWidgetIndex(GetTabIndex(TabType));
 }
