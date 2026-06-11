@@ -35,8 +35,7 @@ void UHitStateComponent::OnStateEnter()
 			}
 		}
 	}
-	GetWorld()->GetTimerManager().ClearTimer(HitLockTimerHandle);
-	GetWorld()->GetTimerManager().SetTimer(HitLockTimerHandle, this, &UHitStateComponent::FinishHitState, HitReactionLockTime, false);
+
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][Hit] Enter"));
 }
 
@@ -59,8 +58,8 @@ void UHitStateComponent::DecideNextState()
 	{
 		return;
 	}
-
-	FSMController->ChangeState(EEnemyFSMStateType::Cooldown);
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Hit] DecideNextState"));
+	FSMController->ChangeState(NextState);
 }
 
 void UHitStateComponent::FinishHitState()

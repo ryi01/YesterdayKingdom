@@ -89,5 +89,5 @@ protected:
 	TObjectPtr<USkeletalMeshComponent> StringMeshComponent;
 public:
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
-	virtual void ApplyDamage_Implementation(float Damage,AActor* DamageCauser,const FVector& DamageLocation,const FVector& DamageImpulse) override;
+	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse, EHitReactionType HitReactionType) override;
 };

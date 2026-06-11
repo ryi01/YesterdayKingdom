@@ -140,7 +140,7 @@ void AEnemyElite::NotifyDamage_Implementation(const FVector& DamageLocation, AAc
 }
 
 void AEnemyElite::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
-	const FVector& DamageImpulse)
+	const FVector& DamageImpulse, EHitReactionType HitReactionType)
 {
 	if (DamageCauser)
 	{
@@ -173,3 +173,4 @@ void AEnemyElite::ApplyDamage_Implementation(float Damage, AActor* DamageCauser,
 
 	Super::NotifyDamage_Implementation(DamageLocation, DamageCauser);
 }
+

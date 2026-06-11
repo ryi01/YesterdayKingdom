@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EnemyFSMTypes.h"
 #include "FSMStateComponent.h"
 #include "HitStateComponent.generated.h"
 
@@ -22,12 +23,14 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Damage|Reaction")
 	float HitReactionLockTime = 0.25f;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Idle")
+	EEnemyFSMStateType NextState = EEnemyFSMStateType::Cooldown;
 protected:
 	void HandleHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void DecideNextState();
-	void FinishHitState();
+
 public:
 	virtual void OnStateEnter() override;
 	virtual void OnStateExit() override;
+	void FinishHitState();
 };
