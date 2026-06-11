@@ -134,6 +134,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Combat|Event")
 	FOnAttackEnded OnAttackEnded;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|Combo")
+	bool bCanContinueCombo = true;
+	
 protected:
 	//=====================================================================================================
 	// 차지 공격
@@ -200,6 +203,8 @@ public:
 	//=====================================================================================================
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	virtual void CheckCombo();
+	
+	void SetCanContinueCombo(bool bCanContinue);
 	
 	//=====================================================================================================
 	// 차지 공격

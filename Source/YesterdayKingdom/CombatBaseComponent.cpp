@@ -72,6 +72,7 @@ bool UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
 	CurrentAttackRowName = AttackRowName;
 	CurrentAttackNodeIndex = 0;
 	bComboInputBuffered = false;
+	bCanContinueCombo = true;
 	
 	const FAttackNodeData* FirstNode = AttackDataRow->Nodes.IsValidIndex(CurrentAttackNodeIndex) ? &AttackDataRow->Nodes[CurrentAttackNodeIndex] : nullptr;
 	
@@ -130,6 +131,7 @@ void UCombatBaseComponent::ResetAttackState()
 
 	bComboInputBuffered = false;
 	bCanBufferComboInput = false;
+	bCanContinueCombo = true;
 	bIsAttackTracing = false;
 	
 	bIsCharging = false;
@@ -147,7 +149,17 @@ void UCombatBaseComponent::ResetAttackState()
 void UCombatBaseComponent::CheckCombo()
 {
 	if (CurrentAttackRowName.IsNone()) return;
+	if (!bCanContinueCombo)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Combat][CheckCombo] Blocked / Finish Attack / Row=%s / Index=%d"),
+			*CurrentAttackRowName.ToString(),
+			CurrentAttackNodeIndex);
 
+		ResetAttackState();
+		OnAttackEnded.Broadcast();
+		return;
+	}
 	if (bUseComboInputWindow)
 	{
 		bCanBufferComboInput = false;
@@ -157,6 +169,11 @@ void UCombatBaseComponent::CheckCombo()
 	
 	bComboInputBuffered = false;
 	JumpToNextAttackSection();
+}
+
+void UCombatBaseComponent::SetCanContinueCombo(bool bCanContinue)
+{
+	bCanContinueCombo = bCanContinue;
 }
 
 bool UCombatBaseComponent::JumpToNextAttackSection()

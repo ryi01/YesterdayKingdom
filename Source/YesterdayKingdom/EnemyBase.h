@@ -72,7 +72,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Enemy|Events")
 	FOnDoEnemyDied OnEnemyDied;
 protected:
-	virtual void Landed(const FHitResult& Hit) override;
+
 	virtual void InitializeFromDefinition();
 
 	//===============================================================================================
@@ -83,6 +83,7 @@ protected:
 
 public:
 	virtual void BeginPlay() override;
+	virtual void Landed(const FHitResult& Hit) override;
 	void SetHomeLocation(const FVector& InHomeLocation);
 	//===============================================================================================
 	// 데미지를 입는것

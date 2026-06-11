@@ -15,17 +15,14 @@ void UAttackStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
 	if (!OwnerCharacter || !FSMController || !EnemyDefinition) return;
-	if (IsOwnerDead())
-	{
-		return;
-	}
-	SetRootMotionFromMontage(true);
+	if (IsOwnerDead()) return;
 	
 	FacePlayerInstant();
 	
 	StopMove();
 	
 	bAttackCompletedNormally = false;
+	bShouldChaseAfterAttack = false;
 	
 	OwnerCharacter->OnAttackCompleted.Unbind();
 	OwnerCharacter->OnAttackCompleted.BindUObject(this, &UAttackStateComponent::HandleAttackCompleted);
@@ -64,11 +61,45 @@ void UAttackStateComponent::OnStateExit()
 
 	UE_LOG(LogTemp, Log, TEXT("[FSM][Attack] Exit"));
 }
+
+
 void UAttackStateComponent::HandleAttackCompleted()
 {
 	if (!FSMController) return;
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][Attack] Attack Completed"));
 	bAttackCompletedNormally = true;
+	if (bShouldChaseAfterAttack)
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::Chase);
+		return;
+	}
+
 	FSMController->ChangeState(NextState);
+}
+void UAttackStateComponent::CheckAttackTargetState()
+{
+	if (bShouldChaseAfterAttack) return;
+	if (IsPlayerTooFarDuringAttack())
+	{
+		bShouldChaseAfterAttack = true;
+		if (UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent())
+		{
+			CombatComp->SetCanContinueCombo(false);
+		}
+
+		UE_LOG(LogTemp, Warning,
+			TEXT("[FSM][Attack] Player Too Far / Chase After Combo End"));
+	}
+}
+
+bool UAttackStateComponent::IsPlayerTooFarDuringAttack() const
+{
+	if (!OwnerCharacter)return false;
+	APawn* PlayerPawn = GetTargetPlayer();
+	if (!PlayerPawn) return false;
+
+	const float DistanceToPlayer = FVector::Dist2D(OwnerCharacter->GetActorLocation(),PlayerPawn->GetActorLocation());
+
+	return DistanceToPlayer > ChaseAfterAttackDistance;
 }
 
