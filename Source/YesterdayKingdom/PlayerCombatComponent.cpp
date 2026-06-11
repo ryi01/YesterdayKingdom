@@ -9,6 +9,10 @@
 #include "PlayerSkillComponent.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
+UPlayerCombatComponent::UPlayerCombatComponent()
+{
+	bUseComboInputWindow = true;
+}
 
 //===============================================================================================
 // 플레이어 시선 보정
@@ -108,7 +112,7 @@ void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 	const float StaminaCost = AttackData->StaminaCost;
 	const float MPCost = AttackData->MPCost;
 	
-	if (StaminaCost > 0.f  && StatComp->GetCurrentST() < StaminaCost) StatComp->ConsumeST(StaminaCost);
+	if (StaminaCost > 0.f && StatComp->GetCurrentST() < StaminaCost) return;
 	if (MPCost > 0.f && StatComp->GetCurrentMP() < MPCost) return;
 	
 	const bool bRequested = RequestAttackByRow(AttackRowName);

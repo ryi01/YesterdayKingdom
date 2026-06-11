@@ -17,19 +17,22 @@ protected:
 	//===============================================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	TMap<EAttackType, FName> PlayerAttackRows;
+
+public:
+	UPlayerCombatComponent();
 	
-	//===============================================================================================
-	// 공격 보정을 위한 함수
-	//===============================================================================================
-	void FaceBestTarget();
-	UFUNCTION()
-	AActor* FindBestTarget() const;
 private:
 	bool TryGetAttackRowName(EAttackType AttackType, FName& OutRowName) const;
 protected:
 	virtual void OnChargeAttackStarted() override;
 	virtual void OnGuardStarted() override;
 	virtual void OnGuardEnded() override;
+	//===============================================================================================
+	// 공격 보정을 위한 함수
+	//===============================================================================================
+	void FaceBestTarget();
+	UFUNCTION()
+	AActor* FindBestTarget() const;
 public:
 	virtual void BeginAttackTrace() override;
 

@@ -89,10 +89,10 @@ void AEnemyBase::Landed(const FHitResult& Hit)
 // 전투관련
 //===============================================================================================
 void AEnemyBase::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
-	const FVector& DamageImpulse)
+	const FVector& DamageImpulse, EHitReactionType HitReactionType)
 {
 	if (DamageCauser) LastDamageCauser = DamageCauser;
-	Super::ApplyDamage_Implementation(Damage, DamageCauser, DamageLocation, DamageImpulse);
+	Super::ApplyDamage_Implementation(Damage, DamageCauser, DamageLocation, DamageImpulse, HitReactionType);
 }
 
 void AEnemyBase::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)

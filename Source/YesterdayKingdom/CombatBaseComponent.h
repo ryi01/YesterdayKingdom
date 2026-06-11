@@ -76,6 +76,10 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Charge")
 	FName CurrentChargeRowName = NAME_None;
+	
+	UPROPERTY()
+	TSubclassOf<UCameraShakeBase> ActiveChargeHoldShake;
+	
 	//===============================================================================
 	// 가드 
 	//===============================================================================
@@ -111,6 +115,18 @@ protected:
 
 	FTimerHandle ParryTimerHandle;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Combo")
+	bool bUseComboInputWindow = false;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Combo")
+	bool bCanBufferComboInput = false;
+	
+	UPROPERTY()
+	TEnumAsByte<ECollisionResponse> CachedPawnCollisionResponse = ECR_Block;
+
+	UPROPERTY()
+	bool bIsPawnPassThroughEnabled = false;
+
 public:	
 	// Sets default values for this component's properties
 	UCombatBaseComponent();
@@ -128,6 +144,9 @@ protected:
 	void UpdateCharge(float DeltaTime);
 	
 	float CalculateChargeRatio(const FAttackDataRow* AttackDataRow) const;
+
+	void StartChargeHoldFeedback(const FHitFeedbackData& Feedback);
+	void StopChargeHoldFeedback();
 	
 	//===============================================================================
 	// 가드 
@@ -155,6 +174,9 @@ protected:
 	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
 	void ResetHitStop();
+	
+	FVector GetHitDirectionToTarget(AActor* HitActor) const;
+	FVector BuildDamageImpulse(AActor* HitActor,const FHitReactionData& ReactionData) const;
 	
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -189,6 +211,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Charge")
 	virtual void ReleaseChargeAttack();
 	
+	void SetPawnPassThrough(bool bEnable);
+
 	//===============================================================================
 	// 가드 
 	//===============================================================================
@@ -216,7 +240,11 @@ public:
 	void SetAttackDataTable(UDataTable* NewTable);
 	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
 	bool JumpToNextAttackSection();
-	
+	//=====================================================================================================
+	// Open Close
+	//=====================================================================================================
+	void OpenComboInputBuffer();
+	void CloseComboInputBuffer();
 	//=====================================================================================================
 	// Getter
 	//=====================================================================================================

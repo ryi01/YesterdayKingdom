@@ -17,11 +17,12 @@ void UHitStateComponent::OnStateEnter()
 
 	if (OwnerCharacter)
 	{
-		SetRootMotionFromMontage(true);
+		SetRootMotionFromMontage(false);
 		StopMove();
 		if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
 		{
 			MoveComp->StopMovementImmediately();
+			MoveComp->Velocity = FVector::ZeroVector;
 		}
 
 		SetFocusToPlayer();
@@ -31,13 +32,11 @@ void UHitStateComponent::OnStateEnter()
 			if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
 			{
 				OwnerCharacter->PlayAnimMontage(EnemyDefinition->HitMontage);
-				HitMontageEndedDelegate.Unbind();
-				HitMontageEndedDelegate.BindUObject(this, &UHitStateComponent::HandleHitMontageEnded);
-				AnimInstance->Montage_SetEndDelegate(HitMontageEndedDelegate, EnemyDefinition->HitMontage);
 			}
 		}
 	}
-
+	GetWorld()->GetTimerManager().ClearTimer(HitLockTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(HitLockTimerHandle, this, &UHitStateComponent::FinishHitState, HitReactionLockTime, false);
 	UE_LOG(LogTemp, Warning, TEXT("[FSM][Hit] Enter"));
 }
 
@@ -62,4 +61,9 @@ void UHitStateComponent::DecideNextState()
 	}
 
 	FSMController->ChangeState(EEnemyFSMStateType::Cooldown);
+}
+
+void UHitStateComponent::FinishHitState()
+{
+	DecideNextState();
 }
