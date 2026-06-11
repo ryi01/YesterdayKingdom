@@ -60,7 +60,6 @@ void UBackStepStateComponent::OnStateUpdate(float DeltaTime)
 	Super::OnStateUpdate(DeltaTime);
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 

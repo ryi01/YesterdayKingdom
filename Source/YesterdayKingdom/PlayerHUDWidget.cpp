@@ -120,7 +120,7 @@ void UPlayerHUDWidget::HandleBossHPChanged(float CurrentHP, float MaxHP)
 
 	WBP_BossHP->SetBossHP(CurrentHP, MaxHP);
 
-	if (CurrentHP <= 0.f)
+	if (CurrentHP <= 0.f && BoundBoss->GetCurrentPhase() > 1)
 	{
 		SetVisibleBossHPBar(false);
 	}

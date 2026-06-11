@@ -31,7 +31,6 @@ void UIdleStatComponent::OnStateUpdate(float DeltaTime)
 	if (!OwnerCharacter || !FSMController) return;
 	if (OwnerCharacter->IsDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 	const float StateElapsedTime = FSMController->GetStateElapsedTime();

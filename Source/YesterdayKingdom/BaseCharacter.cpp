@@ -3,6 +3,7 @@
 
 #include "BaseCharacter.h"
 
+#include "AIController.h"
 #include "BaseStatComponent.h"
 #include "CombatBaseComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -104,7 +105,7 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 }
 
 void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
-	const FVector& DamageImpulse)
+	const FVector& DamageImpulse, EHitReactionType HitReactionType)
 {
 	if (!StatComponent) return;
 	float FinalDamage = Damage;
@@ -118,7 +119,14 @@ void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCaus
 
 	if (AppliedDamage > 0.f)
 	{
+		
 		IDamagable::Execute_NotifyDamage(this, DamageLocation, DamageCauser);
+		
+		if (!StatComponent->IsDead())
+		{
+			HandleHitReaction(HitReactionType, DamageImpulse, DamageCauser);
+		}
+
 	}
 
 	if (StatComponent->IsDead())
@@ -182,6 +190,8 @@ void ABaseCharacter::CheckCombo_Implementation()
 
 void ABaseCharacter::ClearAttackAnimation_Implementation()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Character][ClearAttackAnimation] Called / %s"), *GetName());
+
 	if (CombatBaseComponent) CombatBaseComponent->ResetAttackState();
 }
 
@@ -209,6 +219,63 @@ float ABaseCharacter::GetDeathDestroyDelay() const
 {
 	return DestroyDelay;
 }
+// ========================================================
+// Damageable 
+// ========================================================
+void ABaseCharacter::HandleHitReaction(EHitReactionType HitReactionType, const FVector& DamageImpulse, AActor* DamageCauser)
+{
+	if (IsPlayerControlled()) return;
+	if (HitReactionType == EHitReactionType::None) return;
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		AIController->StopMovement();
+	}
+
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->StopMovementImmediately();
+	}
+
+	switch (HitReactionType)
+	{
+	case EHitReactionType::Stagger:
+		break;
+
+		
+	case EHitReactionType::Knockback:
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->BrakingDecelerationWalking = 0.f;
+		}
+
+		LaunchCharacter(DamageImpulse, true, true);
+		break;
+
+	case EHitReactionType::Launch:
+		LaunchCharacter(DamageImpulse, true, true);
+		break;
+
+	case EHitReactionType::Slam:
+		LaunchCharacter(DamageImpulse, true, true);
+		break;
+
+	case EHitReactionType::Stun:
+		break;
+
+	case EHitReactionType::None:
+	default:
+		break;
+	}
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Character][HitReaction AfterLaunch] Velocity=%s / Pending=%s / Mode=%d"),
+			*MoveComp->Velocity.ToString(),
+			*MoveComp->PendingLaunchVelocity.ToString(),
+			static_cast<int32>(MoveComp->MovementMode));
+	}
+}
+
 void ABaseCharacter::OnDead()
 {
 }
@@ -216,3 +283,5 @@ void ABaseCharacter::DestroyAfterDeath()
 {
 	Destroy();
 }
+
+

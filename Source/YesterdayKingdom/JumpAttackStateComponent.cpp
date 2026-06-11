@@ -82,7 +82,6 @@ void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 

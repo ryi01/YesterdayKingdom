@@ -9,6 +9,7 @@
 #include "BaseStatComponent.h"
 #include "Animation/AnimMontage.h"
 #include "CommonEnumTypes.h"
+#include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 UCombatBaseComponent::UCombatBaseComponent()
@@ -45,7 +46,22 @@ bool UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
 	{
 		if (CurrentAttackRowName == AttackRowName)
 		{
+			if (bUseComboInputWindow && !bCanBufferComboInput)
+			{
+				UE_LOG(LogTemp, Warning,
+					TEXT("[Combat][RequestAttack] Input Ignored / Buffer Closed / Row=%s / Index=%d"),
+					*AttackRowName.ToString(),
+					CurrentAttackNodeIndex);
+
+				return false;
+			}
+
 			bComboInputBuffered = true;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[Combat][RequestAttack] Combo Buffered / Row=%s / Index=%d"),
+				*AttackRowName.ToString(),
+				CurrentAttackNodeIndex);
 			return true;
 		}
 		return false;
@@ -85,16 +101,35 @@ bool UCombatBaseComponent::RequestAttackByRow(FName AttackRowName)
 // 애니메이션 종료
 void UCombatBaseComponent::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
+	UE_LOG(LogTemp, Warning,
+	TEXT("[Combat][MontageEnded] Montage=%s / Interrupted=%d / Row=%s / Index=%d"),
+	Montage ? *Montage->GetName() : TEXT("None"),
+	bInterrupted,
+	*CurrentAttackRowName.ToString(),
+	CurrentAttackNodeIndex);
+	
+	if (bInterrupted)
+	{
+		return;
+	}
+
 	ResetAttackState();
 	OnAttackEnded.Broadcast();
 }
 
 void UCombatBaseComponent::ResetAttackState()
 {
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][ResetAttackState] Row=%s / Index=%d"),
+		*CurrentAttackRowName.ToString(),
+		CurrentAttackNodeIndex);
+	SetPawnPassThrough(false);
+	
 	CurrentAttackRowName = NAME_None;
 	CurrentAttackNodeIndex = INDEX_NONE;
 
 	bComboInputBuffered = false;
+	bCanBufferComboInput = false;
 	bIsAttackTracing = false;
 	
 	bIsCharging = false;
@@ -111,9 +146,16 @@ void UCombatBaseComponent::ResetAttackState()
 //=====================================================================================================
 void UCombatBaseComponent::CheckCombo()
 {
-	if (!bAutoCombo && !bComboInputBuffered) return;
-	bComboInputBuffered = false;
+	if (CurrentAttackRowName.IsNone()) return;
+
+	if (bUseComboInputWindow)
+	{
+		bCanBufferComboInput = false;
+	}
 	
+	if (!bAutoCombo && !bComboInputBuffered) return;
+	
+	bComboInputBuffered = false;
 	JumpToNextAttackSection();
 }
 
@@ -192,6 +234,21 @@ bool UCombatBaseComponent::JumpToNextAttackSection()
 	return true;
 }
 //=====================================================================================================
+// Open Close
+//=====================================================================================================
+void UCombatBaseComponent::OpenComboInputBuffer()
+{
+	if (!bUseComboInputWindow) return;
+	bCanBufferComboInput = true;
+}
+
+void UCombatBaseComponent::CloseComboInputBuffer()
+{
+	if (!bUseComboInputWindow) return;
+	bCanBufferComboInput = false;
+}
+
+//=====================================================================================================
 // 차지 공격 관련 함수
 //=====================================================================================================
 void UCombatBaseComponent::OnChargeAttackStarted()
@@ -226,9 +283,6 @@ bool UCombatBaseComponent::StartChargeAttackByRow(FName AttackRowName)
 	CurrentChargeRowName = AttackRowName;
 	
 	SetComponentTickEnabled(true);
-	
-	OnChargeAttackStarted();
-	
 	const bool bRequested = RequestAttackByRow(AttackRowName);
 	if (!bRequested)
 	{
@@ -240,6 +294,13 @@ bool UCombatBaseComponent::StartChargeAttackByRow(FName AttackRowName)
 		return false;
 	}
 
+	OnChargeAttackStarted();
+	const FAttackNodeData* NodeData = GetCurrentAttackNodeData();
+	if (NodeData)
+	{
+		StartChargeHoldFeedback(NodeData->HitFeedback);
+	}
+	
 	return true;
 }
 
@@ -261,6 +322,7 @@ void UCombatBaseComponent::CancelChargeAttack()
 	CurrentChargeRatio = 1.f;
 	CurrentChargeRowName = NAME_None;
 	
+	StopChargeHoldFeedback();
 	SetComponentTickEnabled(false);
 	
 	ResetAttackState();
@@ -278,11 +340,40 @@ void UCombatBaseComponent::ReleaseChargeAttack()
 
 	bIsCharging = false;
 	SetComponentTickEnabled(false);
+	
+	StopChargeHoldFeedback();
 
 	OnChargeAttackReleased();
 	
 	JumpToNextAttackSection();
 }
+
+void UCombatBaseComponent::SetPawnPassThrough(bool bEnable)
+{
+	if (!OwnerCharacter) return;
+
+	UCapsuleComponent* Capsule = OwnerCharacter->GetCapsuleComponent();
+	if (!Capsule) return;
+
+	if (bEnable)
+	{
+		if (bIsPawnPassThroughEnabled) return;
+
+		CachedPawnCollisionResponse = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
+		Capsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+		bIsPawnPassThroughEnabled = true;
+	}
+	else
+	{
+		if (!bIsPawnPassThroughEnabled) return;
+
+		Capsule->SetCollisionResponseToChannel(ECC_Pawn, CachedPawnCollisionResponse);
+		bIsPawnPassThroughEnabled = false;
+		
+	}
+}
+
 
 void UCombatBaseComponent::UpdateCharge(float DeltaTime)
 {
@@ -336,6 +427,32 @@ float UCombatBaseComponent::CalculateChargeRatio(const FAttackDataRow* AttackDat
 	const float HeldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
 	
 	return FMath::Clamp(HeldTime / MaxChargeTime, 0.f, 1.f);
+}
+
+void UCombatBaseComponent::StartChargeHoldFeedback(const FHitFeedbackData& Feedback)
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsPlayerControlled()) return;
+	if (!Feedback.CameraShake) return;
+
+	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
+	if (!PC || !PC->PlayerCameraManager) return;
+
+	StopChargeHoldFeedback();
+
+	ActiveChargeHoldShake = Feedback.CameraShake;
+	PC->PlayerCameraManager->StartCameraShake(Feedback.CameraShake, Feedback.ShakeScale);
+}
+
+void UCombatBaseComponent::StopChargeHoldFeedback()
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsPlayerControlled()) return;
+	if (!ActiveChargeHoldShake) return;
+
+	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
+	if (!PC || !PC->PlayerCameraManager) return;
+
+	PC->PlayerCameraManager->StopAllInstancesOfCameraShake(ActiveChargeHoldShake, true);
+	ActiveChargeHoldShake = nullptr;
 }
 
 //=====================================================================================================
@@ -576,6 +693,7 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 	}
 	
 	float Damage = BaseDamage + AttackBonus;
+
 	if (!CurrentChargeRowName.IsNone() && CurrentAttackRowName == CurrentChargeRowName)
 	{
 		const FAttackDataRow* AttackDataRow = GetAttackDataByRow(CurrentChargeRowName);
@@ -586,9 +704,20 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 		}
 	}
 
-	const FVector DamageImpulse = OwnerCharacter->GetActorForwardVector();
-	
-	IDamagable::Execute_ApplyDamage(HitActor, Damage, OwnerCharacter.Get(), HitResult.ImpactPoint, DamageImpulse);
+	const FHitReactionData ReactionData = NodeData ? NodeData->HitReaction : FHitReactionData();
+	const FVector DamageImpulse = BuildDamageImpulse(HitActor, ReactionData);
+	const EHitReactionType HitReactionType = ReactionData.Type;
+	UE_LOG(LogTemp, Warning,
+	TEXT("[Combat][ApplyAttackHit] Row=%s / Index=%d / Node=%s / Type=%d / Forward=%.1f / Up=%.1f / Impulse=%s / Size=%.1f"),
+	*CurrentAttackRowName.ToString(),
+	CurrentAttackNodeIndex,
+	NodeData ? *NodeData->SectionName.ToString() : TEXT("None"),
+	static_cast<int32>(ReactionData.Type),
+	ReactionData.ForwardPower,
+	ReactionData.UpPower,
+	*DamageImpulse.ToString(),
+	DamageImpulse.Size());
+	IDamagable::Execute_ApplyDamage(HitActor, Damage, OwnerCharacter.Get(), HitResult.ImpactPoint, DamageImpulse, HitReactionType);
 	
 	if (NodeData && OwnerCharacter->IsPlayerControlled())
 	{
@@ -631,6 +760,48 @@ void UCombatBaseComponent::ResetHitStop()
 		UGameplayStatics::SetGlobalTimeDilation(World, 1.f);
 	}
 }
+
+FVector UCombatBaseComponent::GetHitDirectionToTarget(AActor* HitActor) const
+{
+	if (!HitActor || !OwnerCharacter) return FVector::ZeroVector;
+
+	FVector HitDirection = HitActor->GetActorLocation() - OwnerCharacter->GetActorLocation();
+	HitDirection.Z = 0.f;
+	HitDirection = HitDirection.GetSafeNormal();
+	
+	if (HitDirection.IsNearlyZero())
+	{
+		HitDirection = OwnerCharacter->GetActorForwardVector();
+		HitDirection.Z = 0.f;
+		HitDirection = HitDirection.GetSafeNormal();
+	}
+
+	return HitDirection;
+}
+
+FVector UCombatBaseComponent::BuildDamageImpulse(AActor* HitActor, const FHitReactionData& ReactionData) const
+{
+	const FVector HitDirection = GetHitDirectionToTarget(HitActor);
+
+	switch (ReactionData.Type)
+	{
+	case EHitReactionType::Knockback:
+		return HitDirection * ReactionData.ForwardPower + FVector::UpVector * ReactionData.UpPower;
+
+	case EHitReactionType::Launch:
+		return HitDirection * ReactionData.ForwardPower + FVector::UpVector * ReactionData.UpPower;
+
+	case EHitReactionType::Slam:
+		return FVector::DownVector * ReactionData.UpPower;
+
+	case EHitReactionType::Stagger:
+	case EHitReactionType::Stun:
+	case EHitReactionType::None:
+	default:
+		return HitDirection;
+	}
+}
+
 //=====================================================================================================
 // 데이터 테이블 row 빼는 함수
 //=====================================================================================================

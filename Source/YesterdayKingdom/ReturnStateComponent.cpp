@@ -24,7 +24,6 @@ void UReturnStateComponent::OnStateUpdate(float DeltaTime)
 	if (!FSMController || !OwnerCharacter) return;
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 	const float DistanceToHome = GetDistanceToHomeLocation();

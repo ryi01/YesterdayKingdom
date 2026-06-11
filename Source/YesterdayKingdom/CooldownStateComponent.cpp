@@ -35,7 +35,6 @@ void UCooldownStateComponent::OnStateUpdate(float DeltaTime)
 	
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 	CooldownElapsedTime += DeltaTime;
