@@ -31,6 +31,7 @@ void UHitStateComponent::OnStateEnter()
 		{
 			if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
 			{
+				AnimInstance->Montage_Stop(0.03f, EnemyDefinition->HitMontage);
 				OwnerCharacter->PlayAnimMontage(EnemyDefinition->HitMontage);
 			}
 		}

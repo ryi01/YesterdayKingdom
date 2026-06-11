@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EnemyFSMTypes.h"
 #include "FSMStateComponent.h"
 #include "AttackStateComponent.generated.h"
 
@@ -14,11 +15,14 @@ class YESTERDAYKINGDOM_API UAttackStateComponent : public UFSMStateComponent
 {
 	GENERATED_BODY()
 	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Next")
+	EEnemyFSMStateType NextState = EEnemyFSMStateType::Cooldown;
+	
+	bool bAttackCompletedNormally = false;
+protected:
+	void HandleAttackCompleted();
 public:
-
 	virtual void OnStateEnter() override;
-
-	virtual void OnStateUpdate(float) override;
-
 	virtual void OnStateExit() override;
 };

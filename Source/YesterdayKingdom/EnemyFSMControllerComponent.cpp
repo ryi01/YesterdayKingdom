@@ -67,7 +67,22 @@ static FString GetEnemyFSMStateName(EEnemyFSMStateType StateType)
 void UEnemyFSMControllerComponent::ChangeState(EEnemyFSMStateType NewStateType)
 {
 	if (CurrentStateType == EEnemyFSMStateType::Dead) return;
-	if (!bIsRunning || CurrentStateType == NewStateType) return;
+	if (!bIsRunning) return;
+
+	if (CurrentStateType == NewStateType)
+	{
+		if (NewStateType == EEnemyFSMStateType::Hit && CurrentStateComponent)
+		{
+			CurrentStateComponent->OnStateExit();
+
+			StateElapsedTime = 0.f;
+
+			CurrentStateComponent->OnStateEnter();
+		}
+
+		return;
+	}
+
 	UFSMStateComponent* NewState = FindState(NewStateType);
 	if (!NewState) return;
 	

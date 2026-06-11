@@ -3,6 +3,8 @@
 
 #include "EnemyElite.h"
 
+#include "AttackActionStateComponent.h"
+#include "AttackBossStateComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "IdleStatComponent.h"
 #include "ChaseStateComponent.h"
@@ -17,7 +19,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "BaseStatComponent.h"
+#include "CooldownStateComponent.h"
 #include "PatrolStateComponent.h"
+#include "PatternSelectStateComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
 AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
@@ -28,6 +32,8 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	IdleState = CreateDefaultSubobject<UIdleStatComponent>(TEXT("IdleState"));
 	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
+	CooldownState = CreateDefaultSubobject<UCooldownStateComponent>(TEXT("CooldownState"));
+	PatternSelectState = CreateDefaultSubobject<UPatternSelectStateComponent>(TEXT("PatternSelectState"));
 	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));
 	HitState = CreateDefaultSubobject<UHitStateComponent>(TEXT("HitState"));
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
@@ -66,8 +72,10 @@ void AEnemyElite::BeginPlay()
 	FSMController->RegisterState(EEnemyFSMStateType::Idle, IdleState);
 	FSMController->RegisterState(EEnemyFSMStateType::Patrol, PatrolState);
 	FSMController->RegisterState(EEnemyFSMStateType::Chase, ChaseState);
+	FSMController->RegisterState(EEnemyFSMStateType::Cooldown, CooldownState);
 	FSMController->RegisterState(EEnemyFSMStateType::Attack, AttackState);
 	FSMController->RegisterState(EEnemyFSMStateType::Hit, HitState);
+	FSMController->RegisterState(EEnemyFSMStateType::PatternSelect, PatternSelectState);
 	FSMController->RegisterState(EEnemyFSMStateType::Return, ReturnState);
 	FSMController->RegisterState(EEnemyFSMStateType::Down, DownState);
 	FSMController->RegisterState(EEnemyFSMStateType::Revive, ReviveState);

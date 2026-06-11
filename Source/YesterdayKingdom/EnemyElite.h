@@ -68,7 +68,13 @@ protected:
 	TObjectPtr<UChaseStateComponent> ChaseState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
-	TObjectPtr<UAttackStateComponent> AttackState;
+	TObjectPtr<class UCooldownStateComponent> CooldownState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM|State")
+	TObjectPtr<class UPatternSelectStateComponent> PatternSelectState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
+	TObjectPtr<class UAttackStateComponent> AttackState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UHitStateComponent> HitState;
