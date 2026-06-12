@@ -345,7 +345,7 @@ struct FStateTreeGetPlayerInfoInstanceData
 
 	// AI 캐릭터 참조
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABaseCharacter> Character;
+	TObjectPtr<AEnemyNomal> Character;
 
 	// 플레이어 캐릭터 참조
 	UPROPERTY(VisibleAnywhere)
@@ -357,10 +357,18 @@ struct FStateTreeGetPlayerInfoInstanceData
 	// 플레이어 위치
 	UPROPERTY(VisibleAnywhere)
 	FVector TargetPlayerLocation = FVector::ZeroVector;
+	UPROPERTY(VisibleAnywhere)
+	FVector HomeLocation = FVector::ZeroVector;
 	
 	// 플레이어와의 거리
 	UPROPERTY(VisibleAnywhere)
 	float DistanceToTarget = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere)
+	float DistanceToHome = 0.f;
+
+	UPROPERTY(VisibleAnywhere)
+	bool IsHit;
 	
 	UPROPERTY(VisibleAnywhere)
 	bool IsDead;
@@ -430,3 +438,4 @@ struct FStateTreeWidgetTask : public FStateTreeTaskCommonBase
 		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
 #endif
 };
+

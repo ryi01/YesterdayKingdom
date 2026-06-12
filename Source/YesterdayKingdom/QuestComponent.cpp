@@ -105,7 +105,7 @@ bool UQuestComponent::CompleteCurrentQuest()
 	);
 
 	GiveReward(*QuestDataRow);
-	
+	OnQuestCompleted.Broadcast( CurrentQuestInstance.QuestRowName);
 	OnQuestChanged.Broadcast();
 	
 	StartNextQuest();

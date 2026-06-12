@@ -28,7 +28,7 @@ bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount, bool bNotifyQ
 	if (ItemRowName.IsNone() || Amount <= 0) return false;
 	const FItemData* ItemData = GetItemData(ItemRowName);
 	if (!ItemData) return false;
-	
+	if (TryAutoUseItem(ItemRowName, Amount, *ItemData, bNotifyQuest)) return true;
 	int32 RemainAmount = Amount;
 	int32 AddedAmount = 0;
 	
@@ -80,10 +80,6 @@ bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount, bool bNotifyQ
 		if (APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetOwner()))
 		{
 			PlayerCharacter->TryAutoRegisterQuickSlot(ItemRowName);
-		}
-		if (bNotifyQuest)
-		{
-			NotifyQuestItemCollected(ItemRowName, AddedAmount);
 		}
 	}
 	if (RemainAmount > 0)
@@ -245,20 +241,22 @@ const FItemData* UInventoryComponent::GetItemData(FName ItemRowName) const
 	// 있다면 DT에서 해당 Row를 추출
 	return ItemDataTable->FindRow<FItemData>(ItemRowName, TEXT("InventoryComponent::GetItemData"));
 }
+
+
 //===============================================================================================
 // 아이템의 퀘스트 아이템 추가 
 //===============================================================================================
-void UInventoryComponent::NotifyQuestItemCollected(FName ItemRowName, int32 Amount)
+bool  UInventoryComponent::NotifyQuestItemCollected(FName ItemRowName, int32 Amount)
 {
-	if (ItemRowName.IsNone() || Amount <= 0) return;
+	if (ItemRowName.IsNone() || Amount <= 0)  return false;
 	
 	APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetOwner());
-	if (!PlayerCharacter) return;
+	if (!PlayerCharacter)  return false;
 
 	UQuestComponent* QuestComponent = PlayerCharacter->GetQuestComponent();
-	if (!QuestComponent) return;
+	if (!QuestComponent) return false;
 	
-	QuestComponent->AddProgress(EQuestObjectiveType::CollectItem, ItemRowName, Amount);
+	return QuestComponent->AddProgress(EQuestObjectiveType::CollectItem, ItemRowName, Amount);
 }
 
 //===============================================================================================
@@ -282,6 +280,28 @@ bool UInventoryComponent::MakeSlotViewData(int32 SlotIndex, FInventorySlotViewDa
 	OutViewData.Rarity = ItemData->Rarity;
 	OutViewData.BuyPrice = ItemData->BuyPrice;
 	OutViewData.SellPrice = ItemData->SellPrice;
+
+	return true;
+}
+
+bool UInventoryComponent::TryAutoUseItem(FName ItemRowName, int32 Amount, const FItemData& ItemData, bool bNotifyQuest)
+{
+	if (!ItemData.bAutoUseOnAcquire) return false;
+	const bool bQuestProgressed = NotifyQuestItemCollected(ItemRowName, Amount);
+	if (!bQuestProgressed)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[Inventory][AutoUse] Quest progress failed / Item=%s / Amount=%d"),
+			*ItemRowName.ToString(),
+			Amount);
+
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[Inventory][AutoUse] Quest item used / Item=%s / Amount=%d"),
+		*ItemRowName.ToString(),
+		Amount);
 
 	return true;
 }

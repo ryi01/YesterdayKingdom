@@ -70,6 +70,10 @@ protected:
 	TObjectPtr<class UWidgetComponent> EnemyHPWidgetComponent;
 	UPROPERTY()
 	TObjectPtr<class UEnemyHPWidget> EnemyHPWidget;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hit")
+	bool bHit = false;
+	FTimerHandle HitTimerHandle;
+
 public:
 	AEnemyBase(const FObjectInitializer& ObjectInitializer);
 	
@@ -79,6 +83,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Enemy|Events")
 	FOnDoEnemyDied OnEnemyDied;
+
 protected:
 
 	virtual void InitializeFromDefinition();
@@ -174,6 +179,8 @@ public:
 	void OnEnemyHPChanged(float CurrentHP, float MaxHP);
 	void SetEnemyHPWidgetVisible(bool bVisible);
 	
+	void SetHit();
+	
 	//===============================================================================================
 	// Getter함수
 	//===============================================================================================
@@ -198,4 +205,6 @@ public:
 	
 	void BlockPatternSelect(float Duration);
 	bool IsPatternSelectBlocked() const;
+	
+	bool GetIsHit() const;
 };

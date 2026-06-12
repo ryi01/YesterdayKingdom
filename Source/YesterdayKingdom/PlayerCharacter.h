@@ -309,5 +309,6 @@ public:
 	UEquipmentComponent* GetEquipmentComponent() const;
 	UQuestComponent* GetQuestComponent() const;
 	UPlayerSkillComponent* GetSkillComponent() const;
+	UFUNCTION(BlueprintPure, Category = "Quest")
 	UPlayerHUDWidget* GetPlayerHUDWidget() const;
 };

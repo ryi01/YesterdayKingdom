@@ -111,6 +111,8 @@ void AEnemyBase::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, 
 	const FVector& DamageImpulse, EHitReactionType HitReactionType)
 {
 	if (DamageCauser) LastDamageCauser = DamageCauser;
+	bHit = true;
+	
 	Super::ApplyDamage_Implementation(Damage, DamageCauser, DamageLocation, DamageImpulse, HitReactionType);
 }
 
@@ -227,6 +229,15 @@ void AEnemyBase::NotifyQuestKillToKiller()
 	QuestComponent->AddProgress(EQuestObjectiveType::KillEnemy, QuestTargetID, 1);
 }
 
+void AEnemyBase::SetHit()
+{
+	bHit = false;
+	bIsAttacking = false;
+	if (CombatBaseComponent)
+	{
+		CombatBaseComponent->ResetAttackState();
+	}
+}
 
 
 void AEnemyBase::DoAttackByRowName(FName AttackRowName)
@@ -472,4 +483,9 @@ void AEnemyBase::BlockPatternSelect(float Duration)
 bool AEnemyBase::IsPatternSelectBlocked() const
 {
 	return GetWorld()->GetTimeSeconds() < PatternSelectBlockedUntilTime;
+}
+
+bool AEnemyBase::GetIsHit() const
+{
+	return bHit;
 }
