@@ -134,20 +134,18 @@ void UPlayerCombatComponent::OnGuardStarted()
 
 	if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
 	{
-		MoveComp->GetNavAgentPropertiesRef().bCanCrouch = true;
-		MoveComp->MaxWalkSpeedCrouched = OwnerCharacter->GetStatComponent()->GetCrouchMoveSpeed();
+		MoveComp->MaxWalkSpeed = OwnerCharacter->GetStatComponent()->GetGuardMoveSpeed();
 	}
-	OwnerCharacter->Crouch();
+	OwnerCharacter->PlayParriedReaction();
 }
 
 void UPlayerCombatComponent::OnGuardEnded()
 {
 	Super::OnGuardEnded();
-	if (!OwnerCharacter) return;
-
-	OwnerCharacter->UnCrouch();
-
-	if (APlayerCharacter* Player = Cast<APlayerCharacter>(OwnerCharacter)) Player->RefreshMoveSpeed();
+	APlayerCharacter* Player = Cast<APlayerCharacter>(OwnerCharacter);
+	if (!Player) return;
+	Player->StopAnimMontage();
+	Player->RefreshMoveSpeed();
 }
 
 void UPlayerCombatComponent::StartChargeAttack()

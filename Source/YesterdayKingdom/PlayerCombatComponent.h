@@ -17,6 +17,8 @@ protected:
 	//===============================================================================================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat")
 	TMap<EAttackType, FName> PlayerAttackRows;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Guard", meta = (ClampMin = "0.0"))
+	float GuardMoveSpeedMultiplier = 0.5f;
 
 public:
 	UPlayerCombatComponent();

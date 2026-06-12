@@ -22,6 +22,9 @@ UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
 {
 	GENERATED_BODY()
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Buff",meta = (AllowPrivateAccess = "true"))
+	bool bIsCastingBattleBuff = false;
 	
 public:
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer);
@@ -270,6 +273,11 @@ public:
 	void EndBattleBuffCooldown();
 	UFUNCTION(BlueprintCallable, Category="Buff")
 	bool CanUseBattleBuff() const;
+	UFUNCTION(BlueprintPure, Category = "Battle Buff")
+	bool IsCastingBattleBuff() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Buff")
+	void FinishBattleBuffCasting();
 	//===============================================================================================
 	// 가드 관련
 	//===============================================================================================

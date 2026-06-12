@@ -59,9 +59,7 @@ void APlayerCharacter::BeginPlay()
 	if (MoveComp)
 	{
 		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
-		MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
 		MoveComp->bOrientRotationToMovement = true;
-		MoveComp->GetNavAgentPropertiesRef().bCanCrouch = false;
 	}
 	
 	CreatePlayerHUD();
@@ -201,6 +199,7 @@ void APlayerCharacter::SetUIMode(bool bEnableUI)
 //===============================================================================================
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
+	if (bIsCastingBattleBuff) return;
 	FVector2D MovementVector = Value.Get<FVector2D>();
 	
 	const FRotator Rotation = GetController()->GetControlRotation();
@@ -249,6 +248,7 @@ void APlayerCharacter::CloseInventory()
 //===============================================================================================
 void APlayerCharacter::DoDash()
 {
+	if (bIsCastingBattleBuff) return;
 	if (GetStatComponent()->GetCurrentST() <= 0.f) return;
 	bIsDashing = true;
 	RefreshMoveSpeed();
@@ -266,7 +266,7 @@ void APlayerCharacter::RefreshMoveSpeed()
 	float NewSpeed = bIsDashing ? GetStatComponent()->GetRunSpeed() : GetStatComponent()->GetMoveSpeed();
 	if (bIsBattleBuffActive) NewSpeed *= BuffMoveSpeedMultiplier;
 	MoveComp->MaxWalkSpeed = NewSpeed;
-	MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
+	MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetGuardMoveSpeed();
 }
 
 bool APlayerCharacter::UseConsumableItem(const FItemData& ItemData)
@@ -333,6 +333,7 @@ void APlayerCharacter::EndHitFlash()
 //===============================================================================================
 void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 {
+	if (bIsCastingBattleBuff) return;
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
 	{
 		PlayerCombat->RequestAttack(EAttackType::Light);
@@ -341,6 +342,7 @@ void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 
 void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 {
+	if (bIsCastingBattleBuff) return;
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
 	{
 		PlayerCombat->RequestAttack(EAttackType::Heavy);
@@ -348,6 +350,7 @@ void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 }
 void APlayerCharacter::DoChargedAttack()
 {
+	if (bIsCastingBattleBuff) return;
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
 	{
 		PlayerCombat->StartChargeAttack();
@@ -392,17 +395,36 @@ void APlayerCharacter::ApplyBattleBuff()
 void APlayerCharacter::DoBattleBuff()
 {
 	if (!CanUseBattleBuff() || !GetStatComponent()) return;
+	if (!SkillComponent || !SkillComponent->CanUseBattleBuff()) return;
 	if (BuffMPCost > 0.f && !GetStatComponent()->ConsumeMP(BuffMPCost)) return;
 	
+	bIsCastingBattleBuff = true;
 	bIsBattleBuffOnCooldown = true;
+	bIsDashing = false;
+	if (MoveComp)
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->DisableMovement();
+	}
+
+	if (CombatBaseComponent && CombatBaseComponent->IsGuarding())
+	{
+		CombatBaseComponent->EndGuard();
+	}
 	
 	if (BattleBuffMontage)
 	{
-		PlayAnimMontage(BattleBuffMontage);
+		const float PlayedLength = PlayAnimMontage(BattleBuffMontage);
+
+		if (PlayedLength <= 0.f)
+		{
+			FinishBattleBuffCasting();
+		}
 	}
 	else
 	{
 		ApplyBattleBuff();
+		FinishBattleBuffCasting();
 	}
 	
 	GetWorld()->GetTimerManager().ClearTimer(BattleBuffCooldownTimerHandle);
@@ -433,6 +455,7 @@ void APlayerCharacter::EndBattleBuffCooldown()
 
 bool APlayerCharacter::CanUseBattleBuff() const
 {
+	if (bIsCastingBattleBuff) return false;
 	if (bIsBattleBuffActive) return false;
 	if (bIsBattleBuffOnCooldown) return false;
 	if (!StatComponent) return false;
@@ -442,11 +465,37 @@ bool APlayerCharacter::CanUseBattleBuff() const
 	if (CombatBaseComponent && CombatBaseComponent->IsCharging()) return false; 
 	return true;
 }
+
+bool APlayerCharacter::IsCastingBattleBuff() const
+{
+	return bIsCastingBattleBuff;
+}
+
+void APlayerCharacter::FinishBattleBuffCasting()
+{
+	if (!bIsCastingBattleBuff) return;
+
+	bIsCastingBattleBuff = false;
+
+	if (!bIsBattleBuffActive)
+	{
+		ApplyBattleBuff();
+	}
+
+	if (MoveComp)
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
+
+	RefreshMoveSpeed();
+}
+
 //===============================================================================================
 // 가드 관련 
 //===============================================================================================
 void APlayerCharacter::StartGuard()
 {
+	if (bIsCastingBattleBuff) return;
 	if (!SkillComponent) return;
 	if (!SkillComponent->CanUseParry()) return;
 	if (CombatBaseComponent) CombatBaseComponent->StartGuard();

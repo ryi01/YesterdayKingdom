@@ -48,7 +48,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float RunSpeed = 800.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
-	float CrouchSpeed = 350.f;
+	float GuardSpeed = 350.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
 	float MaxStun = 50.f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stat")
@@ -244,7 +244,7 @@ public:
 	UFUNCTION(BlueprintPure)
 	float GetMoveSpeed() const;
 	UFUNCTION(BlueprintPure)
-	float GetCrouchMoveSpeed() const;
+	float GetGuardMoveSpeed() const;
 	UFUNCTION(BlueprintPure)
 	float GetRunSpeed() const;
 	UFUNCTION(BlueprintPure)
