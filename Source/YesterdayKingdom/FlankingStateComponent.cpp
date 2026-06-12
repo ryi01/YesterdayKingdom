@@ -37,7 +37,6 @@ void UFlankingStateComponent::OnStateUpdate(float DeltaTime)
 	if (!FSMController) return;
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
 	if (!IsPlayerValid())

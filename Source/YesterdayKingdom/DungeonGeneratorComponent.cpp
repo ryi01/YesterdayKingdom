@@ -9,6 +9,7 @@
 #include "NavigationSystem.h"
 #include "Containers/Queue.h"
 
+class APlayerCharacter;
 // Sets default values for this component's properties
 UDungeonGeneratorComponent::UDungeonGeneratorComponent()
 {
@@ -625,6 +626,8 @@ void UDungeonGeneratorComponent::ClearDungeon()
 	SelectedStorePoint = FVector2D::ZeroVector;
 	bHasSelectedStorePoint = false;
 	
+	SpawnedBoss = nullptr;
+	
 	bGenerationCompleted = false;
 }
 
@@ -863,6 +866,7 @@ void UDungeonGeneratorComponent::SpawnBossRoomTrigger(ABossRoomEntrance* BossRoo
 
 	Trigger->SetTriggerExtent(TriggerExtent);
 	Trigger->SetBossRoomEntrance(BossRoomEntranceActor);
+	Trigger->SetBoss(SpawnedBoss);
 
 	SpawnedDungeonActors.Add(Trigger);
 #if WITH_EDITOR
@@ -901,7 +905,12 @@ void UDungeonGeneratorComponent::SpawnEnemiesByRoomData()
 			const int32 Count = FMath::RandRange(Entry.MinCount, Entry.MaxCount);
 			for (int32 i = 0; i < Count; i++)
 			{
-				SpawnEnemyAroundPoint(Entry.EnemyClass, Room.Center);
+				AEnemyBase* SpawnedEnemy = SpawnEnemyAroundPoint(Entry.EnemyClass, Room.Center);
+
+				if (Room.RoomType == EDungeonRoomType::Boss && SpawnedEnemy)
+				{
+					SpawnedBoss = SpawnedEnemy;
+				}
 			}
 		}
 	}
@@ -1065,9 +1074,9 @@ void UDungeonGeneratorComponent::SpawnWallPiece(int32 X, int32 Y, const FIntPoin
 	}
 }
 
-void UDungeonGeneratorComponent::SpawnEnemyAroundPoint(TSubclassOf<AActor> EnemyClass, const FVector2D& Point)
+AEnemyBase* UDungeonGeneratorComponent::SpawnEnemyAroundPoint(TSubclassOf<AActor> EnemyClass, const FVector2D& Point)
 {
-	if (!EnemyClass || !GetWorld()) return;
+	if (!EnemyClass || !GetWorld()) return nullptr;
 	const FVector2D Offset = FMath::RandPointInCircle(EnemySpawnRadius);
 	FVector Location = GridToWorldLocation(Point, 100.f);
 	Location.X += Offset.X;
@@ -1076,13 +1085,13 @@ void UDungeonGeneratorComponent::SpawnEnemyAroundPoint(TSubclassOf<AActor> Enemy
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	AActor* Spawned = GetWorld()->SpawnActor<AActor>(EnemyClass, Location, FRotator::ZeroRotator, SpawnParams);
-	if (!Spawned) return;
+	if (!Spawned) return nullptr;
 	SpawnedDungeonActors.Add(Spawned);
-	if (AEnemyBase* EnemyBase = Cast<AEnemyBase>(Spawned))
-	{
-		const FVector RoomCenterLocation = GridToWorldLocation(Point, 100.f);
-		EnemyBase->SetHomeLocation(RoomCenterLocation);
-	}
+	AEnemyBase* EnemyBase = Cast<AEnemyBase>(Spawned);
+	if (!EnemyBase) return nullptr;
+	const FVector RoomCenterLocation = GridToWorldLocation(Point, 100.f);
+	EnemyBase->SetHomeLocation(RoomCenterLocation);
+	return EnemyBase;
 }
 
 void UDungeonGeneratorComponent::SpawnDecorationAroundPoint(TSubclassOf<AActor> DecorationClass, const FVector2D& Point)

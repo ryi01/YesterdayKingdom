@@ -55,6 +55,8 @@ protected:
 	
 
 public:
+	virtual void OnStateEnter() override;
+	virtual void OnStateUpdate(float) override;
 	virtual void OnStateExit() override;
 	
 	virtual void NotifyAttackActionStart();

@@ -20,6 +20,7 @@
 #include "PlayerSkillComponent.h"
 #include "PlayerStatComponent.h"
 #include "QuestComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerCombatComponent>(TEXT("CombatComponent")).SetDefaultSubobjectClass<UPlayerStatComponent>(TEXT("StatComponent")))
@@ -136,14 +137,24 @@ void APlayerCharacter::SetUIMode(bool bEnableUI)
 	if (bEnableUI)
 	{
 		PC->bShowMouseCursor = true;
+
 		FInputModeGameAndUI InputModeGameAndUI;
 		InputModeGameAndUI.SetHideCursorDuringCapture(false);
 		InputModeGameAndUI.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		
+
 		PC->SetInputMode(InputModeGameAndUI);
+
+		if (MoveComp)
+		{
+			MoveComp->StopMovementImmediately();
+		}
+
+		bIsDashing = false;
+		UGameplayStatics::SetGamePaused(GetWorld(), true);
 	}
 	else
 	{
+		UGameplayStatics::SetGamePaused(GetWorld(), false);
 		PC->bShowMouseCursor = false;
 
 		FInputModeGameOnly InputMode;
@@ -185,6 +196,18 @@ void APlayerCharacter::ToggleInventory()
 	bIsInventoryOpen = !bIsInventoryOpen;
 	PlayerHUDWidget->SetInventoryVisible(bIsInventoryOpen);
 	SetUIMode(bIsInventoryOpen);
+}
+
+void APlayerCharacter::CloseInventory()
+{
+	bIsInventoryOpen = false;
+
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->SetInventoryVisible(false);
+	}
+
+	SetUIMode(false);
 }
 
 //===============================================================================================
@@ -368,6 +391,22 @@ void APlayerCharacter::StartGuard()
 void APlayerCharacter::EndGuard()
 {
 	if (CombatBaseComponent) CombatBaseComponent->EndGuard();
+}
+//===============================================================================================
+// UI 관련
+//===============================================================================================
+void APlayerCharacter::ShowBossHP(AEnemyBase* Boss)
+{
+	if (!PlayerHUDWidget) return;
+
+	PlayerHUDWidget->BindBoss(Boss);
+}
+
+void APlayerCharacter::HideBossHP()
+{
+	if (!PlayerHUDWidget) return;
+
+	PlayerHUDWidget->UnbindBoss();
 }
 
 void APlayerCharacter::OnDead()

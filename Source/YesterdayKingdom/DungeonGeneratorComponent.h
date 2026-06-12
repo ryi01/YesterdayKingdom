@@ -225,6 +225,9 @@ protected:
 	UPROPERTY()
 	bool bHasBossRoomEntranceLocation = false;
 	
+	UPROPERTY()
+	TObjectPtr<class AEnemyBase> SpawnedBoss;
+	
 	// ==============================
 	// 스토어 
 	// ==============================
@@ -313,7 +316,7 @@ private:
 	void SpawnCornerWallOnTile(int32 X, int32 Y, const FIntPoint& DirA, const FIntPoint& DirB);
 	void SpawnWallPiece(int32 X, int32 Y, const FIntPoint& Dir, EDungeonPieceShape Shape, const FRotator& Rotator);
 	
-	void SpawnEnemyAroundPoint(TSubclassOf<AActor> EnemyClass, const FVector2D& Point);
+	AEnemyBase* SpawnEnemyAroundPoint(TSubclassOf<AActor> EnemyClass, const FVector2D& Point);
 	void SpawnDecorationAroundPoint(TSubclassOf<AActor> DecorationClass, const FVector2D& Point);
 	void SpawnStoreRoomDecorations(const FDungeonRoomInfo& Room, const FDungeonDecorationDataRow* DecorationDataRow);
 	

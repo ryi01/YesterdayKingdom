@@ -274,7 +274,8 @@ bool UInventoryComponent::MakeSlotViewData(int32 SlotIndex, FInventorySlotViewDa
 	OutViewData.ItemName = ItemData->ItemName;
 	OutViewData.Count = Slot.Count;
 	OutViewData.SlotIndex = SlotIndex;
-	OutViewData.Description = ItemData->Description;
+	OutViewData.ItemDescription = ItemData->ItemDescription;
+	OutViewData.EffectDescription = ItemData->EffectDescription;
 	OutViewData.Rarity = ItemData->Rarity;
 	OutViewData.BuyPrice = ItemData->BuyPrice;
 	OutViewData.SellPrice = ItemData->SellPrice;

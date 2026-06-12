@@ -3,18 +3,26 @@
 
 #include "EnemyElite.h"
 
+#include "AttackActionStateComponent.h"
+#include "AttackBossStateComponent.h"
 #include "EnemyFSMControllerComponent.h"
 #include "IdleStatComponent.h"
 #include "ChaseStateComponent.h"
 #include "AttackStateComponent.h"
+#include "HitStateComponent.h"
 #include "ReturnStateComponent.h"
 #include "ReviveStateComponent.h"
 #include "DownStateComponent.h"
+#include "DeadStateComponent.h"
 #include "EnemyFSMTypes.h"
 #include "EnemyPuppetMaster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnemyFSMControllerComponent.h"
+#include "BaseStatComponent.h"
+#include "CooldownStateComponent.h"
 #include "PatrolStateComponent.h"
+#include "PatternSelectStateComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -24,10 +32,20 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	IdleState = CreateDefaultSubobject<UIdleStatComponent>(TEXT("IdleState"));
 	PatrolState = CreateDefaultSubobject<UPatrolStateComponent>(TEXT("PatrolState"));
 	ChaseState = CreateDefaultSubobject<UChaseStateComponent>(TEXT("ChaseState"));
+	CooldownState = CreateDefaultSubobject<UCooldownStateComponent>(TEXT("CooldownState"));
+	PatternSelectState = CreateDefaultSubobject<UPatternSelectStateComponent>(TEXT("PatternSelectState"));
 	AttackState = CreateDefaultSubobject<UAttackStateComponent>(TEXT("AttackState"));
+	HitState = CreateDefaultSubobject<UHitStateComponent>(TEXT("HitState"));
 	ReturnState = CreateDefaultSubobject<UReturnStateComponent>(TEXT("ReturnState"));
 	DownState = CreateDefaultSubobject<UDownStateComponent>(TEXT("DownState"));
 	ReviveState = CreateDefaultSubobject<UReviveStateComponent>(TEXT("ReviveState"));
+	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
+	
+	StringSocketName = TEXT("StringSocket");
+	
+	StringMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("StringMeshComponent"));
+	StringMeshComponent->SetupAttachment(GetMesh(),StringSocketName);
+	StringMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 bool AEnemyElite::IsPuppetMasterDead() const
@@ -47,18 +65,39 @@ void AEnemyElite::BeginPlay()
 	{
 		return;
 	}
+	SetHomeLocation(GetActorLocation());
 
 	FSMController->InitializeFSM(this);
 
 	FSMController->RegisterState(EEnemyFSMStateType::Idle, IdleState);
 	FSMController->RegisterState(EEnemyFSMStateType::Patrol, PatrolState);
 	FSMController->RegisterState(EEnemyFSMStateType::Chase, ChaseState);
+	FSMController->RegisterState(EEnemyFSMStateType::Cooldown, CooldownState);
 	FSMController->RegisterState(EEnemyFSMStateType::Attack, AttackState);
+	FSMController->RegisterState(EEnemyFSMStateType::Hit, HitState);
+	FSMController->RegisterState(EEnemyFSMStateType::PatternSelect, PatternSelectState);
 	FSMController->RegisterState(EEnemyFSMStateType::Return, ReturnState);
 	FSMController->RegisterState(EEnemyFSMStateType::Down, DownState);
 	FSMController->RegisterState(EEnemyFSMStateType::Revive, ReviveState);
-
+	FSMController->RegisterState(EEnemyFSMStateType::Dead, DeadState);
+	
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);
+	
+	if (StringMeshComponent)
+	{
+		if (StringMesh)
+		{
+			StringMeshComponent->SetSkeletalMesh(StringMesh);
+		}
+
+		StringMeshComponent->AttachToComponent(
+			GetMesh(),
+			FAttachmentTransformRules::SnapToTargetIncludingScale,
+			StringSocketName
+		);
+
+		StringMeshComponent->SetLeaderPoseComponent(GetMesh());
+	}
 }
 
 void AEnemyElite::Tick(float DeltaTime)
@@ -72,8 +111,7 @@ void AEnemyElite::Tick(float DeltaTime)
 
 	if (PuppetMaster && IsPuppetMasterDead())
 	{
-		bTrueDead = true;
-		Super::HandleDeath_Implementation();
+		ForceTrueDeath();
 		return;
 	}
 
@@ -84,21 +122,6 @@ void AEnemyElite::Tick(float DeltaTime)
 	
 }
 
-void AEnemyElite::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-
-	if (bPendingDownAfterLanded)
-	{
-		bPendingDownAfterLanded = false;
-
-		if (FSMController)
-		{
-			FSMController->ChangeState(EEnemyFSMStateType::Down);
-		}
-	}	
-}
-
 void AEnemyElite::ForceTrueDeath()
 {
 	if (bTrueDead)
@@ -107,11 +130,6 @@ void AEnemyElite::ForceTrueDeath()
 	}
 
 	bTrueDead = true;
-
-	if (FSMController)
-	{
-		FSMController->StopFSM();
-	}
 	
 	Super::HandleDeath_Implementation();
 }
@@ -124,22 +142,33 @@ void AEnemyElite::SetPuppetMaster(AEnemyPuppetMaster* InMaster)
 		*GetNameSafe(PuppetMaster));
 }
 
-void AEnemyElite::HandleDeath_Implementation()
+void AEnemyElite::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
-	// 나중에 본체 죽었는지 체크해서 진짜 Dead 처리
-	const bool bMasterDead = IsPuppetMasterDead();
+	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+}
 
-	if (!bMasterDead)
+void AEnemyElite::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
+	const FVector& DamageImpulse, EHitReactionType HitReactionType)
+{
+	if (DamageCauser)
 	{
-		// 공중에서 죽었으면 바로 Down으로 가지 말고,
-		// 착지 후 Down으로 전환
-		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		LastDamageCauser = DamageCauser;
+	}
+
+	UBaseStatComponent* StatComp = GetStatComponent();
+	if (!StatComp)
+	{
+		return;
+	}
+
+	StatComp->ApplyDamage(Damage);
+
+	if (StatComp->IsDead())
+	{
+		if (bTrueDead)
 		{
-			if (!Movement->IsMovingOnGround())
-			{
-				bPendingDownAfterLanded = true;
-				return;
-			}
+			ForceTrueDeath();
+			return;
 		}
 
 		if (FSMController)
@@ -150,6 +179,6 @@ void AEnemyElite::HandleDeath_Implementation()
 		return;
 	}
 
-	Super::HandleDeath_Implementation();
+	Super::NotifyDamage_Implementation(DamageLocation, DamageCauser);
 }
 

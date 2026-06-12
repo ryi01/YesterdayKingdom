@@ -131,21 +131,7 @@ int32 UPatternSelectStateComponent::GetCurrentPhase() const
 {
 	if (!OwnerCharacter) return 1;
 	
-	UBaseStatComponent* StatComponent = OwnerCharacter->GetStatComponent();
-	if (!StatComponent) return 1;
-	
-	const float MaxHP = StatComponent->GetMaxHP();
-	if (MaxHP <= 0.f) return 1;
-
-	const float CurrentHP = StatComponent->GetCurrentHP();
-	const float HPRatio = CurrentHP / MaxHP;
-
-	if (HPRatio <= 0.5f)
-	{
-		return 2;
-	}
-
-	return 1;
+	return OwnerCharacter->GetCurrentPhase();
 }
 
 

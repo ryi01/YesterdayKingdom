@@ -146,6 +146,64 @@ void UAttackActionStateComponent::StopActionMovement()
 	SetRootMotionFromMontage(false);
 }
 
+void UAttackActionStateComponent::OnStateEnter()
+{
+	Super::OnStateEnter();
+	
+	ClearAttackActionData();
+	ClearActionTargetData();
+
+	if (!OwnerCharacter || !FSMController)
+	{
+		return;
+	}
+
+	if (!InitializeActionTarget())
+	{
+		FSMController->ChangeState(NextState);
+		return;
+	}
+
+	if (!InitializeAttackActionFromData())
+	{
+		FSMController->ChangeState(NextState);
+		return;
+	}
+
+	ApplyMovePowerFromAttackData();
+
+	StopMove();
+	SetFocusToPlayer();
+
+	UCombatBaseComponent* CombatComp = OwnerCharacter->GetCombatComponent();
+	if (!CombatComp)
+	{
+		FSMController->ChangeState(NextState);
+		return;
+	}
+
+	if (!CombatComp->RequestAttackByRow(CurrentAttackRowName))
+	{
+		FSMController->ChangeState(NextState);
+	}
+	
+}
+
+void UAttackActionStateComponent::OnStateUpdate(float X)
+{
+	Super::OnStateUpdate(X);
+	
+	if (!OwnerCharacter || !FSMController)
+	{
+		return;
+	}
+
+	if (!OwnerCharacter->IsAttacking())
+	{
+		FinishAttackAction();
+	}
+}
+
 void UAttackActionStateComponent::OnStateExit()
 {
 	Super::OnStateExit();

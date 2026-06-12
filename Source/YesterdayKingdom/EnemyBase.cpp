@@ -67,7 +67,6 @@ void AEnemyBase::InitializeFromDefinition()
 		{
 			CombatBaseComponent->SetAttackDataTable(EnemyDefinition->AttackDataTable);
 		}
-		
 	}
 
 	SetDefaultMoveSpeed();
@@ -90,10 +89,10 @@ void AEnemyBase::Landed(const FHitResult& Hit)
 // 전투관련
 //===============================================================================================
 void AEnemyBase::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
-	const FVector& DamageImpulse)
+	const FVector& DamageImpulse, EHitReactionType HitReactionType)
 {
 	if (DamageCauser) LastDamageCauser = DamageCauser;
-	Super::ApplyDamage_Implementation(Damage, DamageCauser, DamageLocation, DamageImpulse);
+	Super::ApplyDamage_Implementation(Damage, DamageCauser, DamageLocation, DamageImpulse, HitReactionType);
 }
 
 void AEnemyBase::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
@@ -101,10 +100,6 @@ void AEnemyBase::NotifyDamage_Implementation(const FVector& DamageLocation, AAct
 	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
 	if (IsDead())
 	{
-		if (FSMController)
-		{
-			FSMController->ChangeState(EEnemyFSMStateType::Dead);
-		}
 		return;
 	}
 	if (DamageSource && DamageSource->ActorHasTag(TEXT("Player")))
@@ -125,6 +120,10 @@ void AEnemyBase::NotifyDamage_Implementation(const FVector& DamageLocation, AAct
 
 void AEnemyBase::HandleDeath_Implementation()
 {
+	if (TryStartNextPhase())
+	{
+		return;
+	}
 	if (bRewardGiven) return;
 	bRewardGiven = true;
 	
@@ -320,6 +319,34 @@ bool AEnemyBase::IsAnyMontagePlaying() const
 	}
 
 	return false;
+}
+
+bool AEnemyBase::TryStartNextPhase()
+{
+	if (!bUsePhaseSystem) return false;
+	if (bIsPhaseChanging) return true;
+	if (CurrentPhase >= MaxPhase) return false;
+	if (!StatComponent) return false;
+
+	CurrentPhase++;
+	bIsPhaseChanging = true;
+
+	StatComponent->SetCurrentHP(StatComponent->GetMaxHP());
+	if (FSMController)
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::PhaseChange);
+	}
+	return true;
+}
+
+void AEnemyBase::FinishPhaseChange()
+{
+	bIsPhaseChanging = false;
+
+	if (FSMController)
+	{
+		FSMController->ChangeState(EEnemyFSMStateType::PatternSelect);
+	}
 }
 
 //===============================================================================================

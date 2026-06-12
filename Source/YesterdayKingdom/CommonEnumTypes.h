@@ -91,7 +91,20 @@ enum class EAttackType : uint8
 	Dash,
 	AOE
 };
+USTRUCT(BlueprintType)
+struct FHitReactionData
+{
+	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Hit Reaction")
+	EHitReactionType Type = EHitReactionType::Stagger;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Hit Reaction")
+	float ForwardPower = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Hit Reaction")
+	float UpPower = 0.f;
+};
 USTRUCT(BlueprintType)
 struct FAttackNodeData
 {
@@ -109,8 +122,8 @@ struct FAttackNodeData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
 	FHitFeedbackData HitFeedback;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack")
-	EHitReactionType HitReactionType = EHitReactionType::Stagger;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Attack|Reaction")
+	FHitReactionData HitReaction;
 };
 USTRUCT(BlueprintType)
 struct FAttackDataRow : public FTableRowBase

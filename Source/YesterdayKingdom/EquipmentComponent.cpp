@@ -189,7 +189,8 @@ bool UEquipmentComponent::MakeEquipmentViewData(EEquipmentSlotType SlotType, FEq
 	OutViewData.ItemRowName = EquipmentSlot->ItemRowName;
 	OutViewData.Icon = ItemData->Icon;
 	OutViewData.ItemName = ItemData->ItemName;
-	OutViewData.Description = ItemData->Description;
+	OutViewData.ItemDescription = ItemData->ItemDescription;
+	OutViewData.EffectDescription = ItemData->EffectDescription;
 	OutViewData.Rarity = ItemData->Rarity;
 	OutViewData.AttackPower = ItemData->AttackPower;
 	OutViewData.DefensePower = ItemData->DefensePower;

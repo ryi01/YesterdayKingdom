@@ -6,20 +6,26 @@
 #include "Blueprint/UserWidget.h"
 #include "InventoryTabBtnWidget.generated.h"
 
+class UInventoryWidget;
+class UInventoryComponent;
+class UWidgetSwitcher;
 class UBorder;
 class UImage;
+class UButton;
+class USizeBox;
 class UTextBlock;
 
-UENUM(BlueprintType)
-enum class EInventoryType : uint8
-{
-	Weapon		UMETA(Display = "Weapon"),
-	Food		UMETA(Display = "Food"),
-	Material	UMETA(Display = "Material"),
-	Quest		UMETA(Display = "Quest")
-};
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryBackRequested);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTabClicked, EInventoryType, TabType);
+UENUM(BlueprintType)
+enum class EMenuTabType : uint8
+{
+	Map		UMETA(DisplayName = "Map"),
+	Quest	UMETA(DisplayName = "Quest"),
+	Item	UMETA(DisplayName = "Item"),
+	Weapon	UMETA(DisplayName = "Weapon"),
+	System	UMETA(DisplayName = "System")
+};
 
 UCLASS()
 class YESTERDAYKINGDOM_API UInventoryTabBtnWidget : public UUserWidget
@@ -27,70 +33,52 @@ class YESTERDAYKINGDOM_API UInventoryTabBtnWidget : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tab")
-	EInventoryType TabType = EInventoryType::Weapon;
+	// 우측 상단 Money 위젯
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UButton> BTN_Back;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UButton> BTN_Map;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UButton> BTN_Quest;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UButton> BTN_Item;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UButton> BTN_Weapon;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UButton> BTN_System;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<USizeBox> SB_Window;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UWidgetSwitcher> WS_Window;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UInventoryWidget> Wbp_InventoryWidget;
+	UPROPERTY(BlueprintAssignable)
+	FOnInventoryBackRequested OnInventoryBackRequested;
+private:
+	UFUNCTION()
+	void OnBackClicked();
 	
-	// 탭 버튼 활성화
-	UFUNCTION(BlueprintCallable, Category = "Tab")
-	void SetActive(bool bActive);
+	UFUNCTION()
+	void OnMapClicked();
+
+	UFUNCTION()
+	void OnQuestClicked();
+
+	UFUNCTION()
+	void OnItemClicked();
+
+	UFUNCTION()
+	void OnWeaponClicked();
+
+	UFUNCTION()
+	void OnSystemClicked();
 	
-	// 현재 탭버튼의 항목 종류 반환
-	EInventoryType GetTabType() const { return TabType; }
-	bool IsActive() const { return bIsActive; }
-	
-	UPROPERTY(BlueprintAssignable, Category = "Tab")
-	FOnTabClicked OnTabClicked;
-	
+	void ChangeTab(EMenuTabType TabType);
+	int32 GetTabIndex(EMenuTabType TabType) const;
+
 protected:
 	virtual void NativeConstruct() override;
+public:
+	void SetInventoryComponent(UInventoryComponent* InInventory);
 	
-	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent);
-	
-	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent);
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent);
-	
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UBorder> Border_Background;
-	
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UBorder> Border_ActiveLine;
-	
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> Img_Icon;
-	
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UTextBlock> Text_TabName;
-	
-	// ====================================================================================
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	FLinearColor ActiveBgColor = FLinearColor(1.0f, 0.5f, 0.5f, 1.0f);
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	FLinearColor InActiveBgColor = FLinearColor(0.08f, 0.08f, 0.08f, 0.08f);
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	FLinearColor HoverBgColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	FLinearColor ActiveLineColor = FLinearColor(1.0f, 0.5f, 0.5f, 1.0f);
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	FLinearColor InActiveLineColor = FLinearColor(0.08f, 0.08f, 0.08f, 0.08f);
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	float ActiveOpacity = 1.0f;
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	float InActiveOpacity = 0.35;
-	
-	UPROPERTY(EditAnywhere, Category = "Tab|Style")
-	float HoverOpacity = 0.7f;
-	
-	
-private:
-	bool bIsActive = false;
-	bool bIsHovered = false;
-	
-	void RefreshStyle();
 };

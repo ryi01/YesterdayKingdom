@@ -17,11 +17,12 @@ void UHitStateComponent::OnStateEnter()
 
 	if (OwnerCharacter)
 	{
-		SetRootMotionFromMontage(true);
+		SetRootMotionFromMontage(false);
 		StopMove();
 		if (UCharacterMovementComponent* MoveComp = OwnerCharacter->GetCharacterMovement())
 		{
 			MoveComp->StopMovementImmediately();
+			MoveComp->Velocity = FVector::ZeroVector;
 		}
 
 		SetFocusToPlayer();
@@ -30,10 +31,8 @@ void UHitStateComponent::OnStateEnter()
 		{
 			if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
 			{
+				AnimInstance->Montage_Stop(0.03f, EnemyDefinition->HitMontage);
 				OwnerCharacter->PlayAnimMontage(EnemyDefinition->HitMontage);
-				HitMontageEndedDelegate.Unbind();
-				HitMontageEndedDelegate.BindUObject(this, &UHitStateComponent::HandleHitMontageEnded);
-				AnimInstance->Montage_SetEndDelegate(HitMontageEndedDelegate, EnemyDefinition->HitMontage);
 			}
 		}
 	}
@@ -56,12 +55,15 @@ void UHitStateComponent::HandleHitMontageEnded(UAnimMontage* Montage, bool bInte
 void UHitStateComponent::DecideNextState()
 {
 	if (!FSMController) return;
-
 	if (IsOwnerDead())
 	{
-		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 		return;
 	}
+	UE_LOG(LogTemp, Warning, TEXT("[FSM][Hit] DecideNextState"));
+	FSMController->ChangeState(NextState);
+}
 
-	FSMController->ChangeState(EEnemyFSMStateType::Cooldown);
+void UHitStateComponent::FinishHitState()
+{
+	DecideNextState();
 }

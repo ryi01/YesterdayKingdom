@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "CommonEnumTypes.h"
 #include "Damagable.generated.h"
 
 // This class does not need to be modified.
@@ -20,7 +21,7 @@ class YESTERDAYKINGDOM_API IDamagable
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void ApplyDamage(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse);
+	void ApplyDamage(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse, EHitReactionType HitReactionType);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void HandleDeath();

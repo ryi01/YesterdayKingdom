@@ -11,10 +11,13 @@ class UEnemyFSMControllerComponent;
 class UIdleStatComponent;
 class UChaseStateComponent;
 class UAttackStateComponent;
+class UHitStateComponent;
 class UReturnStateComponent;
 class UDownStateComponent;
 class UReviveStateComponent;
+class UDeadStateComponent;
 class AEnemyPuppetMaster;
+class USkeletalMeshComponent;
 
 UCLASS()
 class YESTERDAYKINGDOM_API AEnemyElite : public AEnemyBase
@@ -26,6 +29,15 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet")
 	TObjectPtr<AEnemyPuppetMaster> PuppetMaster;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	FName StringSocketName = TEXT("Weapon_RSocket");
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet|String")
+	TObjectPtr<USkeletalMesh> StringMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet|String")
+	TSubclassOf<UAnimInstance> StringAnimBP;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Enemy|Puppet")
 	bool IsPuppetMasterDead() const;
@@ -38,7 +50,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void Landed(const FHitResult& Hit) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Enemy|Puppet")
@@ -57,7 +68,16 @@ protected:
 	TObjectPtr<UChaseStateComponent> ChaseState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
-	TObjectPtr<UAttackStateComponent> AttackState;
+	TObjectPtr<class UCooldownStateComponent> CooldownState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FSM|State")
+	TObjectPtr<class UPatternSelectStateComponent> PatternSelectState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
+	TObjectPtr<class UAttackStateComponent> AttackState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
+	TObjectPtr<UHitStateComponent> HitState;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UReturnStateComponent> ReturnState;
@@ -68,5 +88,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
 	TObjectPtr<UReviveStateComponent> ReviveState;
 	
-	virtual void HandleDeath_Implementation() override;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="FSM|State")
+	TObjectPtr<UDeadStateComponent> DeadState;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
+	TObjectPtr<USkeletalMeshComponent> StringMeshComponent;
+public:
+	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
+	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse, EHitReactionType HitReactionType) override;
 };

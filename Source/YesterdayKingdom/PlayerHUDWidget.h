@@ -17,13 +17,17 @@ class YESTERDAYKINGDOM_API UPlayerHUDWidget : public UUserWidget
 	GENERATED_BODY()
 protected:
 	UPROPERTY(meta=(BindWidget))
-	TObjectPtr<class UInventoryWidget> WBP_Inventory;
+	TObjectPtr<class UInventoryTabBtnWidget> WBP_InventoryTab;
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<class UBossWidget> WBP_BossHP;
 	
 	UPROPERTY()
 	TObjectPtr<class APlayerCharacter> OwnerPlayer;
 	
 	// ===============================================================================
 	
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<class UWidgetSwitcher> WS_HUD;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UVerticalBox> HUDBar;
 	
@@ -60,23 +64,51 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI")
 	float BarInterpSpeed = 8.f;
+	//=====================================================================================================
+	// 보스 체력바 관련
+	//=====================================================================================================
+	UPROPERTY()
+	TObjectPtr<class AEnemyBase> BoundBoss;
+
+	UPROPERTY()
+	TObjectPtr<class UBaseStatComponent> BoundBossStatComponent;
 	
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-
+	//=====================================================================================================
+	// 스위처
+	//=====================================================================================================
+	UFUNCTION()
+	void SetSwitcherIndex(int32 index);
+	//=====================================================================================================
+	// 플레이어 체력바
+	//=====================================================================================================
 	UFUNCTION()
 	void UpdateHP(float CurrentHP, float MaxHP);
 	UFUNCTION()
 	void UpdateST(float CurrentST, float MaxST);
 	UFUNCTION()
 	void UpdateMP(float CurrentMP, float MaxMP);
+	//=====================================================================================================
+	// 보스 체력바 관련
+	//=====================================================================================================
+	UFUNCTION()
+	void HandleBossHPChanged(float CurrentHP, float MaxHP);
+	
+	UFUNCTION()
+	void HandleInventoryBackRequested();
 	
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindPlayer(class APlayerCharacter* InPlayer);
 
 	UFUNCTION(BlueprintCallable)
+	void BindBoss(AEnemyBase* Boss);
+	void UnbindBoss();
+	
+	UFUNCTION(BlueprintCallable)
 	void SetInventoryVisible(bool bVisible);
 	
+	void SetVisibleBossHPBar(bool bEnable);
 	
 };

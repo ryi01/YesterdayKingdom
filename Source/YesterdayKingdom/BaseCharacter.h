@@ -41,7 +41,7 @@ protected:
 	// ========================================================
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Reaction")
 	TObjectPtr<UAnimMontage> ParriedMontage;
-
+	
 	// ========================================================
 	// 죽기
 	// ========================================================
@@ -56,7 +56,6 @@ protected:
 
 	FTimerHandle DestroyTimerHandle;
 
-private:
 protected:
 	// ========================================================
 	// 무기 세팅 초기화 함수
@@ -69,6 +68,10 @@ protected:
 	virtual void OnDead();
 
 	void DestroyAfterDeath();
+	// ========================================================
+	// Damageable 
+	// ========================================================
+	void HandleHitReaction(EHitReactionType HitReactionType, const FVector& DamageImpulse, AActor* DamageCauser);
 	
 public:	
 	// Called when the game starts or when spawned
@@ -79,7 +82,7 @@ public:
 	// ========================================================
 	// Damageable Interface
 	// ========================================================
-	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse) override;
+	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse, EHitReactionType HitReactionType) override;
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	virtual void HandleDeath_Implementation() override;
 	

@@ -48,7 +48,20 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Enemy|Combat")
 	FName SelectedAttackRowName = NAME_None;
-	
+	//===============================================================================================
+	// 페이지 변경
+	//===============================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	bool bUsePhaseSystem = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	int32 CurrentPhase = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	int32 MaxPhase = 2;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	bool bIsPhaseChanging = false;
 public:
 	AEnemyBase(const FObjectInitializer& ObjectInitializer);
 	
@@ -59,7 +72,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Enemy|Events")
 	FOnDoEnemyDied OnEnemyDied;
 protected:
-	virtual void Landed(const FHitResult& Hit) override;
+
 	virtual void InitializeFromDefinition();
 
 	//===============================================================================================
@@ -70,11 +83,12 @@ protected:
 
 public:
 	virtual void BeginPlay() override;
+	virtual void Landed(const FHitResult& Hit) override;
 	void SetHomeLocation(const FVector& InHomeLocation);
 	//===============================================================================================
 	// 데미지를 입는것
 	//===============================================================================================
-	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse) override;
+	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse, EHitReactionType HitReactionType) override;
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	virtual void HandleDeath_Implementation() override;
 	
@@ -132,6 +146,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Enemy|Animation")
 	bool IsAnyMontagePlaying() const;
 
+	//===============================================================================================
+	// 페이지 변경
+	//===============================================================================================
+	int32 GetCurrentPhase() const { return CurrentPhase; }
+
+	bool TryStartNextPhase();
+
+	void FinishPhaseChange();
+	
 	//===============================================================================================
 	// Getter함수
 	//===============================================================================================
