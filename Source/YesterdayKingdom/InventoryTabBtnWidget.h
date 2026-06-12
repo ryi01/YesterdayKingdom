@@ -15,6 +15,8 @@ class UButton;
 class USizeBox;
 class UTextBlock;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryBackRequested);
+
 UENUM(BlueprintType)
 enum class EMenuTabType : uint8
 {
@@ -33,6 +35,8 @@ class YESTERDAYKINGDOM_API UInventoryTabBtnWidget : public UUserWidget
 public:
 	// 우측 상단 Money 위젯
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UButton> BTN_Back;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_Map;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_Quest;
@@ -48,8 +52,12 @@ public:
 	TObjectPtr<UWidgetSwitcher> WS_Window;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UInventoryWidget> Wbp_InventoryWidget;
-	
+	UPROPERTY(BlueprintAssignable)
+	FOnInventoryBackRequested OnInventoryBackRequested;
 private:
+	UFUNCTION()
+	void OnBackClicked();
+	
 	UFUNCTION()
 	void OnMapClicked();
 

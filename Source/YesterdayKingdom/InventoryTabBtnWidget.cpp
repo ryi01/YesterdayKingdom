@@ -14,6 +14,10 @@
 void UInventoryTabBtnWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	if (BTN_Back)
+	{
+		BTN_Back->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnBackClicked);
+	}
 	if (BTN_Map)
 	{
 		BTN_Map->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnMapClicked);
@@ -45,6 +49,16 @@ void UInventoryTabBtnWidget::NativeConstruct()
 void UInventoryTabBtnWidget::SetInventoryComponent(UInventoryComponent* InInventory)
 {
 	Wbp_InventoryWidget->BindInventory(InInventory);
+}
+
+void UInventoryTabBtnWidget::OnBackClicked()
+{
+	if (Wbp_InventoryWidget)
+	{
+		Wbp_InventoryWidget->ClearItemDescription();
+	}
+
+	OnInventoryBackRequested.Broadcast();
 	
 }
 

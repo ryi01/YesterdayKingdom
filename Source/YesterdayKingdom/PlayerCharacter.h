@@ -157,7 +157,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	bool bIsInventoryOpen = false;
-	
+
 protected:
 	//===============================================================================================
 	// 피격 관련 함수
@@ -202,6 +202,7 @@ public:
 	void Interaction();
 	UFUNCTION()
 	void ToggleInventory();
+	void CloseInventory();
 	
 	UFUNCTION(BlueprintCallable, Category="Movement")
 	void RefreshMoveSpeed();

@@ -32,6 +32,13 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 	{
 		WBP_InventoryTab->SetInventoryComponent(OwnerPlayer->GetInventoryComponent());
 	}
+	if (WBP_InventoryTab)
+	{
+		WBP_InventoryTab->SetInventoryComponent(OwnerPlayer->GetInventoryComponent());
+
+		WBP_InventoryTab->OnInventoryBackRequested.RemoveDynamic(this, &UPlayerHUDWidget::HandleInventoryBackRequested);
+		WBP_InventoryTab->OnInventoryBackRequested.AddDynamic(this, &UPlayerHUDWidget::HandleInventoryBackRequested);
+	}
 	SetSwitcherIndex(0);
 }
 
@@ -130,6 +137,14 @@ void UPlayerHUDWidget::HandleBossHPChanged(float CurrentHP, float MaxHP)
 	if (CurrentHP <= 0.f && BoundBoss->GetCurrentPhase() > 1)
 	{
 		SetVisibleBossHPBar(false);
+	}
+}
+
+void UPlayerHUDWidget::HandleInventoryBackRequested()
+{
+	if (OwnerPlayer)
+	{
+		OwnerPlayer->CloseInventory();
 	}
 }
 

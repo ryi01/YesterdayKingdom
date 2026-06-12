@@ -92,9 +92,12 @@ protected:
 	//=====================================================================================================
 	// 보스 체력바 관련
 	//=====================================================================================================
-
 	UFUNCTION()
 	void HandleBossHPChanged(float CurrentHP, float MaxHP);
+	
+	UFUNCTION()
+	void HandleInventoryBackRequested();
+	
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindPlayer(class APlayerCharacter* InPlayer);
