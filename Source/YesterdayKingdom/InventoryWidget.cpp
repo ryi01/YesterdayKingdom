@@ -28,13 +28,6 @@ void UInventoryWidget::NativeConstruct()
 		BTN_Use->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnUseClicked);
 		BTN_Use->OnClicked.AddDynamic(this, &UInventoryWidget::OnUseClicked);
 	}
-
-	if (BTN_Sell)
-	{
-		BTN_Sell->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnSellClicked);
-		BTN_Sell->OnClicked.AddDynamic(this, &UInventoryWidget::OnSellClicked);
-	}
-
 	if (BTN_Remove)
 	{
 		BTN_Remove->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnRemoveClicked);

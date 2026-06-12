@@ -41,10 +41,12 @@ protected:
 	TObjectPtr<UProgressBar> ST;
 	
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> Logo;
-	
+	TObjectPtr<UImage> Armor1;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> Map;
+	TObjectPtr<UImage> Armor2;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UImage> Armor3;
+
 	
 	float TargetHPPercent = 1.f;
 	float TargetSTPercent = 1.f;
