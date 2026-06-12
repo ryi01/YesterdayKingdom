@@ -15,6 +15,7 @@ void UReturnStateComponent::OnStateEnter()
 	{
 		OwnerCharacter->SetDefaultMoveSpeed();
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Return] Enter : %s"), *OwnerCharacter->GetName());
+		OwnerCharacter->SetEnemyHPWidgetVisible(false);
 	}
 }
 

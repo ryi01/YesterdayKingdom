@@ -19,8 +19,10 @@ void UChaseStateComponent::OnStateEnter()
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->SetCombatMoveSpeed();
+		OwnerCharacter->SetEnemyHPWidgetVisible(true);
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Chase] Enter : %s"), *OwnerCharacter->GetName());
 	}
+	
 }
 
 void UChaseStateComponent::OnStateUpdate(float X)

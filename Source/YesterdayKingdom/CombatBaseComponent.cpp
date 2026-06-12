@@ -516,6 +516,10 @@ void UCombatBaseComponent::OnGuardStarted()
 {
 }
 
+void UCombatBaseComponent::OnGuardHit(AActor* DamageCauser)
+{
+}
+
 void UCombatBaseComponent::OnGuardEnded()
 {
 }
@@ -563,6 +567,8 @@ bool UCombatBaseComponent::TryHandleGuardOrParry(float& InOutDamage, AActor* Dam
 
 	InOutDamage *= GuardDamageRate;
 
+	OnGuardHit(DamageCauser);
+	
 	return true;
 }
 

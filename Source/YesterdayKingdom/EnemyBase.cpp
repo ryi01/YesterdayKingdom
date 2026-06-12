@@ -7,10 +7,12 @@
 #include "CombatBaseComponent.h"
 #include "EnemyDefinition.h"
 #include "EnemyFSMControllerComponent.h"
+#include "EnemyHPWidget.h"
 #include "GoldComponent.h"
 #include "InventoryComponent.h"
 #include "PlayerCharacter.h"
 #include "QuestComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(ObjectInitializer)
@@ -20,6 +22,17 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(Obje
 	FSMController = CreateDefaultSubobject<UEnemyFSMControllerComponent>(TEXT("FSMController"));
 	
 	OnAttackMontageEnded.BindUObject(this, &AEnemyBase::AttackMontageEnded);
+	//===============================================================================================
+	// hp 바
+	//===============================================================================================
+	EnemyHPWidgetComponent =CreateDefaultSubobject<UWidgetComponent>(TEXT("EnemyHPWidgetComponent"));
+	EnemyHPWidgetComponent->SetupAttachment(GetRootComponent());
+	EnemyHPWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 140.f));
+	EnemyHPWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	EnemyHPWidgetComponent->SetDrawSize(FVector2D(180.f, 20.f));
+	EnemyHPWidgetComponent->SetPivot(FVector2D(0.5f, 0.5f));
+	EnemyHPWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	EnemyHPWidgetComponent->SetVisibility(true);
 	
 	bDestroyOnDeath = true;
 	DestroyDelay = 3.0f;
@@ -29,6 +42,12 @@ void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
 	InitializeFromDefinition();
+	InitializeEnemyHPWidget();
+	if (StatComponent)
+	{
+		StatComponent->OnHPChanged.RemoveDynamic(this,&AEnemyBase::OnEnemyHPChanged);
+		StatComponent->OnHPChanged.AddDynamic(this,&AEnemyBase::OnEnemyHPChanged);
+	}
 }
 
 void AEnemyBase::SetHomeLocation(const FVector& InHomeLocation)
@@ -129,6 +148,11 @@ void AEnemyBase::HandleDeath_Implementation()
 	
 	Super::HandleDeath_Implementation();
 	
+	if (EnemyHPWidgetComponent)
+	{
+		EnemyHPWidgetComponent->SetVisibility(false);
+	}
+
 	GiveRewardToKiller();
 	NotifyQuestKillToKiller();
 	OnEnemyDied.Broadcast();
@@ -347,6 +371,45 @@ void AEnemyBase::FinishPhaseChange()
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::PatternSelect);
 	}
+}
+//===============================================================================================
+// hp 바
+//===============================================================================================
+void AEnemyBase::InitializeEnemyHPWidget()
+{
+	if (!EnemyHPWidgetComponent) return;
+	EnemyHPWidget = Cast<UEnemyHPWidget>(EnemyHPWidgetComponent->GetUserWidgetObject());
+
+	if (!EnemyHPWidget)
+	{
+		EnemyHPWidgetComponent->SetVisibility(false);
+		return;
+	}
+	RefreshEnemyHPWidget();
+	EnemyHPWidgetComponent->SetVisibility(false);
+}
+
+void AEnemyBase::RefreshEnemyHPWidget()
+{
+	if (!EnemyHPWidget || !StatComponent) return;
+	EnemyHPWidget->SetEnemyHP(StatComponent->GetCurrentHP(), StatComponent->GetMaxHP());
+}
+
+void AEnemyBase::OnEnemyHPChanged(float CurrentHP, float MaxHP)
+{
+	if (EnemyHPWidget)
+	{
+		EnemyHPWidget->SetEnemyHP(CurrentHP, MaxHP);
+	}
+
+}
+
+void AEnemyBase::SetEnemyHPWidgetVisible(bool bVisible)
+{
+	if (!EnemyHPWidgetComponent) return;
+	if (!EnemyHPWidget) return;
+
+	EnemyHPWidgetComponent->SetVisibility(bVisible);
 }
 
 //===============================================================================================

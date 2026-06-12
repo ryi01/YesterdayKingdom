@@ -357,3 +357,22 @@ FText FStateTreeGetPlayerInfoTask::GetDescription(const FGuid& ID, FStateTreeDat
 {
 	return FText::FromString("<b>Get Player Info</b>");
 }
+
+EStateTreeRunStatus FStateTreeWidgetTask::EnterState(FStateTreeExecutionContext& Context,
+	const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	if (!InstanceData.Enemy)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	InstanceData.Enemy->SetEnemyHPWidgetVisible(InstanceData.bVisible);
+	return EStateTreeRunStatus::Succeeded;
+}
+
+
+FText FStateTreeWidgetTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
+	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
+{
+	return FText::FromString("<b>Enemy HP Widget Visible</b>");
+}
