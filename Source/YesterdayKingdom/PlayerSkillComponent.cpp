@@ -133,7 +133,10 @@ void UPlayerSkillComponent::ApplySkillEffect(const FSkillDataRow& SkillData)
 	case ESkillEffectType::UnlockParry:
 		bCanUseParry = true;
 		break;
-
+		
+	case ESkillEffectType::UnlockBattleBuff:
+		bCanUseBattleBuff = true;
+		break;
 	default:
 		break;
 	}
@@ -152,5 +155,10 @@ bool UPlayerSkillComponent::CanUseChargeAttack() const
 bool UPlayerSkillComponent::CanUseParry() const
 {
 	return bCanUseParry;
+}
+
+bool UPlayerSkillComponent::CanUseBattleBuff() const
+{
+	return bCanUseBattleBuff;
 }
 

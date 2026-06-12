@@ -54,7 +54,7 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 	
 	Defense = StatRow->Defense;
 	MoveSpeed = StatRow->MoveSpeed;
-	CrouchSpeed = StatRow->CrouchSpeed;
+	GuardSpeed = StatRow->GuardSpeed;
 	RunSpeed = StatRow->RunSpeed;
 	
 	MaxStun = StatRow->MaxStun;
@@ -364,9 +364,9 @@ float UBaseStatComponent::GetMoveSpeed() const
 	return MoveSpeed + SkillBonusMoveSpeed;
 }
 
-float UBaseStatComponent::GetCrouchMoveSpeed() const
+float UBaseStatComponent::GetGuardMoveSpeed() const
 {
-	return CrouchSpeed;
+	return GuardSpeed;
 }
 
 float UBaseStatComponent::GetRunSpeed() const

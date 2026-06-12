@@ -20,6 +20,7 @@
 #include "PlayerSkillComponent.h"
 #include "PlayerStatComponent.h"
 #include "QuestComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerCombatComponent>(TEXT("CombatComponent")).SetDefaultSubobjectClass<UPlayerStatComponent>(TEXT("StatComponent")))
@@ -58,12 +59,12 @@ void APlayerCharacter::BeginPlay()
 	if (MoveComp)
 	{
 		MoveComp->MaxWalkSpeed = GetStatComponent()->GetMoveSpeed();
-		MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
 		MoveComp->bOrientRotationToMovement = true;
-		MoveComp->GetNavAgentPropertiesRef().bCanCrouch = true;
 	}
 	
 	CreatePlayerHUD();
+	
+	QuickSlotItemRowNames.SetNum(5);
 	
 	if (GoldComponent)
 	{
@@ -113,6 +114,12 @@ void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Started, this, &APlayerCharacter::StartGuard);
 	EnhancedInputComponent->BindAction(GuardAction, ETriggerEvent::Completed, this, &APlayerCharacter::EndGuard);
 
+	EnhancedInputComponent->BindAction(QuickSlot1Action, ETriggerEvent::Started, this, &APlayerCharacter::UseQuickSlot1);
+	EnhancedInputComponent->BindAction(QuickSlot2Action, ETriggerEvent::Started, this, &APlayerCharacter::UseQuickSlot2);
+	EnhancedInputComponent->BindAction(QuickSlot3Action, ETriggerEvent::Started, this, &APlayerCharacter::UseQuickSlot3);
+	EnhancedInputComponent->BindAction(QuickSlot4Action, ETriggerEvent::Started, this, &APlayerCharacter::UseQuickSlot4);
+	EnhancedInputComponent->BindAction(QuickSlot5Action, ETriggerEvent::Started, this, &APlayerCharacter::UseQuickSlot5);
+	
 	EnhancedInputComponent->BindAction(TestSkillAction, ETriggerEvent::Started, this, &APlayerCharacter::TestUnlockSkill);
 }
 //===============================================================================================
@@ -129,6 +136,32 @@ void APlayerCharacter::CreatePlayerHUD()
 	PlayerHUDWidget->BindPlayer(this);
 	PlayerHUDWidget->SetInventoryVisible(false);
 }
+
+void APlayerCharacter::UseQuickSlot1()
+{
+	UseQuickSlot(0);
+}
+
+void APlayerCharacter::UseQuickSlot2()
+{
+	UseQuickSlot(1);
+}
+
+void APlayerCharacter::UseQuickSlot3()
+{
+	UseQuickSlot(2);
+}
+
+void APlayerCharacter::UseQuickSlot4()
+{
+	UseQuickSlot(3);
+}
+
+void APlayerCharacter::UseQuickSlot5()
+{
+	UseQuickSlot(4);
+}
+
 void APlayerCharacter::SetUIMode(bool bEnableUI)
 {
 	APlayerController* PC = Cast<APlayerController>(GetController());
@@ -136,14 +169,24 @@ void APlayerCharacter::SetUIMode(bool bEnableUI)
 	if (bEnableUI)
 	{
 		PC->bShowMouseCursor = true;
+
 		FInputModeGameAndUI InputModeGameAndUI;
 		InputModeGameAndUI.SetHideCursorDuringCapture(false);
 		InputModeGameAndUI.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-		
+
 		PC->SetInputMode(InputModeGameAndUI);
+
+		if (MoveComp)
+		{
+			MoveComp->StopMovementImmediately();
+		}
+
+		bIsDashing = false;
+		UGameplayStatics::SetGamePaused(GetWorld(), true);
 	}
 	else
 	{
+		UGameplayStatics::SetGamePaused(GetWorld(), false);
 		PC->bShowMouseCursor = false;
 
 		FInputModeGameOnly InputMode;
@@ -156,6 +199,7 @@ void APlayerCharacter::SetUIMode(bool bEnableUI)
 //===============================================================================================
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
+	if (bIsCastingBattleBuff) return;
 	FVector2D MovementVector = Value.Get<FVector2D>();
 	
 	const FRotator Rotation = GetController()->GetControlRotation();
@@ -187,11 +231,24 @@ void APlayerCharacter::ToggleInventory()
 	SetUIMode(bIsInventoryOpen);
 }
 
+void APlayerCharacter::CloseInventory()
+{
+	bIsInventoryOpen = false;
+
+	if (PlayerHUDWidget)
+	{
+		PlayerHUDWidget->SetInventoryVisible(false);
+	}
+
+	SetUIMode(false);
+}
+
 //===============================================================================================
 // 이동관련
 //===============================================================================================
 void APlayerCharacter::DoDash()
 {
+	if (bIsCastingBattleBuff) return;
 	if (GetStatComponent()->GetCurrentST() <= 0.f) return;
 	bIsDashing = true;
 	RefreshMoveSpeed();
@@ -209,8 +266,38 @@ void APlayerCharacter::RefreshMoveSpeed()
 	float NewSpeed = bIsDashing ? GetStatComponent()->GetRunSpeed() : GetStatComponent()->GetMoveSpeed();
 	if (bIsBattleBuffActive) NewSpeed *= BuffMoveSpeedMultiplier;
 	MoveComp->MaxWalkSpeed = NewSpeed;
-	MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetCrouchMoveSpeed();
+	MoveComp->MaxWalkSpeedCrouched = GetStatComponent()->GetGuardMoveSpeed();
 }
+
+bool APlayerCharacter::UseConsumableItem(const FItemData& ItemData)
+{
+	if (!GetStatComponent()) return false;
+	if (ItemData.ItemType != EItemType::Consumable) return false;
+
+	bool bAppliedEffect = false;
+
+	if (ItemData.InstantHeal > 0)
+	{
+		GetStatComponent()->Heal(ItemData.InstantHeal);
+		bAppliedEffect = true;
+	}
+
+	if (ItemData.InstantMana > 0)
+	{
+		GetStatComponent()->RecoverMP(ItemData.InstantMana);
+		bAppliedEffect = true;
+	}
+	
+	if (ItemData.InstantStamina > 0)
+	{
+		GetStatComponent()->RecoverST(ItemData.InstantStamina);
+		bAppliedEffect = true;
+	}
+
+	return bAppliedEffect;
+	
+}
+
 //===============================================================================================
 // 피격 관련 함수
 //===============================================================================================
@@ -246,6 +333,7 @@ void APlayerCharacter::EndHitFlash()
 //===============================================================================================
 void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 {
+	if (bIsCastingBattleBuff) return;
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
 	{
 		PlayerCombat->RequestAttack(EAttackType::Light);
@@ -254,6 +342,7 @@ void APlayerCharacter::DoLightAttack(const FInputActionValue& Value)
 
 void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 {
+	if (bIsCastingBattleBuff) return;
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
 	{
 		PlayerCombat->RequestAttack(EAttackType::Heavy);
@@ -261,6 +350,7 @@ void APlayerCharacter::DoHeavyAttack(const FInputActionValue& Value)
 }
 void APlayerCharacter::DoChargedAttack()
 {
+	if (bIsCastingBattleBuff) return;
 	if (UPlayerCombatComponent* PlayerCombat = Cast<UPlayerCombatComponent>(CombatBaseComponent))
 	{
 		PlayerCombat->StartChargeAttack();
@@ -305,17 +395,36 @@ void APlayerCharacter::ApplyBattleBuff()
 void APlayerCharacter::DoBattleBuff()
 {
 	if (!CanUseBattleBuff() || !GetStatComponent()) return;
+	if (!SkillComponent || !SkillComponent->CanUseBattleBuff()) return;
 	if (BuffMPCost > 0.f && !GetStatComponent()->ConsumeMP(BuffMPCost)) return;
 	
+	bIsCastingBattleBuff = true;
 	bIsBattleBuffOnCooldown = true;
+	bIsDashing = false;
+	if (MoveComp)
+	{
+		MoveComp->StopMovementImmediately();
+		MoveComp->DisableMovement();
+	}
+
+	if (CombatBaseComponent && CombatBaseComponent->IsGuarding())
+	{
+		CombatBaseComponent->EndGuard();
+	}
 	
 	if (BattleBuffMontage)
 	{
-		PlayAnimMontage(BattleBuffMontage);
+		const float PlayedLength = PlayAnimMontage(BattleBuffMontage);
+
+		if (PlayedLength <= 0.f)
+		{
+			FinishBattleBuffCasting();
+		}
 	}
 	else
 	{
 		ApplyBattleBuff();
+		FinishBattleBuffCasting();
 	}
 	
 	GetWorld()->GetTimerManager().ClearTimer(BattleBuffCooldownTimerHandle);
@@ -346,6 +455,7 @@ void APlayerCharacter::EndBattleBuffCooldown()
 
 bool APlayerCharacter::CanUseBattleBuff() const
 {
+	if (bIsCastingBattleBuff) return false;
 	if (bIsBattleBuffActive) return false;
 	if (bIsBattleBuffOnCooldown) return false;
 	if (!StatComponent) return false;
@@ -355,11 +465,37 @@ bool APlayerCharacter::CanUseBattleBuff() const
 	if (CombatBaseComponent && CombatBaseComponent->IsCharging()) return false; 
 	return true;
 }
+
+bool APlayerCharacter::IsCastingBattleBuff() const
+{
+	return bIsCastingBattleBuff;
+}
+
+void APlayerCharacter::FinishBattleBuffCasting()
+{
+	if (!bIsCastingBattleBuff) return;
+
+	bIsCastingBattleBuff = false;
+
+	if (!bIsBattleBuffActive)
+	{
+		ApplyBattleBuff();
+	}
+
+	if (MoveComp)
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	}
+
+	RefreshMoveSpeed();
+}
+
 //===============================================================================================
 // 가드 관련 
 //===============================================================================================
 void APlayerCharacter::StartGuard()
 {
+	if (bIsCastingBattleBuff) return;
 	if (!SkillComponent) return;
 	if (!SkillComponent->CanUseParry()) return;
 	if (CombatBaseComponent) CombatBaseComponent->StartGuard();
@@ -385,6 +521,8 @@ void APlayerCharacter::HideBossHP()
 
 	PlayerHUDWidget->UnbindBoss();
 }
+
+
 
 void APlayerCharacter::OnDead()
 {
@@ -467,6 +605,88 @@ void APlayerCharacter::UpdateInteractionTarget()
 	{
 		InteractionComponent->UpdateInteractTarget();
 	}
+}
+//===============================================================================================
+// 퀵슬롯
+//===============================================================================================
+void APlayerCharacter::TryAutoRegisterQuickSlot(FName ItemRowName)
+{
+	if (ItemRowName.IsNone()) return;
+	if (!InventoryComponent) return;
+
+	const FItemData* ItemData = InventoryComponent->GetItemData(ItemRowName);
+	if (!ItemData) return;
+
+	if (ItemData->ItemType != EItemType::Consumable) return;
+
+	for (int32 i = 0; i < QuickSlotItemRowNames.Num(); i++)
+	{
+		if (QuickSlotItemRowNames[i] == ItemRowName)
+		{
+			RefreshQuickSlotUI(i);
+			return;
+		}
+	}
+
+	for (int32 i = 0; i < QuickSlotItemRowNames.Num(); i++)
+	{
+		if (QuickSlotItemRowNames[i].IsNone())
+		{
+			QuickSlotItemRowNames[i] = ItemRowName;
+			RefreshQuickSlotUI(i);
+			return;
+		}
+	}
+}
+void APlayerCharacter::UseQuickSlot(int32 QuickSlotIndex)
+{
+	if (!QuickSlotItemRowNames.IsValidIndex(QuickSlotIndex)) return;
+	if (!InventoryComponent) return;
+
+	const FName ItemRowName = QuickSlotItemRowNames[QuickSlotIndex];
+	if (ItemRowName.IsNone()) return;
+
+	const FItemData* ItemData = InventoryComponent->GetItemData(ItemRowName);
+	if (!ItemData) return;
+
+	const bool bUsed = UseConsumableItem(*ItemData);
+	if (!bUsed) return;
+
+	InventoryComponent->RemoveItem(ItemRowName, 1);
+
+	if (!InventoryComponent->HasItem(ItemRowName, 1))
+	{
+		QuickSlotItemRowNames[QuickSlotIndex] = NAME_None;
+	}
+
+	RefreshQuickSlotUI(QuickSlotIndex);
+}
+
+void APlayerCharacter::RefreshQuickSlotByItem(FName ItemRowName)
+{
+	if (ItemRowName.IsNone()) return;
+	if (!InventoryComponent) return;
+
+	for (int32 QuickSlotIndex = 0; QuickSlotIndex < QuickSlotItemRowNames.Num(); QuickSlotIndex++)
+	{
+		if (QuickSlotItemRowNames[QuickSlotIndex] != ItemRowName) continue;
+
+		if (!InventoryComponent->HasItem(ItemRowName, 1))
+		{
+			QuickSlotItemRowNames[QuickSlotIndex] = NAME_None;
+		}
+
+		RefreshQuickSlotUI(QuickSlotIndex);
+	}
+}
+
+void APlayerCharacter::RefreshQuickSlotUI(int32 QuickSlotIndex)
+{
+	if (!PlayerHUDWidget) return;
+	if (!InventoryComponent) return;
+	if (!QuickSlotItemRowNames.IsValidIndex(QuickSlotIndex)) return;
+
+	PlayerHUDWidget->UpdateQuickSlot(QuickSlotIndex, QuickSlotItemRowNames[QuickSlotIndex]);
 }
 
 //===============================================================================================

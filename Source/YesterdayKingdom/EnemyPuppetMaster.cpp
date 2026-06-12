@@ -4,6 +4,7 @@
 #include "EnemyPuppetMaster.h"
 #include "EnemyElite.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 
 AEnemyPuppetMaster::AEnemyPuppetMaster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -14,11 +15,27 @@ AEnemyPuppetMaster::AEnemyPuppetMaster(const FObjectInitializer& ObjectInitializ
 void AEnemyPuppetMaster::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	SetEnemyHPWidgetVisible(false);
 	GetWorldTimerManager().SetTimerForNextTick(
 		this,
 		&AEnemyPuppetMaster::FindAndRegisterPuppets
 	);
+	GetWorldTimerManager().SetTimer(
+		HPWidgetCheckTimerHandle,
+		this,
+		&AEnemyPuppetMaster::UpdateHPWidgetVisibility,
+		HPWidgetCheckInterval,
+		true
+	);
+
+	UpdateHPWidgetVisibility();
+}
+
+void AEnemyPuppetMaster::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	GetWorldTimerManager().ClearTimer(
+	HPWidgetCheckTimerHandle);
 }
 
 void AEnemyPuppetMaster::RegisterPuppet(AEnemyElite* Puppet)
@@ -40,6 +57,9 @@ void AEnemyPuppetMaster::UnregisterPuppet(AEnemyElite* Puppet)
 
 void AEnemyPuppetMaster::HandleDeath_Implementation()
 {
+	GetWorldTimerManager().ClearTimer(
+	HPWidgetCheckTimerHandle
+);
 	for (AEnemyElite* Puppet : Puppets)
 	{
 		if (Puppet)
@@ -69,6 +89,29 @@ void AEnemyPuppetMaster::FindAndRegisterPuppets()
 
 		RegisterPuppet(Puppet);
 	}
+}
+
+void AEnemyPuppetMaster::UpdateHPWidgetVisibility()
+{
+	if (IsDead())
+	{
+		SetEnemyHPWidgetVisible(false);
+		return;
+	}
+
+	APawn* PlayerPawn =UGameplayStatics::GetPlayerPawn(this, 0);
+
+	if (!PlayerPawn)
+	{
+		SetEnemyHPWidgetVisible(false);
+		return;
+	}
+
+	const float DistanceSquared =FVector::DistSquared(GetActorLocation(),PlayerPawn->GetActorLocation());
+
+	const float VisibleDistanceSquared =FMath::Square(HPWidgetVisibleDistance);
+
+	SetEnemyHPWidgetVisible(DistanceSquared <= VisibleDistanceSquared);
 }
 
 

@@ -345,7 +345,7 @@ struct FStateTreeGetPlayerInfoInstanceData
 
 	// AI 캐릭터 참조
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABaseCharacter> Character;
+	TObjectPtr<AEnemyNomal> Character;
 
 	// 플레이어 캐릭터 참조
 	UPROPERTY(VisibleAnywhere)
@@ -357,10 +357,18 @@ struct FStateTreeGetPlayerInfoInstanceData
 	// 플레이어 위치
 	UPROPERTY(VisibleAnywhere)
 	FVector TargetPlayerLocation = FVector::ZeroVector;
+	UPROPERTY(VisibleAnywhere)
+	FVector HomeLocation = FVector::ZeroVector;
 	
 	// 플레이어와의 거리
 	UPROPERTY(VisibleAnywhere)
 	float DistanceToTarget = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere)
+	float DistanceToHome = 0.f;
+
+	UPROPERTY(VisibleAnywhere)
+	bool IsHit;
 	
 	UPROPERTY(VisibleAnywhere)
 	bool IsDead;
@@ -400,3 +408,34 @@ struct FStateTreeGetPlayerInfoTask : public FStateTreeTaskCommonBase
 		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
 #endif
 };
+
+USTRUCT()
+struct FSetEnemyHPWidgetVisibleTaskInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<AEnemyBase> Enemy;
+
+	UPROPERTY(EditAnywhere, Category = "UI")
+	bool bVisible = true;
+};
+USTRUCT(meta = (DisplayName = "Set Enemy HP Widget Visible", Category = "Combat"))
+struct FStateTreeWidgetTask : public FStateTreeTaskCommonBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FSetEnemyHPWidgetVisibleTaskInstanceData;
+	virtual const UStruct* GetInstanceDataType() const override {
+		return FInstanceDataType::StaticStruct();
+	}
+	
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+
+#if WITH_EDITOR
+	virtual FText GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
+		const IStateTreeBindingLookup& BindingLookup,
+		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
+#endif
+};
+

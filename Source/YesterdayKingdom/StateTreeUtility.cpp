@@ -328,15 +328,18 @@ EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext
 		// 플레이어의 위치를 타겟팅할 마지막 위치로 설정
 		InstanceData.TargetPlayerLocation = InstanceData.TargetPlayerCharacter->GetActorLocation();
 	}
+	// homelocation과의 거리 측정
+	InstanceData.DistanceToHome = FVector::Distance(InstanceData.Character->GetHomeLocation(), InstanceData.Character->GetActorLocation());
 
 	// AI 캐릭터와 플레이어 캐릭터의 거리를 구함
 	InstanceData.DistanceToTarget = FVector::Distance(
 		InstanceData.TargetPlayerLocation,
 		InstanceData.Character->GetActorLocation()
 	);
-	
+	InstanceData.HomeLocation = InstanceData.Character->GetHomeLocation();
 	// AI 캐릭터 죽었는지 확인
 	InstanceData.IsDead = InstanceData.Character->GetStatComponent()->IsDead();
+	InstanceData.IsHit = InstanceData.Character->GetIsHit();
 	// AI 캐릭터가 스턴에 걸렸는지 확인
 	InstanceData.IsStunned = InstanceData.Character->GetStatComponent()->IsStunned();
 	
@@ -356,4 +359,23 @@ EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext
 FText FStateTreeGetPlayerInfoTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Get Player Info</b>");
+}
+
+EStateTreeRunStatus FStateTreeWidgetTask::EnterState(FStateTreeExecutionContext& Context,
+	const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	if (!InstanceData.Enemy)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	InstanceData.Enemy->SetEnemyHPWidgetVisible(InstanceData.bVisible);
+	return EStateTreeRunStatus::Succeeded;
+}
+
+
+FText FStateTreeWidgetTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
+	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
+{
+	return FText::FromString("<b>Enemy HP Widget Visible</b>");
 }

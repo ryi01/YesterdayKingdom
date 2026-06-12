@@ -30,6 +30,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Skill|Unlock")
 	bool bCanUseParry = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Skill|Unlock")
+	bool bCanUseBattleBuff = false;
 	
 public:	
 	// Sets default values for this component's properties
@@ -68,4 +70,6 @@ public:
 	
 	UFUNCTION(BlueprintPure, Category="Skill|Unlock")
 	bool CanUseParry() const;
+	UFUNCTION(BlueprintPure, Category="Skill|Unlock")
+	bool CanUseBattleBuff() const;
 };

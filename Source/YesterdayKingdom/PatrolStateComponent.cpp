@@ -22,6 +22,7 @@ void UPatrolStateComponent::OnStateEnter()
 	{
 		OwnerCharacter->SetDefaultMoveSpeed();
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Patrol] Enter : %s"), *OwnerCharacter->GetName());
+		OwnerCharacter->SetEnemyHPWidgetVisible(false);
 	}
 	RunPatrolEQS();
 }
@@ -57,12 +58,6 @@ void UPatrolStateComponent::OnStateUpdate(float DeltaTime)
 	{
 		FinalAcceptanceRadius += OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
 	}
-	UE_LOG(LogTemp, Warning, TEXT("[FSM][Patrol] Distance: %.2f / Acceptance: %.2f / Target: %s / Owner: %s"),
-		DistanceToPatrolTarget,
-		FinalAcceptanceRadius,
-		*PatrolTargetLocation.ToString(),
-		*OwnerCharacter->GetName());
-
 	
 	if (DistanceToPatrolTarget <= FinalAcceptanceRadius)
 	{

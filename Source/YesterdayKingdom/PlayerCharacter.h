@@ -6,6 +6,7 @@
 #include "BaseCharacter.h"
 #include "PlayerCharacter.generated.h"
 
+struct FItemData;
 class ACharacter;
 class UCharacterMovementComponent;
 struct FInputActionValue;
@@ -21,6 +22,9 @@ UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
 {
 	GENERATED_BODY()
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Buff",meta = (AllowPrivateAccess = "true"))
+	bool bIsCastingBattleBuff = false;
 	
 public:
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer);
@@ -139,7 +143,7 @@ public:
 	
 	FTimerHandle BattleBuffCooldownTimerHandle;
 	FTimerHandle BattleBuffTimerHandle;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> TestSkillAction;
 
@@ -157,7 +161,26 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	bool bIsInventoryOpen = false;
+
+	//===============================================================================================
+	// 퀵슬롯
+	//===============================================================================================
+	UPROPERTY()
+	TArray<FName> QuickSlotItemRowNames;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot1Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot2Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot3Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot4Action;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot5Action;
 protected:
 	//===============================================================================================
 	// 피격 관련 함수
@@ -176,6 +199,14 @@ protected:
 	void SetUIMode(bool bEnableUI);
 	
 	void CreatePlayerHUD();
+	//===============================================================================================
+	// 퀵슬롯
+	//===============================================================================================
+	void UseQuickSlot1();
+	void UseQuickSlot2();
+	void UseQuickSlot3();
+	void UseQuickSlot4();
+	void UseQuickSlot5();
 	
 	//===============================================================================================
 	// 사망처리
@@ -202,9 +233,16 @@ public:
 	void Interaction();
 	UFUNCTION()
 	void ToggleInventory();
+	void CloseInventory();
 	
 	UFUNCTION(BlueprintCallable, Category="Movement")
 	void RefreshMoveSpeed();
+	//===============================================================================================
+	// 아이템 관련 함수
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool UseConsumableItem(const FItemData& ItemData);
+	
 	//===============================================================================================
 	// 피격 관련 함수
 	//===============================================================================================
@@ -235,6 +273,11 @@ public:
 	void EndBattleBuffCooldown();
 	UFUNCTION(BlueprintCallable, Category="Buff")
 	bool CanUseBattleBuff() const;
+	UFUNCTION(BlueprintPure, Category = "Battle Buff")
+	bool IsCastingBattleBuff() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Battle Buff")
+	void FinishBattleBuffCasting();
 	//===============================================================================================
 	// 가드 관련
 	//===============================================================================================
@@ -250,6 +293,14 @@ public:
 	void HideBossHP();
 	
 	//===============================================================================================
+	// 퀵슬롯
+	//===============================================================================================
+	void TryAutoRegisterQuickSlot(FName ItemRowName);
+	void RefreshQuickSlotUI(int32 QuickSlotIndex);
+	void UseQuickSlot(int32 QuickSlotIndex);
+	void RefreshQuickSlotByItem(FName ItemRowName);
+	
+	//===============================================================================================
 	// Getter
 	//===============================================================================================
 	UGoldComponent* GetGoldComponent() const;
@@ -258,5 +309,6 @@ public:
 	UEquipmentComponent* GetEquipmentComponent() const;
 	UQuestComponent* GetQuestComponent() const;
 	UPlayerSkillComponent* GetSkillComponent() const;
+	UFUNCTION(BlueprintPure, Category = "Quest")
 	UPlayerHUDWidget* GetPlayerHUDWidget() const;
 };

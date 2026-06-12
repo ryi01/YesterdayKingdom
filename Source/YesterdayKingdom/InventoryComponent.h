@@ -32,8 +32,8 @@ public:
 	FOnInventoryChanged OnInventoryChanged;
 
 protected:
-
-	void NotifyQuestItemCollected(FName ItemRowName, int32 Amount);
+	bool TryAutoUseItem(FName ItemRowName, int32 Amount, const FItemData& ItemData, bool bNotifyQuest);
+	bool NotifyQuestItemCollected(FName ItemRowName, int32 Amount);
 	// 슬롯 데이터를 UI 표시용 데이터로 변환
 	bool MakeSlotViewData(int32 SlotIndex, FInventorySlotViewData& OutViewData) const;
 

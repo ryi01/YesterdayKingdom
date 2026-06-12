@@ -113,6 +113,9 @@ struct FItemData : public FTableRowBase
     // 아이템 텍스쳐
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common")
     TObjectPtr<UTexture2D> Icon = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Quest")
+	bool bAutoUseOnAcquire = false;
 
     // 슬롯 아이템 보유 갯수
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common", meta = (ClampMin = "1"))
@@ -170,6 +173,9 @@ struct FItemData : public FTableRowBase
     // 섭취 즉시 회복하는 HP 량
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable", meta = (ClampMin = "0"))
     int32 InstantHeal = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable", meta = (ClampMin = "0"))
+	int32 InstantStamina = 0;
 
     // 섭취 즉시 회복하는 MP 량
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable", meta = (ClampMin = "0"))

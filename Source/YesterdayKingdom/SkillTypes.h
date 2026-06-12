@@ -29,7 +29,8 @@ enum class ESkillEffectType : uint8
 	AddMoveSpeed        UMETA(DisplayName = "Add Move Speed"),
 	
 	UnlockChargeAttack  UMETA(DisplayName = "Unlock Charge Attack"),
-	UnlockParry         UMETA(DisplayName = "Unlock Parry")
+	UnlockParry         UMETA(DisplayName = "Unlock Parry"),
+	UnlockBattleBuff	UMETA(DisplayName = "Unlock Battle Buff")
 };
 USTRUCT(BlueprintType)
 struct FSkillDataRow : public FTableRowBase

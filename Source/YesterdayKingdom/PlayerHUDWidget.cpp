@@ -6,8 +6,10 @@
 #include "BaseStatComponent.h"
 #include "BossWidget.h"
 #include "EnemyBase.h"
+#include "InventoryComponent.h"
 #include "InventoryTabBtnWidget.h"
 #include "PlayerCharacter.h"
+#include "QuickSlotWidget.h"
 #include "Components/ProgressBar.h"
 #include "Components/WidgetSwitcher.h"
 
@@ -28,11 +30,28 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 	}
 
 	if (WBP_BossHP) SetVisibleBossHPBar(false);
+
 	if (WBP_InventoryTab)
 	{
 		WBP_InventoryTab->SetInventoryComponent(OwnerPlayer->GetInventoryComponent());
+
+		WBP_InventoryTab->OnInventoryBackRequested.RemoveDynamic(this, &UPlayerHUDWidget::HandleInventoryBackRequested);
+		WBP_InventoryTab->OnInventoryBackRequested.AddDynamic(this, &UPlayerHUDWidget::HandleInventoryBackRequested);
 	}
 	SetSwitcherIndex(0);
+}
+
+void UPlayerHUDWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	QuickSlots.Empty();
+	QuickSlots.Add(QuickSlot1);
+	QuickSlots.Add(QuickSlot2);
+	QuickSlots.Add(QuickSlot3);
+	QuickSlots.Add(QuickSlot4);
+	QuickSlots.Add(QuickSlot5);
+
+	ClearAllQuickSlots();
 }
 
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -133,8 +152,74 @@ void UPlayerHUDWidget::HandleBossHPChanged(float CurrentHP, float MaxHP)
 	}
 }
 
+void UPlayerHUDWidget::HandleInventoryBackRequested()
+{
+	if (OwnerPlayer)
+	{
+		OwnerPlayer->CloseInventory();
+	}
+}
+
 void UPlayerHUDWidget::SetVisibleBossHPBar(bool bEnable)
 {
 	const ESlateVisibility NewVisibility  = bEnable ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
 	WBP_BossHP->SetVisibility(NewVisibility );
+}
+
+//=====================================================================================================
+// 퀵 슬롯
+//=====================================================================================================
+void UPlayerHUDWidget::SetQuickSlot(int32 QuickSlotIndex, const FInventorySlotViewData& SlotData)
+{
+	if (!QuickSlots.IsValidIndex(QuickSlotIndex)) return;
+	if (!QuickSlots[QuickSlotIndex]) return;
+
+	QuickSlots[QuickSlotIndex]->SetQuickSlotData(SlotData);
+}
+
+void UPlayerHUDWidget::UpdateQuickSlot(int32 QuickSlotIndex, FName ItemRowName)
+{
+	if (!OwnerPlayer) return;
+	if (!QuickSlots.IsValidIndex(QuickSlotIndex)) return;
+	if (!QuickSlots[QuickSlotIndex]) return;
+
+	UInventoryComponent* InventoryComponent = OwnerPlayer->GetInventoryComponent();
+	if (!InventoryComponent) return;
+
+	if (ItemRowName.IsNone())
+	{
+		ClearQuickSlot(QuickSlotIndex);
+		return;
+	}
+
+	const TArray<FInventorySlotViewData> AllSlotData = InventoryComponent->GetAllSlotViewData();
+
+	for (const FInventorySlotViewData& SlotData : AllSlotData)
+	{
+		if (SlotData.ItemRowName == ItemRowName)
+		{
+			SetQuickSlot(QuickSlotIndex, SlotData);
+			return;
+		}
+	}
+
+	ClearQuickSlot(QuickSlotIndex);
+}
+
+void UPlayerHUDWidget::ClearQuickSlot(int32 QuickSlotIndex)
+{
+	if (!QuickSlots.IsValidIndex(QuickSlotIndex)) return;
+	if (!QuickSlots[QuickSlotIndex]) return;
+
+	QuickSlots[QuickSlotIndex]->ClearQuickSlot();
+}
+
+void UPlayerHUDWidget::ClearAllQuickSlots()
+{
+	for (UQuickSlotWidget* QuickSlot : QuickSlots)
+	{
+		if (!QuickSlot) continue;
+
+		QuickSlot->ClearQuickSlot();
+	}
 }

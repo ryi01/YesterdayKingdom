@@ -84,6 +84,8 @@ protected:
 	// 가드 
 	//===============================================================================
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
+	TObjectPtr<UAnimMontage> GuardHitMontage;
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
 	TObjectPtr<UAnimMontage> ParrySuccessMontage;
 	
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Guard")
@@ -160,6 +162,7 @@ protected:
 	virtual bool IsGuardDirectionValid(AActor* DamageCauser) const;
 
 	virtual void OnGuardStarted();
+	virtual void OnGuardHit(AActor* DamageCauser);
 	virtual void OnGuardEnded();
 	virtual void OnParrySuccess(AActor* DamageCauser);
 
