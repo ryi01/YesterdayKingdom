@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InventoryTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "PlayerHUDWidget.generated.h"
 
+class UQuickSlotWidget;
 class UProgressBar;
 class UVerticalBox;
 class UImage;
@@ -44,20 +46,6 @@ protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> Map;
 	
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UHorizontalBox> Quick_Slot;
-	
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> QuickSlot1;
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> QuickSlot2;
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> QuickSlot3;
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> QuickSlot4;
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UImage> QuickSlot5;
-	
 	float TargetHPPercent = 1.f;
 	float TargetSTPercent = 1.f;
 	float TargetMPPercent = 1.f;
@@ -72,8 +60,10 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<class UBaseStatComponent> BoundBossStatComponent;
+
 	
 protected:
+	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	//=====================================================================================================
 	// 스위처
@@ -98,6 +88,22 @@ protected:
 	UFUNCTION()
 	void HandleInventoryBackRequested();
 	
+	//=====================================================================================================
+	// 퀵 슬롯
+	//=====================================================================================================
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TArray<TObjectPtr<UQuickSlotWidget>> QuickSlots;
+	
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UQuickSlotWidget> QuickSlot1;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UQuickSlotWidget> QuickSlot2;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UQuickSlotWidget> QuickSlot3;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UQuickSlotWidget> QuickSlot4;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UQuickSlotWidget> QuickSlot5;
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindPlayer(class APlayerCharacter* InPlayer);
@@ -110,5 +116,12 @@ public:
 	void SetInventoryVisible(bool bVisible);
 	
 	void SetVisibleBossHPBar(bool bEnable);
+	//=====================================================================================================
+	// 퀵 슬롯
+	//=====================================================================================================
+	void SetQuickSlot(int32 QuickSlotIndex, const FInventorySlotViewData& SlotData);
+	void UpdateQuickSlot(int32 QuickSlotIndex, FName ItemRowName);
+	void ClearQuickSlot(int32 QuickSlotIndex);
+	void ClearAllQuickSlots();
 	
 };

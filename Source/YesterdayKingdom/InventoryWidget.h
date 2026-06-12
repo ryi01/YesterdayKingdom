@@ -40,14 +40,24 @@ protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UGridPanel> GP_Item;
 	//=======================================================================================
-	// 아이템 사용 및 설명
+	// 아이템 사용
 	//=======================================================================================
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> BTN_Use;
+	TObjectPtr<UButton> BTN_Use;	
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TB_Use;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_Sell;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_Remove;
+	
+	UPROPERTY()
+	FInventorySlotViewData SelectedSlotData;
+	UPROPERTY()
+	bool bHasSelectedItem = false;
+	//=======================================================================================
+	// 아이템 설명
+	//=======================================================================================
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UTextBlock> T_ItemName;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
@@ -71,13 +81,28 @@ protected:
 	
 	UFUNCTION()
 	void RefreshInventory();
-
+	//=======================================================================================
+	// 아이템 선택
+	//=======================================================================================
 	UFUNCTION()
 	void OnItemSlotClicked(FInventorySlotViewData SlotData);
-
+	void UpdateUseButtonByItemType(const FInventorySlotViewData& SlotData);
+	void ResetUseButton();
+	//=======================================================================================
+	// 아이템 설명
+	//=======================================================================================
 	void SetItemDescription(const FInventorySlotViewData& SlotData);
 	void UpdateSelectedSlotVisual();
-
+	//=======================================================================================
+	// 아이템 사용
+	//=======================================================================================
+	UFUNCTION()
+	void OnUseClicked();
+	UFUNCTION()
+	void OnSellClicked();
+	UFUNCTION()
+	void OnRemoveClicked();
+	void ClearSelectedItem();
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindInventory(class UInventoryComponent* InInventory);

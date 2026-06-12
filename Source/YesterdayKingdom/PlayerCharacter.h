@@ -6,6 +6,7 @@
 #include "BaseCharacter.h"
 #include "PlayerCharacter.generated.h"
 
+struct FItemData;
 class ACharacter;
 class UCharacterMovementComponent;
 struct FInputActionValue;
@@ -139,7 +140,7 @@ public:
 	
 	FTimerHandle BattleBuffCooldownTimerHandle;
 	FTimerHandle BattleBuffTimerHandle;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> TestSkillAction;
 
@@ -158,6 +159,25 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	bool bIsInventoryOpen = false;
 
+	//===============================================================================================
+	// 퀵슬롯
+	//===============================================================================================
+	UPROPERTY()
+	TArray<FName> QuickSlotItemRowNames;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot1Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot2Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot3Action;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot4Action;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
+	TObjectPtr<class UInputAction> QuickSlot5Action;
 protected:
 	//===============================================================================================
 	// 피격 관련 함수
@@ -176,6 +196,14 @@ protected:
 	void SetUIMode(bool bEnableUI);
 	
 	void CreatePlayerHUD();
+	//===============================================================================================
+	// 퀵슬롯
+	//===============================================================================================
+	void UseQuickSlot1();
+	void UseQuickSlot2();
+	void UseQuickSlot3();
+	void UseQuickSlot4();
+	void UseQuickSlot5();
 	
 	//===============================================================================================
 	// 사망처리
@@ -206,6 +234,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="Movement")
 	void RefreshMoveSpeed();
+	//===============================================================================================
+	// 아이템 관련 함수
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool UseConsumableItem(const FItemData& ItemData);
+	
 	//===============================================================================================
 	// 피격 관련 함수
 	//===============================================================================================
@@ -249,6 +283,14 @@ public:
 	//===============================================================================================
 	void ShowBossHP(class AEnemyBase* Boss);
 	void HideBossHP();
+	
+	//===============================================================================================
+	// 퀵슬롯
+	//===============================================================================================
+	void TryAutoRegisterQuickSlot(FName ItemRowName);
+	void RefreshQuickSlotUI(int32 QuickSlotIndex);
+	void UseQuickSlot(int32 QuickSlotIndex);
+	void RefreshQuickSlotByItem(FName ItemRowName);
 	
 	//===============================================================================================
 	// Getter

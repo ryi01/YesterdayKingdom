@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "InventoryTabBtnWidget.generated.h"
 
+class USkillTreeWidget;
 class UInventoryWidget;
 class UInventoryComponent;
 class UWidgetSwitcher;
@@ -20,10 +21,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryBackRequested);
 UENUM(BlueprintType)
 enum class EMenuTabType : uint8
 {
-	Map		UMETA(DisplayName = "Map"),
-	Quest	UMETA(DisplayName = "Quest"),
 	Item	UMETA(DisplayName = "Item"),
-	Weapon	UMETA(DisplayName = "Weapon"),
+	Skill	UMETA(DisplayName = "Skill"),
 	System	UMETA(DisplayName = "System")
 };
 
@@ -37,13 +36,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_Back;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> BTN_Map;
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> BTN_Quest;
-	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_Item;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> BTN_Weapon;
+	TObjectPtr<UButton> BTN_SkillTree;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_System;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
@@ -52,23 +47,19 @@ public:
 	TObjectPtr<UWidgetSwitcher> WS_Window;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UInventoryWidget> Wbp_InventoryWidget;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<USkillTreeWidget> WBP_SkillTreeWidget;
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryBackRequested OnInventoryBackRequested;
 private:
 	UFUNCTION()
 	void OnBackClicked();
-	
-	UFUNCTION()
-	void OnMapClicked();
-
-	UFUNCTION()
-	void OnQuestClicked();
 
 	UFUNCTION()
 	void OnItemClicked();
 
 	UFUNCTION()
-	void OnWeaponClicked();
+	void OnSkillClicked();
 
 	UFUNCTION()
 	void OnSystemClicked();

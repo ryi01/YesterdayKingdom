@@ -18,24 +18,15 @@ void UInventoryTabBtnWidget::NativeConstruct()
 	{
 		BTN_Back->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnBackClicked);
 	}
-	if (BTN_Map)
-	{
-		BTN_Map->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnMapClicked);
-	}
-
-	if (BTN_Quest)
-	{
-		BTN_Quest->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnQuestClicked);
-	}
 
 	if (BTN_Item)
 	{
 		BTN_Item->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnItemClicked);
 	}
 
-	if (BTN_Weapon)
+	if (BTN_SkillTree)
 	{
-		BTN_Weapon->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnWeaponClicked);
+		BTN_SkillTree->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnSkillClicked);
 	}
 
 	if (BTN_System)
@@ -62,24 +53,14 @@ void UInventoryTabBtnWidget::OnBackClicked()
 	
 }
 
-void UInventoryTabBtnWidget::OnMapClicked()
-{
-	ChangeTab(EMenuTabType::Map);
-}
-
-void UInventoryTabBtnWidget::OnQuestClicked()
-{
-	ChangeTab(EMenuTabType::Quest);
-}
-
 void UInventoryTabBtnWidget::OnItemClicked()
 {
 	ChangeTab(EMenuTabType::Item);
 }
 
-void UInventoryTabBtnWidget::OnWeaponClicked()
+void UInventoryTabBtnWidget::OnSkillClicked()
 {
-	ChangeTab(EMenuTabType::Weapon);
+	ChangeTab(EMenuTabType::Skill);
 }
 
 void UInventoryTabBtnWidget::OnSystemClicked()
@@ -91,20 +72,14 @@ int32 UInventoryTabBtnWidget::GetTabIndex(EMenuTabType TabType) const
 {
 	switch (TabType)
 	{
-	case EMenuTabType::Map:
+	case EMenuTabType::Item:
 		return 0;
 
-	case EMenuTabType::Quest:
+	case EMenuTabType::Skill:
 		return 1;
 
-	case EMenuTabType::Item:
-		return 2;
-
-	case EMenuTabType::Weapon:
-		return 3;
-
 	case EMenuTabType::System:
-		return 4;
+		return 2;
 
 	default:
 		return 0;

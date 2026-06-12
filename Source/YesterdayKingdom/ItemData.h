@@ -170,6 +170,9 @@ struct FItemData : public FTableRowBase
     // 섭취 즉시 회복하는 HP 량
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable", meta = (ClampMin = "0"))
     int32 InstantHeal = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable", meta = (ClampMin = "0"))
+	int32 InstantStamina = 0;
 
     // 섭취 즉시 회복하는 MP 량
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Consumable", meta = (ClampMin = "0"))

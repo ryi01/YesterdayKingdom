@@ -77,7 +77,10 @@ bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount, bool bNotifyQ
 					AddedAmount,
 					Amount
 				);
-
+		if (APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetOwner()))
+		{
+			PlayerCharacter->TryAutoRegisterQuickSlot(ItemRowName);
+		}
 		if (bNotifyQuest)
 		{
 			NotifyQuestItemCollected(ItemRowName, AddedAmount);
