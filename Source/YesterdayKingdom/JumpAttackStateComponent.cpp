@@ -55,10 +55,6 @@ void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 
 	if (ElapsedTime >= MaxActionTime)
 	{
-		UE_LOG(LogTemp, Warning,
-		TEXT("[FSM][JumpAttack] Timeout / Elapsed=%.2f / Max=%.2f"),
-		ElapsedTime,
-		MaxActionTime);
 		FinishAttackAction();
 		return;
 	}
@@ -67,11 +63,6 @@ void UJumpAttackStateComponent::OnStateUpdate(float DeltaTime)
 	{
 		TryStartAttackSection();
 	}
-	UE_LOG(LogTemp, Warning,
-	TEXT("[FSM][JumpAttack] Update / Step=%d / Started=%d / Finished=%d"),
-	static_cast<int32>(CurrentStep),
-	bStartedAttack,
-	bFinished);
 }
 
 void UJumpAttackStateComponent::OnStateExit()
@@ -131,14 +122,6 @@ void UJumpAttackStateComponent::TryStartAttackSection()
 	const bool bWithinHorizontalRange =DistanceToTarget <= CurrentAttackTriggerDistance;
 	const bool bWithinAttackHeight =HeightAboveTarget <= CurrentAttackTriggerHeight && HeightAboveTarget >= -100.f;
 	
-	UE_LOG(LogTemp, Warning,
-			TEXT("[FSM][JumpAttack] TryStart / Distance=%.2f <= %.2f / HeightAbove=%.2f <= %.2f / VelocityZ=%.2f / Descending=%d"),
-			DistanceToTarget,
-			CurrentAttackTriggerDistance,
-			HeightAboveTarget,
-			CurrentAttackTriggerHeight,
-			MovementComponent->Velocity.Z,
-			bIsDescending);
 	if (bIsDescending  && bWithinHorizontalRange  && bWithinAttackHeight)
 	{
 		StartAttackSection();

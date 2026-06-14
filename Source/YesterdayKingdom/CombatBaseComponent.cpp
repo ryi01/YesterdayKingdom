@@ -256,7 +256,19 @@ void UCombatBaseComponent::PlayCurrentAttackCameraShake()
 	const FAttackNodeData* NodeData = GetCurrentAttackNodeData();
 	if (!NodeData) return;
 
-	ApplyAttackCameraShake(NodeData->HitFeedback);
+	const FHitFeedbackData& Feedback = NodeData->HitFeedback;
+	if (!Feedback.CameraShake) return;
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PlayerController) return;
+
+	PlayerController->ClientStartCameraShake(Feedback.CameraShake,Feedback.ShakeScale);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][BaseCameraShake] Row=%s / Index=%d / Scale=%.2f"),
+		*CurrentAttackRowName.ToString(),
+		CurrentAttackNodeIndex,
+		Feedback.ShakeScale);
 }
 
 //=====================================================================================================
