@@ -73,7 +73,21 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hit")
 	bool bHit = false;
 	FTimerHandle HitTimerHandle;
+	//===============================================================================================
+	// 카메라 쉐이크
+	//===============================================================================================
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep")
+	TSubclassOf<UCameraShakeBase> FootstepCameraShake;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep",meta = (ClampMin = "0.0"))
+	float FootstepShakeScale = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep",meta = (ClampMin = "0.0"))
+	float FootstepInnerRadius = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep",meta = (ClampMin = "0.0"))
+	float FootstepOuterRadius = 1200.f;
 public:
 	AEnemyBase(const FObjectInitializer& ObjectInitializer);
 	
@@ -180,6 +194,10 @@ public:
 	void SetEnemyHPWidgetVisible(bool bVisible);
 	
 	void SetHit();
+	//===============================================================================================
+	// 카메라 쉐이크
+	//===============================================================================================
+	void PlayFootstepCameraShake();
 	
 	//===============================================================================================
 	// Getter함수

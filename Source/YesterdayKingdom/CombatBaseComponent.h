@@ -179,6 +179,7 @@ protected:
 	//=====================================================================================================
 	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
+	void ApplyAttackCameraShake(const FHitFeedbackData& Feedback);
 	void ResetHitStop();
 	
 	FVector GetHitDirectionToTarget(AActor* HitActor) const;
@@ -248,6 +249,10 @@ public:
 	void SetAttackDataTable(UDataTable* NewTable);
 	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
 	bool JumpToNextAttackSection();
+	//=====================================================================================================
+	// 카메라 쉐이크
+	//=====================================================================================================
+	void PlayCurrentAttackCameraShake();
 	//=====================================================================================================
 	// Open Close
 	//=====================================================================================================

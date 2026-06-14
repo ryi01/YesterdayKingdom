@@ -14,6 +14,7 @@
 #include "QuestComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)	: Super(ObjectInitializer)
 {
@@ -239,7 +240,6 @@ void AEnemyBase::SetHit()
 	}
 }
 
-
 void AEnemyBase::DoAttackByRowName(FName AttackRowName)
 {
 	if (!EnemyDefinition || AttackRowName.IsNone() || !CombatBaseComponent || IsDead()) return;
@@ -421,6 +421,15 @@ void AEnemyBase::SetEnemyHPWidgetVisible(bool bVisible)
 	if (!EnemyHPWidget) return;
 
 	EnemyHPWidgetComponent->SetVisibility(bVisible);
+}
+//===============================================================================================
+// 카메라 쉐이크
+//===============================================================================================
+void AEnemyBase::PlayFootstepCameraShake()
+{
+	if (!FootstepCameraShake) return;
+
+	UGameplayStatics::PlayWorldCameraShake(this, FootstepCameraShake, GetActorLocation(), FootstepInnerRadius, FootstepOuterRadius, FootstepShakeScale, false);
 }
 
 //===============================================================================================
