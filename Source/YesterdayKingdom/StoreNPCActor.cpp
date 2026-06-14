@@ -31,6 +31,7 @@ void AStoreNPCActor::Interact_Implementation(AActor* Interactor)
 	if (APlayerCharacter* Character = Cast<APlayerCharacter>(Interactor))
 	{
 		StoreComponent->DebugLogStoreItems();
+		Character->OpenStoreUI(StoreComponent);
 	}
 
 }

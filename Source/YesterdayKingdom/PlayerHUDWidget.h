@@ -7,12 +7,20 @@
 #include "Blueprint/UserWidget.h"
 #include "PlayerHUDWidget.generated.h"
 
+class UEquipmentComponent;
+class UTextBlock;
 class UQuickSlotWidget;
 class UProgressBar;
 class UVerticalBox;
 class UImage;
 class UHorizontalBox;
-
+UENUM(BlueprintType)
+enum class EHUDPage : uint8
+{
+	Main,
+	Inventory,
+	Store
+};
 UCLASS()
 class YESTERDAYKINGDOM_API UPlayerHUDWidget : public UUserWidget
 {
@@ -22,6 +30,8 @@ protected:
 	TObjectPtr<class UInventoryTabBtnWidget> WBP_InventoryTab;
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<class UBossWidget> WBP_BossHP;
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<class UStoreWidget> WBP_Store;
 	
 	UPROPERTY()
 	TObjectPtr<class APlayerCharacter> OwnerPlayer;
@@ -39,6 +49,14 @@ protected:
 	TObjectPtr<UProgressBar> MP;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UProgressBar> ST;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TB_HP;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TB_MP;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TB_ST;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TB_QuestDes;
 	
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> Armor1;
@@ -46,7 +64,6 @@ protected:
 	TObjectPtr<UImage> Armor2;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UImage> Armor3;
-
 	
 	float TargetHPPercent = 1.f;
 	float TargetSTPercent = 1.f;
@@ -59,11 +76,29 @@ protected:
 	//=====================================================================================================
 	UPROPERTY()
 	TObjectPtr<class AEnemyBase> BoundBoss;
-
 	UPROPERTY()
 	TObjectPtr<class UBaseStatComponent> BoundBossStatComponent;
-
-	
+	//=====================================================================================================
+	// 장비창
+	//=====================================================================================================
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment UI")
+	TObjectPtr<UTexture2D> DefaultHelmetIcon;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment UI")
+	TObjectPtr<UTexture2D> DefaultArmorIcon;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Equipment UI")
+	TObjectPtr<UTexture2D> DefaultBootsIcon;
+	//=====================================================================================================
+	// 퀘스트
+	//=====================================================================================================
+	UPROPERTY()
+	TObjectPtr<UQuestComponent> BoundQuestComponent;
+private:
+	void SetHUDPage(EHUDPage Page);
+	//=====================================================================================================
+	// 스토어
+	//=====================================================================================================
+	UFUNCTION()
+	void RefreshQuestDescription();
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -125,5 +160,17 @@ public:
 	void UpdateQuickSlot(int32 QuickSlotIndex, FName ItemRowName);
 	void ClearQuickSlot(int32 QuickSlotIndex);
 	void ClearAllQuickSlots();
-	
+	//=====================================================================================================
+	// 스토어
+	//=====================================================================================================
+	void OpenStore(UStoreComponent* InStoreComponent);
+	UFUNCTION()
+	void CloseStore();
+
+	//=====================================================================================================
+	// 장비창
+	//=====================================================================================================
+	UFUNCTION()
+	void RefreshEquipmentIcons();
+	void SetEquipmentIcon(UImage* ImageWidget,UEquipmentComponent* EquipmentComponent,EEquipmentSlotType SlotType, UTexture2D* DefaultIcon);
 };

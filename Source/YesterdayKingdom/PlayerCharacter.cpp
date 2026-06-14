@@ -243,6 +243,7 @@ void APlayerCharacter::CloseInventory()
 	SetUIMode(false);
 }
 
+
 //===============================================================================================
 // 이동관련
 //===============================================================================================
@@ -688,7 +689,21 @@ void APlayerCharacter::RefreshQuickSlotUI(int32 QuickSlotIndex)
 
 	PlayerHUDWidget->UpdateQuickSlot(QuickSlotIndex, QuickSlotItemRowNames[QuickSlotIndex]);
 }
+//===============================================================================================
+// 스토어
+//===============================================================================================
+void APlayerCharacter::OpenStoreUI(UStoreComponent* InStoreComponent)
+{
+	if (!PlayerHUDWidget || !InStoreComponent) return;
 
+	PlayerHUDWidget->OpenStore(InStoreComponent);
+	SetUIMode(true);
+}
+
+void APlayerCharacter::CloseStoreUI()
+{
+	SetUIMode(false);
+}
 //===============================================================================================
 // 컴포넌트 Getter
 //===============================================================================================

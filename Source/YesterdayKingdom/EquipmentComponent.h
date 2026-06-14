@@ -36,8 +36,6 @@ public:
 protected:
 	void InitializeSlots();
 	
-	const FItemData* GetItemData(FName ItemRowName) const;
-	
 	bool CanEquipItem(const FItemData* ItemData) const;
 	
 	bool MakeEquipmentViewData(EEquipmentSlotType SlotType, FEquipmentSlotViewData& OutViewData) const;
@@ -56,5 +54,5 @@ public:
 	FName GetEquippedItem(EEquipmentSlotType SlotType) const;
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	TArray<FEquipmentSlotViewData> GetEquipmentViewData() const;
-	
+	const FItemData* GetItemData(FName ItemRowName) const;
 };

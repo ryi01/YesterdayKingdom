@@ -38,8 +38,6 @@ bool UStoreComponent::BuyItem(UInventoryComponent* BuyerInventory, UGoldComponen
 {
 	if (!StoreData || !BuyerGold || !BuyerInventory) return false;
 	if (ItemRowName.IsNone() || Count <= 0) return false;
-	const int32 StoreItemIndex = FindStoreItemIndex(ItemRowName);
-	if (StoreItemIndex == INDEX_NONE) return false;
 	if (!HasStock(ItemRowName, Count)) return false;
 	
 	const FItemData* ItemData = BuyerInventory->GetItemData(ItemRowName);
@@ -57,7 +55,23 @@ bool UStoreComponent::BuyItem(UInventoryComponent* BuyerInventory, UGoldComponen
 		UE_LOG(LogTemp, Warning, TEXT("[StoreComponent::BuyItem] SpendGold failed"));
 		return false;
 	}
-	ConsumeStock(ItemRowName, Count);
+	if (!ConsumeStock(ItemRowName, Count))
+	{
+		BuyerInventory->RemoveItem(ItemRowName, Count);
+		return false;
+	}
+	if (TotalPrice > 0 && !BuyerGold->SpendGold(TotalPrice))
+	{
+		BuyerInventory->RemoveItem(ItemRowName, Count);
+		const int32 StoreItemIndex = FindStoreItemIndex(ItemRowName);
+		if (StoreItemIndex != INDEX_NONE)
+		{
+			FStoreItemData& StoreItem = StoreData->StoreItems[StoreItemIndex];
+			if (!StoreItem.bInfiniteStock) StoreItem.StockCount += Count;
+		}
+		return false;
+	}
+
 	OnStoreChanged.Broadcast();
 	return true;
 }
@@ -105,8 +119,8 @@ bool UStoreComponent::HasStock(FName ItemRowName, int32 Count) const
 	const int32 Index = FindStoreItemIndex(ItemRowName);
 	if (Index == INDEX_NONE) return false;
 	const FStoreItemData& StoreItemData = StoreData->StoreItems[Index];
-	if (!StoreItemData.bInfiniteStock) return true;
-	
+	if (StoreItemData.bInfiniteStock) return true;
+
 	return StoreItemData.StockCount >= Count;
 }
 

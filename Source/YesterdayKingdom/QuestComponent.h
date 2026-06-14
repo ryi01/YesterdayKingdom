@@ -40,7 +40,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Quest")
 	FOnQuestCompleted OnQuestCompleted;
 private:
-    void PrintCurrentQuestToScreen() const;
+
 protected:
 	const FQuestDataRow* GetQuestData(FName QuestRowName) const;
 

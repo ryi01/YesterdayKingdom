@@ -16,6 +16,7 @@ class UPlayerInteractionComponent;
 class UEquipmentComponent;
 class UQuestComponent;
 struct FQuestInstance;
+class UStoreComponent;
 class UPlayerHUDWidget;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -300,6 +301,11 @@ public:
 	void UseQuickSlot(int32 QuickSlotIndex);
 	void RefreshQuickSlotByItem(FName ItemRowName);
 	
+	//===============================================================================================
+	// 스토어
+	//===============================================================================================
+	void OpenStoreUI(UStoreComponent* InStoreComponent);
+	void CloseStoreUI();
 	//===============================================================================================
 	// Getter
 	//===============================================================================================

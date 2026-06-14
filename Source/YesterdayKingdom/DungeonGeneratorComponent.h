@@ -282,6 +282,7 @@ private:
 	int32 CountNeighborWalls(int32 X, int32 Y) const;
 
 	FIntPoint GetDirectionByType(int32 X, int32 Y, EDungeonTileType Type) const;
+	FIntPoint MakeCornerKey(int32 X, int32 Y, const FIntPoint& DirA, const FIntPoint& DirB) const;
 	FRotator DirectionToRotation(const FIntPoint& Dir) const;
 	FVector GridToWorldLocation(const FVector2D& Point, float Z) const;
 	
@@ -372,4 +373,6 @@ public:
 	virtual void BeginPlay() override;
 	UFUNCTION(BlueprintCallable)
 	void GenerateDungeon();
+	
+	
 };
