@@ -28,6 +28,9 @@ public:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
+	UFUNCTION(BlueprintCallable, Category = "Gold|Load")
+	void LoadGold(int32 InGold);
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnGoldChanged OnGoldChanged;
 

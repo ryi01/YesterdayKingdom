@@ -329,19 +329,23 @@ EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext
 		InstanceData.TargetPlayerLocation = InstanceData.TargetPlayerCharacter->GetActorLocation();
 	}
 	// homelocation과의 거리 측정
-	InstanceData.DistanceToHome = FVector::Distance(InstanceData.Character->GetHomeLocation(), InstanceData.Character->GetActorLocation());
+	if (AEnemyBase* EnemyBase = Cast<AEnemyBase>(InstanceData.Character))
+	{
+		InstanceData.DistanceToHome = FVector::Distance(EnemyBase->GetHomeLocation(), InstanceData.Character->GetActorLocation());
+		InstanceData.HomeLocation = EnemyBase->GetHomeLocation();
+		// AI 캐릭터 죽었는지 확인
+		InstanceData.IsDead = EnemyBase->GetStatComponent()->IsDead();
+		InstanceData.IsHit = EnemyBase->GetIsHit();
+		// AI 캐릭터가 스턴에 걸렸는지 확인
+		InstanceData.IsStunned = EnemyBase->GetStatComponent()->IsStunned();
+	}
 
 	// AI 캐릭터와 플레이어 캐릭터의 거리를 구함
 	InstanceData.DistanceToTarget = FVector::Distance(
 		InstanceData.TargetPlayerLocation,
 		InstanceData.Character->GetActorLocation()
 	);
-	InstanceData.HomeLocation = InstanceData.Character->GetHomeLocation();
-	// AI 캐릭터 죽었는지 확인
-	InstanceData.IsDead = InstanceData.Character->GetStatComponent()->IsDead();
-	InstanceData.IsHit = InstanceData.Character->GetIsHit();
-	// AI 캐릭터가 스턴에 걸렸는지 확인
-	InstanceData.IsStunned = InstanceData.Character->GetStatComponent()->IsStunned();
+
 	
 	if (AEnemyNomal* EnemyNomal = Cast<AEnemyNomal>(InstanceData.Character))
 	{

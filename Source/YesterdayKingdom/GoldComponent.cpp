@@ -16,7 +16,12 @@ UGoldComponent::UGoldComponent()
 void UGoldComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	SetGold(StartGold);
+
+}
+
+void UGoldComponent::LoadGold(int32 InGold)
+{
+	SetGold(InGold);
 }
 
 void UGoldComponent::AddGold(int32 Amount)

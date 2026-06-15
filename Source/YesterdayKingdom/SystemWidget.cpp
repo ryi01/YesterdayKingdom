@@ -3,6 +3,7 @@
 
 #include "SystemWidget.h"
 
+#include "PlayerCharacter.h"
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -34,6 +35,10 @@ void USystemWidget::OnClickReturn()
 
 void USystemWidget::OnClickQuit()
 {
+	if (APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwningPlayerPawn()))
+	{
+		Player->SaveGamePlay();
+	}
 	if (APlayerController* PlayerController = GetOwningPlayer())
 	{
 		UKismetSystemLibrary::QuitGame(this, PlayerController, EQuitPreference::Quit, false);
@@ -42,5 +47,10 @@ void USystemWidget::OnClickQuit()
 
 void USystemWidget::OnClickMain()
 {
+	if (APlayerCharacter* Player = Cast<APlayerCharacter>(GetOwningPlayerPawn()))
+	{
+		Player->SaveGamePlay();
+	}
+
 	UGameplayStatics::OpenLevel(this, FName(TEXT("MainTitleLevel")));
 }

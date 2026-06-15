@@ -5,6 +5,7 @@
 
 #include "PlayerCharacter.h"
 #include "QuestComponent.h"
+#include "YesterdayKingdomGameInstance.h"
 
 // Sets default values for this component's properties
 UInventoryComponent::UInventoryComponent()
@@ -231,13 +232,100 @@ bool UInventoryComponent::IsValidSlotIndex(int32 SlotIndex) const
 	return ItemSlots.IsValidIndex(SlotIndex);
 }
 //===============================================================================================
+// 인벤토리 저장로드
+//===============================================================================================
+void UInventoryComponent::SaveInventoryData()
+{
+	UYesterdayKingdomGameInstance* GI = GetWorld()->GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GI) return;
+	const int32 PlayerId = GI->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+
+	TArray<FInventorySaveData> SaveDataList;
+	for (int32 Index = 0; Index < ItemSlots.Num(); Index++)
+	{
+		const FInventorySlot& Slot = ItemSlots[Index];
+
+		if (Slot.ItemRowName.IsNone() || Slot.Count <= 0)
+		{
+			continue;
+		}
+
+		FInventorySaveData SaveData;
+		SaveData.SlotIndex = Index;
+		SaveData.ItemRowName = Slot.ItemRowName;
+		SaveData.Count = Slot.Count;
+
+		SaveDataList.Add(SaveData);
+	}
+	GI->SaveInventoryData(PlayerId, SaveDataList);
+}
+
+void UInventoryComponent::LoadInventoryData()
+{
+	UYesterdayKingdomGameInstance* GI = GetWorld()->GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GI) return;
+	const int32 PlayerId = GI->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+	TArray<FInventorySaveData> LoadDataList;
+	if (!GI->LoadInventoryData(PlayerId, LoadDataList))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("[InventoryComponent] 불러올 인벤토리 데이터가 없음 / PlayerId=%d"),
+			PlayerId
+		);
+
+		return;
+	}
+	ItemSlots.Empty();
+	ItemSlots.SetNum(MaxSlotCount);
+	for (const FInventorySaveData& LoadData : LoadDataList)
+	{
+		if (!ItemSlots.IsValidIndex(LoadData.SlotIndex))
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("[InventoryComponent] 잘못된 슬롯 인덱스 / SlotIndex=%d"),
+				LoadData.SlotIndex
+			);
+
+			continue;
+		}
+		if (LoadData.ItemRowName.IsNone() || LoadData.Count <= 0)
+		{
+			continue;
+		}
+
+		FInventorySlot& Slot = ItemSlots[LoadData.SlotIndex];
+		Slot.ItemRowName = LoadData.ItemRowName;
+		Slot.Count = LoadData.Count;
+	}
+	OnInventoryChanged.Broadcast();
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[InventoryComponent] 인벤토리 로드 완료 / PlayerId=%d / SlotCount=%d"),
+		PlayerId,
+		LoadDataList.Num()
+	);
+}
+
+//===============================================================================================
 // 아이템의 원본 데이터 탐색
 //===============================================================================================
 const FItemData* UInventoryComponent::GetItemData(FName ItemRowName) const
 {
 	// DT가 존재하는지, ItemRowName이 있는지 확인
-	if (!ItemDataTable) return nullptr;
-	if (ItemRowName.IsNone()) return nullptr;
+	if (!ItemDataTable || ItemRowName.IsNone())return nullptr;
+
+	const FItemData* ItemData =ItemDataTable->FindRow<FItemData>(ItemRowName,TEXT("InventoryComponent::GetItemData"), false);
+	
+	if (!ItemData) return nullptr;
+
 	// 있다면 DT에서 해당 Row를 추출
 	return ItemDataTable->FindRow<FItemData>(ItemRowName, TEXT("InventoryComponent::GetItemData"));
 }

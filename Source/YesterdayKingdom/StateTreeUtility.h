@@ -368,10 +368,10 @@ struct FStateTreeGetPlayerInfoInstanceData
 	float DistanceToHome = 0.f;
 
 	UPROPERTY(VisibleAnywhere)
-	bool IsHit;
+	bool IsHit = false;
 	
 	UPROPERTY(VisibleAnywhere)
-	bool IsDead;
+	bool IsDead = false;
 	
 	UPROPERTY(VisibleAnywhere)
 	bool IsStunned = false;
