@@ -308,9 +308,20 @@ void UBaseStatComponent::ClearAllSkillStats()
 	OnMPChanged.Broadcast(CurrentMP, GetMaxMP());
 	OnSTChanged.Broadcast(CurrentST, GetMaxST());
 }
+
 // ========================================================
 // Setter
 // ========================================================
+void UBaseStatComponent::ResetSkillBonuses()
+{
+	SkillBonusMaxHP = 0.f;
+	SkillBonusMaxMP = 0.f;
+	SkillBonusMaxST = 0.f;
+	SkillBonusAttack = 0.f;
+	SkillBonusDefense = 0.f;
+	SkillBonusMoveSpeed = 0.f;
+}
+
 void UBaseStatComponent::SetStatRowName(FName NewName)
 {
 	StatRowName = NewName;

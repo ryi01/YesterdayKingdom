@@ -6,6 +6,7 @@
 #include "BaseStatComponent.h"
 #include "InventoryComponent.h"
 #include "PlayerCharacter.h"
+#include "YesterdayKingdomGameInstance.h"
 
 // Sets default values for this component's properties
 UEquipmentComponent::UEquipmentComponent()
@@ -165,7 +166,11 @@ TArray<FEquipmentSlotViewData> UEquipmentComponent::GetEquipmentViewData() const
 
 const FItemData* UEquipmentComponent::GetItemData(FName ItemRowName) const
 {
-	if (!InventoryComponent) return nullptr;
+	if (!InventoryComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[EquipmentComponent] InventoryComponent 없음"));
+		return nullptr;
+	}
 	return InventoryComponent->GetItemData(ItemRowName);
 	
 }
@@ -205,7 +210,7 @@ void UEquipmentComponent::RefreshEquipmentStats()
 	for (const TPair<EEquipmentSlotType, FEquipmentSlot>& Pair : EquippedSlots)
 	{
 		const FEquipmentSlot& EquipSlot = Pair.Value;
-		if (EquippedSlots.IsEmpty()) continue;
+		if (EquipSlot.IsEmpty()) continue;
 		const FItemData* ItemData = GetItemData(EquipSlot.ItemRowName);
 		if (!ItemData) continue;
 		TotalAttackBonus += ItemData->AttackPower;
@@ -222,5 +227,78 @@ void UEquipmentComponent::RefreshEquipmentStats()
 		TEXT("[EquipmentComponent] Equipment Bonus / Attack: %d / Defense: %d"),
 		TotalAttackBonus,
 		TotalDefenseBonus
+	);
+}
+void UEquipmentComponent::SaveEquipmentData()
+{
+	UYesterdayKingdomGameInstance* GameInstance = GetWorld()->GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GameInstance) return;
+
+	const int32 PlayerId = GameInstance->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+
+	TArray<FEquipmentSaveData> SaveDataList;
+	for (const TPair<EEquipmentSlotType, FEquipmentSlot>& Pair : EquippedSlots)
+	{
+		const FEquipmentSlot& EquipmentSlot = Pair.Value;
+		if (EquipmentSlot.IsEmpty()) continue;
+		
+		FEquipmentSaveData SaveData;
+		SaveData.EquipmentSlot = Pair.Key;
+		SaveData.ItemRowName = EquipmentSlot.ItemRowName;
+		SaveDataList.Add(SaveData);
+	}
+	
+	GameInstance->SaveEquipmentData(PlayerId, SaveDataList);
+
+}
+
+void UEquipmentComponent::LoadEquipmentData()
+{
+	UYesterdayKingdomGameInstance* GameInstance = GetWorld()->GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GameInstance) return;
+
+	const int32 PlayerId = GameInstance->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+	
+	TArray<FEquipmentSaveData>LoadDatas;
+	if (!GameInstance->LoadEquipmentData(PlayerId, LoadDatas))
+	{
+		return;
+	}
+	
+	InitializeSlots();
+	
+	for (const FEquipmentSaveData& LoadData : LoadDatas)
+	{
+		if (!LoadData.IsValid()) continue;
+		FEquipmentSlot* EquipmentSlot = EquippedSlots.Find(LoadData.EquipmentSlot);
+		if (!EquipmentSlot->IsEmpty())
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("[EquipmentComponent] 존재하지 않는 장비 슬롯 / Slot=%d"),
+				static_cast<uint8>(LoadData.EquipmentSlot)
+			);
+
+			continue;
+		}
+		const FItemData* ItemData = GetItemData(LoadData.ItemRowName);
+	if (!ItemData)continue;
+
+		if (ItemData->EquipmentSlotType != LoadData.EquipmentSlot) continue;
+		
+		EquipmentSlot->ItemRowName = LoadData.ItemRowName;
+	}
+	
+	RefreshEquipmentStats();
+	OnEquipmentChanged.Broadcast();
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[EquipmentComponent] 장비 로드 완료 / PlayerId=%d / Count=%d"),
+		PlayerId,
+		LoadDatas.Num()
 	);
 }

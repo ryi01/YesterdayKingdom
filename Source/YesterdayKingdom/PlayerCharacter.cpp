@@ -60,7 +60,22 @@ void APlayerCharacter::BeginPlay()
 
 	QuickSlotItemRowNames.SetNum(5);
 
+	StatComponent->ResetSkillBonuses();
+	
 	LoadPlayerData();
+	
+	if (InventoryComponent)
+	{
+		InventoryComponent->LoadInventoryData();
+	}
+	if (EquipmentComponent)
+	{
+		EquipmentComponent->LoadEquipmentData();
+	}
+	if (SkillComponent)
+	{
+		SkillComponent->LoadSkillTreeData();
+	}
 	
 	MoveComp = GetCharacterMovement();
 	if (MoveComp)
@@ -133,7 +148,15 @@ void APlayerCharacter::SaveGamePlay()
 	SavePlayerData();
 	if (InventoryComponent)
 	{
-		// InventoryComponent->SaveInventoryData();
+		InventoryComponent->SaveInventoryData();
+	}
+	if (EquipmentComponent)
+	{
+		EquipmentComponent->SaveEquipmentData();
+	}
+	if (SkillComponent)
+	{
+		SkillComponent->SaveSkillTreeData();
 	}
 }
 

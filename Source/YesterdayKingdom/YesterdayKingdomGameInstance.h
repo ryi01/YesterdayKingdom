@@ -39,4 +39,14 @@ public:
 	//===============================================================================================
 	bool SaveInventoryData(int32 PlayerId, const TArray<FInventorySaveData>& InventoryDataList);
 	bool LoadInventoryData(int32 PlayerId, TArray<FInventorySaveData>& OutInventoryDataList);
+	//===============================================================================================
+	// 스킬트리 데이터 저장 로드
+	//===============================================================================================
+	bool SaveSkillTreeData(int32 PlayerId, const TArray<FSkillSaveData>& SkillSaveDatas);
+	bool LoadSkillTreeData(int32 PlayerId, TArray<FSkillSaveData>& SkillSaveDatas);
+	//===============================================================================================
+	// 장비 데이터 저장 로드
+	//===============================================================================================
+	bool SaveEquipmentData(int32 PlayerId, const TArray<FEquipmentSaveData>& EquipmentSaveDatas);
+	bool LoadEquipmentData(int32 PlayerId, TArray<FEquipmentSaveData>& EquipmentSaveDatas);
 };

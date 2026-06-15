@@ -54,5 +54,9 @@ public:
 	FName GetEquippedItem(EEquipmentSlotType SlotType) const;
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	TArray<FEquipmentSlotViewData> GetEquipmentViewData() const;
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Save")
+	void SaveEquipmentData();
+	UFUNCTION(BlueprintCallable, Category = "Equipment|Save")
+	void LoadEquipmentData();
 	const FItemData* GetItemData(FName ItemRowName) const;
 };

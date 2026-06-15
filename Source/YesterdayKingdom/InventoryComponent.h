@@ -66,7 +66,11 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool IsValidSlotIndex(int32 SlotIndex) const;
-	
+	//===============================================================================================
+	// 인벤토리 저장로드
+	//===============================================================================================
+	void SaveInventoryData();
+	void LoadInventoryData();
 	// DT에서 아이템 데이터 찾기
 	const FItemData* GetItemData(FName ItemRowName) const;
 };

@@ -85,6 +85,25 @@ void UYesterdayKingdomGameInstance::CreateTablesIfNeeded()
 		"REFERENCES PlayerData(PlayerId) "
 		"ON DELETE CASCADE"
 		");";
+	const char* CreateSkillTreeTableSQL =
+		"CREATE TABLE IF NOT EXISTS SkillTree ("
+		"PlayerId INTEGER NOT NULL, "
+		"SkillRowName TEXT NOT NULL, "
+		"PRIMARY KEY (PlayerId, SkillRowName),"
+		"FOREIGN KEY (PlayerId) "
+		"REFERENCES PlayerData(PlayerId) "
+		"ON DELETE CASCADE"
+		");";
+	const char* CreateEquipmentTableSQL =
+		"CREATE TABLE IF NOT EXISTS Equipment ("
+		"PlayerId INTEGER NOT NULL,"
+		"EquipmentSlot TEXT NOT NULL,"
+		"ItemRowName TEXT NOT NULL,"
+		"PRIMARY KEY (PlayerId, EquipmentSlot),"
+		"FOREIGN KEY (PlayerId) "
+		"REFERENCES PlayerData(PlayerId) "
+		"ON DELETE CASCADE"
+		");";
 	char* ErrorMessage = nullptr;
 	
 	int32 Result = sqlite3_exec(Database, CreatePlayerTableSQL, nullptr, nullptr, &ErrorMessage);
@@ -109,6 +128,30 @@ void UYesterdayKingdomGameInstance::CreateTablesIfNeeded()
 			ErrorMessage = nullptr;
 		}
 	}
+	
+	Result = sqlite3_exec(Database, CreateSkillTreeTableSQL, nullptr, nullptr, &ErrorMessage);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[SQLite] SkillTree 생성 실패: %s"),
+			ErrorMessage ? UTF8_TO_TCHAR(ErrorMessage) : TEXT("Unknown"));
+		if (ErrorMessage)
+		{
+			sqlite3_free(ErrorMessage);
+			ErrorMessage = nullptr;
+		}
+	}
+	
+	Result = sqlite3_exec(Database, CreateEquipmentTableSQL, nullptr, nullptr, &ErrorMessage);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[SQLite] Equipment 생성 실패: %s"),
+			ErrorMessage ? UTF8_TO_TCHAR(ErrorMessage) : TEXT("Unknown"));
+		if (ErrorMessage)
+		{
+			sqlite3_free(ErrorMessage);
+			ErrorMessage = nullptr;
+		}
+	}
 }
 
 FString UYesterdayKingdomGameInstance::GetDatabasePath() const
@@ -121,7 +164,17 @@ FString UYesterdayKingdomGameInstance::GetDatabasePath() const
 int32 UYesterdayKingdomGameInstance::CreatePlayerData(const FPlayerSaveData& SaveData)
 {
 	if (!Database) return 0;
-	
+	const FString TrimmedNickname = SaveData.Nickname.TrimStartAndEnd();
+	if (TrimmedNickname.IsEmpty())
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("[SQLite] 플레이어 생성 실패: 닉네임이 비어 있음")
+		);
+
+		return 0;
+	}
 	const char* InsertSQL = 
 		"INSERT INTO PlayerData "
 		"(Nickname, CurrentHP, CurrentST, CurrentMP, Gold) "
@@ -139,17 +192,7 @@ int32 UYesterdayKingdomGameInstance::CreatePlayerData(const FPlayerSaveData& Sav
 
 		return 0;
 	}
-	const FString TrimmedNickname = SaveData.Nickname.TrimStartAndEnd();
-	if (TrimmedNickname.IsEmpty())
-	{
-		UE_LOG(
-			LogTemp,
-			Warning,
-			TEXT("[SQLite] 플레이어 생성 실패: 닉네임이 비어 있음")
-		);
 
-		return 0;
-	}
 	const FTCHARToUTF8 NicknameUTF8(*TrimmedNickname);
 	sqlite3_bind_text(Statement, 1, NicknameUTF8.Get(), NicknameUTF8.Length(), SQLITE_TRANSIENT);
 	sqlite3_bind_double(Statement, 2, SaveData.CurrentHP);
@@ -673,6 +716,477 @@ bool UYesterdayKingdomGameInstance::LoadInventoryData(int32 PlayerId, TArray<FIn
 		TEXT("[SQLite] 인벤토리 로드 완료 / PlayerId=%d / SlotCount=%d"),
 		PlayerId,
 		OutInventoryDataList.Num()
+	);
+
+	return true;
+}
+//===============================================================================================
+// 스킬트리 데이터 저장 로드
+//===============================================================================================
+bool UYesterdayKingdomGameInstance::SaveSkillTreeData(int32 PlayerId, const TArray<FSkillSaveData>& SkillSaveDatas)
+{
+	if (!Database || PlayerId <= 0) return false;
+	char* ErrorMessage = nullptr;
+	int32 Result  = sqlite3_exec(Database, "BEGIN TRANSACTION;", nullptr, nullptr, &ErrorMessage);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 스킬트리 트랜잭션 시작 실패: %s"),
+			ErrorMessage
+				? UTF8_TO_TCHAR(ErrorMessage)
+				: TEXT("Unknown")
+		);
+
+		if (ErrorMessage)
+		{
+			sqlite3_free(ErrorMessage);
+		}
+
+		return false;
+	}
+	const char* DeleteSQL =
+		"DELETE FROM SkillTree "
+		"WHERE PlayerId = ?;";
+	sqlite3_stmt* DeleteStatement = nullptr;
+	Result = sqlite3_prepare_v2(Database, DeleteSQL, -1, &DeleteStatement, nullptr);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 기존 스킬트리 삭제 쿼리 준비 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_exec(Database, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+	
+	sqlite3_bind_int(DeleteStatement, 1, PlayerId);
+	Result = sqlite3_step(DeleteStatement);
+	sqlite3_finalize(DeleteStatement);
+	if (Result != SQLITE_DONE)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 기존 스킬트리 삭제 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_exec(Database, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+	
+	const char* InsertSQL = 
+		"INSERT INTO SkillTree "
+		"(PlayerId, SkillRowName) "
+		"VALUES (?, ?);";
+	
+	sqlite3_stmt* InsertStatement = nullptr;
+	Result = sqlite3_prepare_v2(Database, InsertSQL, -1, &InsertStatement, nullptr);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 스킬트리 저장 쿼리 준비 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_exec(Database, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+
+	int32 SavedSkillCount  = 0;
+	for (const FSkillSaveData& SkillSaveData : SkillSaveDatas)
+	{
+		if (!SkillSaveData.IsValid()) continue;
+		const FString SkillRowNameString = SkillSaveData.SkillRowName.ToString();
+		const FTCHARToUTF8 SkillRowNameUTF8(*SkillRowNameString);
+		sqlite3_bind_int(InsertStatement, 1, PlayerId);
+		sqlite3_bind_text(InsertStatement, 2, SkillRowNameUTF8.Get(), SkillRowNameUTF8.Length(), SQLITE_TRANSIENT);
+		
+		Result = sqlite3_step(InsertStatement);
+		
+		if (Result != SQLITE_DONE)
+		{
+			UE_LOG(
+				LogTemp,
+				Error,
+				TEXT("[SQLite] 스킬 저장 실패 / Skill=%s / Error=%s"),
+				*SkillSaveData.SkillRowName.ToString(),
+				UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+			);
+
+			sqlite3_finalize(InsertStatement);
+			sqlite3_exec(
+				Database,
+				"ROLLBACK;",
+				nullptr,
+				nullptr,
+				nullptr
+			);
+
+			return false;
+		}
+		++SavedSkillCount ;
+		sqlite3_reset(InsertStatement);
+		sqlite3_clear_bindings(InsertStatement);
+	}
+	
+	sqlite3_finalize(InsertStatement);
+	Result = sqlite3_exec(Database, "COMMIT;", nullptr, nullptr, &ErrorMessage);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 스킬트리 트랜잭션 커밋 실패: %s"),
+			ErrorMessage
+				? UTF8_TO_TCHAR(ErrorMessage)
+				: TEXT("Unknown")
+		);
+
+		if (ErrorMessage)
+		{
+			sqlite3_free(ErrorMessage);
+			ErrorMessage = nullptr;
+		}
+
+		sqlite3_exec(Database,"ROLLBACK;",nullptr,nullptr,nullptr);
+
+		return false;
+	}
+	
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[SQLite] 스킬트리 저장 완료 / PlayerId=%d / SlotCount=%d"),
+		PlayerId,
+		SavedSkillCount 
+	);
+
+	return true;
+}
+
+bool UYesterdayKingdomGameInstance::LoadSkillTreeData(int32 PlayerId, TArray<FSkillSaveData>& SkillSaveDatas)
+{
+	if (!Database || PlayerId <= 0) return false;
+
+	SkillSaveDatas.Empty();
+
+	const char* LoadSQL = 
+		"SELECT SkillRowName "
+		"FROM SkillTree "
+		"WHERE PlayerId = ? ;";
+	
+	sqlite3_stmt* Statement = nullptr;
+	const int32 PrepareResult = sqlite3_prepare_v2(Database, LoadSQL, -1, &Statement, nullptr);
+	if (PrepareResult != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 스킬트리 로드 쿼리 준비 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		return false;
+	}
+
+	sqlite3_bind_int(Statement, 1, PlayerId);
+	
+	int32 StepResult = SQLITE_OK;
+	
+	while ((StepResult = sqlite3_step(Statement)) == SQLITE_ROW)
+	{
+		FSkillSaveData SkillSaveData;
+		const unsigned char* SkillRowNameText = sqlite3_column_text(Statement, 0);
+		if (SkillRowNameText)
+		{
+			const FString SkillRowNameString = UTF8_TO_TCHAR(reinterpret_cast<const char*>(SkillRowNameText));
+			SkillSaveData.SkillRowName = FName(*SkillRowNameString);
+		}
+		
+		if (SkillSaveData.IsValid())
+		{
+			SkillSaveDatas.Add(SkillSaveData);
+		}
+	}
+	if (StepResult != SQLITE_DONE)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 스킬트리 조회 중 오류 발생: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_finalize(Statement);
+		SkillSaveDatas.Empty();
+		return false;
+	}
+
+	sqlite3_finalize(Statement);
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[SQLite] 스킬트리 로드 완료 / PlayerId=%d / SlotCount=%d"),
+		PlayerId,
+		SkillSaveDatas.Num()
+	);
+
+	return true;
+}
+//===============================================================================================
+// 장비 데이터 저장 로드
+//===============================================================================================
+bool UYesterdayKingdomGameInstance::SaveEquipmentData(int32 PlayerId,const TArray<FEquipmentSaveData>& EquipmentSaveDatas)
+{
+	if (!Database || PlayerId <= 0) return false;
+	char* ErrorMessage = nullptr;
+	int32 Result = sqlite3_exec(Database, "BEGIN TRANSACTION;", nullptr, nullptr, &ErrorMessage);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 장비 트랜잭션 시작 실패: %s"),
+			ErrorMessage
+				? UTF8_TO_TCHAR(ErrorMessage)
+				: TEXT("Unknown")
+		);
+
+		if (ErrorMessage)
+		{
+			sqlite3_free(ErrorMessage);
+		}
+
+		return false;
+	}
+	const char* DeleteSQL = 
+		"DELETE FROM Equipment "
+		"WHERE PlayerId = ?;";
+	sqlite3_stmt* DeleteStatement = nullptr;
+	Result = sqlite3_prepare_v2(Database, DeleteSQL, -1, &DeleteStatement, nullptr);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 기존 장비 삭제 쿼리 준비 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_exec(Database, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+	
+	sqlite3_bind_int(DeleteStatement, 1, PlayerId);
+	Result = sqlite3_step(DeleteStatement);
+
+	sqlite3_finalize(DeleteStatement);
+
+	if (Result != SQLITE_DONE)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 기존 장비 삭제 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_exec(Database, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+
+	const char* InsertSQL =
+		"INSERT INTO Equipment "
+		"(PlayerId, EquipmentSlot, ItemRowName) "
+		"VALUES(?, ?, ?);";
+	sqlite3_stmt* InsertStatement = nullptr;
+	Result = sqlite3_prepare_v2(Database, InsertSQL, -1, &InsertStatement, nullptr);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 장비 저장 쿼리 준비 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_exec(Database, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+	}
+
+	int32 SavedEquipmentCount = 0;
+	for (const FEquipmentSaveData& EquipmentSaveData : EquipmentSaveDatas)
+	{
+		if (!EquipmentSaveData.IsValid())
+		{
+			continue;
+		}
+		const UEnum* EquipmentSlotEnum = StaticEnum<EEquipmentSlotType>();
+		if (!EquipmentSlotEnum) continue;
+		const FString EquipmentSlotString = EquipmentSlotEnum->GetNameStringByValue(static_cast<int64>(EquipmentSaveData.EquipmentSlot));
+		const FString ItemRowNameString = EquipmentSaveData.ItemRowName.ToString();
+		const FTCHARToUTF8 EquipmentSlotUTF8(*EquipmentSlotString);
+		const FTCHARToUTF8 ItemRowNameUTF8(*ItemRowNameString);
+		
+		sqlite3_bind_int(InsertStatement, 1, PlayerId);
+		sqlite3_bind_text(InsertStatement, 2, EquipmentSlotUTF8.Get(), EquipmentSlotUTF8.Length(), SQLITE_TRANSIENT);
+		sqlite3_bind_text(InsertStatement, 3, ItemRowNameUTF8.Get(), ItemRowNameUTF8.Length(), SQLITE_TRANSIENT);
+		Result = sqlite3_step(InsertStatement);
+		if (Result != SQLITE_DONE)
+		{
+			UE_LOG(
+				LogTemp,
+				Error,
+				TEXT("[SQLite] 장비 저장 실패 / Slot=%s Item=%s Error=%s"),
+				*EquipmentSlotString,
+				*ItemRowNameString,
+				UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+			);
+
+			sqlite3_finalize(InsertStatement);
+
+			sqlite3_exec(
+				Database,
+				"ROLLBACK;",
+				nullptr,
+				nullptr,
+				nullptr
+			);
+
+			return false;
+		}
+		
+		++SavedEquipmentCount;
+
+		sqlite3_reset(InsertStatement);
+		sqlite3_clear_bindings(InsertStatement);
+	}
+	
+	sqlite3_finalize(InsertStatement);
+
+	ErrorMessage = nullptr;
+	Result = sqlite3_exec(Database, "COMMIT;", nullptr, nullptr, &ErrorMessage);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 장비 트랜잭션 커밋 실패: %s"),
+			ErrorMessage
+				? UTF8_TO_TCHAR(ErrorMessage)
+				: TEXT("Unknown")
+		);
+
+		if (ErrorMessage)
+		{
+			sqlite3_free(ErrorMessage);
+		}
+		sqlite3_exec(Database, "ROLLBACK;", nullptr, nullptr, nullptr);
+		return false;
+		
+	}
+	UE_LOG(
+	LogTemp,
+	Log,
+	TEXT("[SQLite] 장비 저장 완료 / PlayerId=%d / EquipmentCount=%d"),
+	PlayerId,
+	SavedEquipmentCount
+);
+
+	return true;
+}
+
+bool UYesterdayKingdomGameInstance::LoadEquipmentData(int32 PlayerId, TArray<FEquipmentSaveData>& EquipmentSaveDatas)
+{
+	if (!Database || PlayerId <= 0) return false;
+
+	EquipmentSaveDatas.Empty();
+	const char* LoadSQL =
+		"SELECT EquipmentSlot, ItemRowName "
+		"FROM Equipment "
+		"WHERE PlayerId = ? "
+		"ORDER BY EquipmentSlot ASC;";
+	
+	sqlite3_stmt* Statement = nullptr;
+	const int32 PrepareResult = sqlite3_prepare_v2(Database, LoadSQL, -1, &Statement, nullptr);
+	if (PrepareResult != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 장비 로드 쿼리 준비 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		return false;
+	}
+
+	sqlite3_bind_int(Statement, 1, PlayerId);
+	const UEnum* EquipmentSlotEnum = StaticEnum<EEquipmentSlotType>();
+
+	if (!EquipmentSlotEnum)
+	{
+		sqlite3_finalize(Statement);
+		return false;
+	}
+	int32 StepResult = SQLITE_OK;
+	while ((StepResult = sqlite3_step(Statement)) == SQLITE_ROW)
+	{
+		FEquipmentSaveData EquipmentSaveData;
+		const unsigned char* EquipmentSlotText = sqlite3_column_text(Statement, 0);
+		const unsigned char* ItemRowNameText  = sqlite3_column_text(Statement, 1);
+		
+		if (EquipmentSlotText)
+		{
+			const FString EquipmentSlotString = UTF8_TO_TCHAR(reinterpret_cast<const char*>(EquipmentSlotText));
+			const int64 EquipmentSlotValue = EquipmentSlotEnum->GetValueByNameString(EquipmentSlotString);
+			if (EquipmentSlotValue != INDEX_NONE)
+			{
+				EquipmentSaveData.EquipmentSlot = static_cast<EEquipmentSlotType>(EquipmentSlotValue);
+			}
+		}
+		
+		if (ItemRowNameText)
+		{
+			const FString ItemRowNameString = UTF8_TO_TCHAR(reinterpret_cast<const char*>(ItemRowNameText));
+			EquipmentSaveData.ItemRowName = FName(*ItemRowNameString);
+		}
+		if (EquipmentSaveData.IsValid())
+		{
+			EquipmentSaveDatas.Add(EquipmentSaveData);
+		}
+	}
+	if (StepResult != SQLITE_DONE)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 장비 조회 중 오류 발생: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_finalize(Statement);
+		EquipmentSaveDatas.Empty();
+
+		return false;
+	}
+	sqlite3_finalize(Statement);
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[SQLite] 장비 로드 완료 / PlayerId=%d / EquipmentCount=%d"),
+		PlayerId,
+		EquipmentSaveDatas.Num()
 	);
 
 	return true;

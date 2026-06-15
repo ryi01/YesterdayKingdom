@@ -220,6 +220,8 @@ public:
 	// Setter 
 	// ========================================================
 	UFUNCTION()
+	void ResetSkillBonuses();
+	UFUNCTION()
 	void SetStatRowName(FName NewName);
 	UFUNCTION(BlueprintCallable, Category = "Stat|Load")
 	void LoadCurrentStats(float InCurrentHP, float InCurrentST, float InCurrentMP);

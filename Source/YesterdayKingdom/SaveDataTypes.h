@@ -2,6 +2,7 @@
 
 #pragma once
 #include "CoreMinimal.h"
+#include "ItemData.h"
 #include "SaveDataTypes.generated.h"
 //===============================================================================================
 // 플레이어 저장 데이터
@@ -89,5 +90,24 @@ struct FInventorySaveData
 		SlotIndex = -1;
 		ItemRowName = NAME_None;
 		Count = 0;
+	}
+};
+//===============================================================================================
+// 장비창 저장 데이터 
+//===============================================================================================
+USTRUCT(BlueprintType)
+struct FEquipmentSaveData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EEquipmentSlotType EquipmentSlot = EEquipmentSlotType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ItemRowName = NAME_None;
+	
+	bool IsValid() const
+	{
+		return EquipmentSlot != EEquipmentSlotType::None && !ItemRowName.IsNone();
 	}
 };
