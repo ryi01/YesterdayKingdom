@@ -40,12 +40,6 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	DownState = CreateDefaultSubobject<UDownStateComponent>(TEXT("DownState"));
 	ReviveState = CreateDefaultSubobject<UReviveStateComponent>(TEXT("ReviveState"));
 	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
-	
-	StringSocketName = TEXT("StringSocket");
-	
-	StringMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("StringMeshComponent"));
-	StringMeshComponent->SetupAttachment(GetMesh(),StringSocketName);
-	StringMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 bool AEnemyElite::IsPuppetMasterDead() const
@@ -82,22 +76,6 @@ void AEnemyElite::BeginPlay()
 	FSMController->RegisterState(EEnemyFSMStateType::Dead, DeadState);
 	
 	FSMController->StartFSM(EEnemyFSMStateType::Idle);
-	
-	if (StringMeshComponent)
-	{
-		if (StringMesh)
-		{
-			StringMeshComponent->SetSkeletalMesh(StringMesh);
-		}
-
-		StringMeshComponent->AttachToComponent(
-			GetMesh(),
-			FAttachmentTransformRules::SnapToTargetIncludingScale,
-			StringSocketName
-		);
-
-		StringMeshComponent->SetLeaderPoseComponent(GetMesh());
-	}
 }
 
 void AEnemyElite::Tick(float DeltaTime)
@@ -140,6 +118,22 @@ void AEnemyElite::SetPuppetMaster(AEnemyPuppetMaster* InMaster)
 	
 	UE_LOG(LogTemp, Warning, TEXT("[Elite] SetPuppetMaster: %s"),
 		*GetNameSafe(PuppetMaster));
+}
+
+void AEnemyElite::RequestReviveEffect()
+{
+	if (PuppetMaster)
+	{
+		PuppetMaster->PlayReviveEffect(this);
+	}
+}
+
+void AEnemyElite::StopReviveEffect()
+{
+	if (PuppetMaster)
+	{
+		PuppetMaster->StopReviveEffect();
+	}
 }
 
 void AEnemyElite::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
