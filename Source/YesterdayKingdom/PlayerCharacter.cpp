@@ -65,11 +65,7 @@ void APlayerCharacter::BeginPlay()
 	CreatePlayerHUD();
 	
 	QuickSlotItemRowNames.SetNum(5);
-	
-	if (GoldComponent)
-	{
-		GoldComponent->AddGold(1000);
-	}
+	SetUIMode(false);
 	// 인터렉션 대상 체크
 	GetWorld()->GetTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::UpdateInteractionTarget, 0.1f, true);
 }
@@ -528,14 +524,14 @@ void APlayerCharacter::HideBossHP()
 void APlayerCharacter::OnDead()
 {
 	Super::OnDead();
+	OnPlayerDead.Broadcast();
 	bIsDashing = false;
 
 	if (MoveComp)
 	{
 		MoveComp->StopMovementImmediately();
 	}
-
-	SetUIMode(true);
+	
 }
 
 

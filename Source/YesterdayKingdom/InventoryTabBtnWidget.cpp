@@ -4,6 +4,7 @@
 #include "InventoryTabBtnWidget.h"
 
 #include "InventoryWidget.h"
+#include "SystemWidget.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
@@ -33,9 +34,15 @@ void UInventoryTabBtnWidget::NativeConstruct()
 	{
 		BTN_System->OnClicked.AddDynamic(this, &UInventoryTabBtnWidget::OnSystemClicked);
 	}
+	if (WBP_System)
+	{
+		WBP_System->OnSystemReturnRequested.RemoveDynamic(this,&UInventoryTabBtnWidget::OnSystemReturnRequested);
 
+		WBP_System->OnSystemReturnRequested.AddDynamic(this,&UInventoryTabBtnWidget::OnSystemReturnRequested);
+	}
 	ChangeTab(EMenuTabType::Item);
 }
+
 
 void UInventoryTabBtnWidget::SetInventoryComponent(UInventoryComponent* InInventory)
 {
@@ -46,9 +53,10 @@ void UInventoryTabBtnWidget::OnBackClicked()
 {
 	if (Wbp_InventoryWidget)
 	{
+		ChangeTab(EMenuTabType::Item);
 		Wbp_InventoryWidget->ClearItemDescription();
 	}
-
+	
 	OnInventoryBackRequested.Broadcast();
 	
 }
@@ -68,6 +76,10 @@ void UInventoryTabBtnWidget::OnSystemClicked()
 	ChangeTab(EMenuTabType::System);
 }
 
+void UInventoryTabBtnWidget::OnSystemReturnRequested()
+{
+	OnBackClicked();
+}
 int32 UInventoryTabBtnWidget::GetTabIndex(EMenuTabType TabType) const
 {
 	switch (TabType)

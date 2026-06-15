@@ -8,7 +8,7 @@ public class YesterdayKingdom : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "AIModule", "NavigationSystem", "Slate", "SlateCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "AIModule", "NavigationSystem", "Slate", "SlateCore", "SQLiteCore", "SQLiteSupport" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "StateTreeModule", "GameplayStateTreeModule" });
 

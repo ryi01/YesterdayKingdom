@@ -23,6 +23,8 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 {
 	OwnerPlayer = InPlayer;
 	if (!OwnerPlayer) return;
+	OwnerPlayer->OnPlayerDead.RemoveDynamic(this, &UPlayerHUDWidget::PlayerDeadWidget);
+	OwnerPlayer->OnPlayerDead.AddDynamic(this, &UPlayerHUDWidget::PlayerDeadWidget);
 	if (UBaseStatComponent* StatComponent = OwnerPlayer->GetStatComponent())
 	{
 		StatComponent->OnHPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateHP);
@@ -33,7 +35,7 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 		UpdateST(StatComponent->GetCurrentST(), StatComponent->GetMaxST());
 		UpdateMP(StatComponent->GetCurrentMP(), StatComponent->GetMaxMP());
 	}
-
+	
 	if (WBP_BossHP) SetVisibleBossHPBar(false);
 
 	if (WBP_InventoryTab)
@@ -303,6 +305,9 @@ void UPlayerHUDWidget::SetHUDPage(EHUDPage Page)
 	case EHUDPage::Store:
 		WS_HUD->SetActiveWidgetIndex(2);
 		break;
+	case EHUDPage::Dead:
+		WS_HUD->SetActiveWidgetIndex(3);
+		break;
 	}
 }
 //=====================================================================================================
@@ -355,4 +360,12 @@ void UPlayerHUDWidget::SetEquipmentIcon(UImage* ImageWidget, UEquipmentComponent
 	}
 
 	ImageWidget->SetBrushFromTexture(ItemData->Icon);
+}
+void UPlayerHUDWidget::PlayerDeadWidget()
+{
+	SetHUDPage(EHUDPage::Dead);
+	if (OwnerPlayer)
+	{
+		OwnerPlayer->SetUIMode(true);
+	}
 }

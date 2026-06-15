@@ -19,7 +19,8 @@ enum class EHUDPage : uint8
 {
 	Main,
 	Inventory,
-	Store
+	Store,
+	Dead
 };
 UCLASS()
 class YESTERDAYKINGDOM_API UPlayerHUDWidget : public UUserWidget
@@ -153,6 +154,9 @@ public:
 	void SetInventoryVisible(bool bVisible);
 	
 	void SetVisibleBossHPBar(bool bEnable);
+	
+	UFUNCTION()
+	void PlayerDeadWidget();
 	//=====================================================================================================
 	// 퀵 슬롯
 	//=====================================================================================================

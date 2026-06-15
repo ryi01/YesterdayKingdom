@@ -12,6 +12,7 @@
 class UBaseStatComponent;
 class UCombatBaseComponent;
 
+
 UCLASS(Abstract)
 class YESTERDAYKINGDOM_API ABaseCharacter : public ACharacter, public IDamagable, public IAttacker
 {

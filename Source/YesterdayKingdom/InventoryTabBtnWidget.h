@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "InventoryTabBtnWidget.generated.h"
 
+class USystemWidget;
 class USkillTreeWidget;
 class UInventoryWidget;
 class UInventoryComponent;
@@ -49,6 +50,8 @@ public:
 	TObjectPtr<UInventoryWidget> Wbp_InventoryWidget;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<USkillTreeWidget> WBP_SkillTreeWidget;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	TObjectPtr<USystemWidget> WBP_System;
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryBackRequested OnInventoryBackRequested;
 private:
@@ -69,6 +72,8 @@ private:
 
 protected:
 	virtual void NativeConstruct() override;
+	UFUNCTION()
+	void OnSystemReturnRequested();
 public:
 	void SetInventoryComponent(UInventoryComponent* InInventory);
 	

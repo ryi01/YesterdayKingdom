@@ -19,6 +19,8 @@ struct FQuestInstance;
 class UStoreComponent;
 class UPlayerHUDWidget;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDead);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
 {
@@ -162,6 +164,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	bool bIsInventoryOpen = false;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerDead OnPlayerDead;
 
 	//===============================================================================================
 	// 퀵슬롯
@@ -196,8 +201,6 @@ protected:
 	//===============================================================================================
 	// 위잿 관련 
 	//===============================================================================================
-	UFUNCTION(BlueprintCallable, Category="UI")
-	void SetUIMode(bool bEnableUI);
 	
 	void CreatePlayerHUD();
 	//===============================================================================================
@@ -292,6 +295,8 @@ public:
 	//===============================================================================================
 	void ShowBossHP(class AEnemyBase* Boss);
 	void HideBossHP();
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void SetUIMode(bool bEnableUI);
 	
 	//===============================================================================================
 	// 퀵슬롯
