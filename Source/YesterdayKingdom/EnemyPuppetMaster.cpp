@@ -5,11 +5,21 @@
 #include "EnemyElite.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 
 AEnemyPuppetMaster::AEnemyPuppetMaster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
+	
+	GetMesh()->SetHiddenInGame(true);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+	CoreMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CoreMesh"));
+	CoreMesh->SetupAttachment(GetRootComponent());
+	CoreMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
 void AEnemyPuppetMaster::BeginPlay()
@@ -36,6 +46,46 @@ void AEnemyPuppetMaster::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 	GetWorldTimerManager().ClearTimer(
 	HPWidgetCheckTimerHandle);
+}
+
+void AEnemyPuppetMaster::PlayReviveEffect(AEnemyElite* TargetPuppet)
+{
+	if (!TargetPuppet || !ReviveCastEffect)
+	{
+		return;
+	}
+
+	USceneComponent* AttachComp = CoreMesh ? Cast<USceneComponent>(CoreMesh) : GetRootComponent();
+	if (!AttachComp)
+	{
+		return;
+	}
+	
+	if (ActiveReviveEffect)
+	{
+		ActiveReviveEffect->DestroyComponent();
+		ActiveReviveEffect = nullptr;
+	}
+	
+	ActiveReviveEffect =
+	UNiagaraFunctionLibrary::SpawnSystemAttached(
+		ReviveCastEffect,
+		AttachComp,
+		ReviveEffectSocketName,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		EAttachLocation::SnapToTarget,
+		false
+	);
+}
+
+void AEnemyPuppetMaster::StopReviveEffect()
+{
+	if (ActiveReviveEffect)
+	{
+		ActiveReviveEffect->DestroyComponent();
+		ActiveReviveEffect = nullptr;
+	}
 }
 
 void AEnemyPuppetMaster::RegisterPuppet(AEnemyElite* Puppet)

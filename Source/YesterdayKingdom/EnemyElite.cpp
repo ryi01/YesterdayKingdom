@@ -120,6 +120,22 @@ void AEnemyElite::SetPuppetMaster(AEnemyPuppetMaster* InMaster)
 		*GetNameSafe(PuppetMaster));
 }
 
+void AEnemyElite::RequestReviveEffect()
+{
+	if (PuppetMaster)
+	{
+		PuppetMaster->PlayReviveEffect(this);
+	}
+}
+
+void AEnemyElite::StopReviveEffect()
+{
+	if (PuppetMaster)
+	{
+		PuppetMaster->StopReviveEffect();
+	}
+}
+
 void AEnemyElite::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
 	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);

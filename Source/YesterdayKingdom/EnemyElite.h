@@ -36,6 +36,12 @@ public:
 	void ForceTrueDeath();
 	
 	void SetPuppetMaster(AEnemyPuppetMaster* InMaster);
+	
+	UFUNCTION(BlueprintCallable, Category="Enemy|Puppet|Effect")
+	void RequestReviveEffect();
+	
+	UFUNCTION(BlueprintCallable, Category="Enemy|Puppet|Effect")
+	void StopReviveEffect();
 
 protected:
 	virtual void BeginPlay() override;

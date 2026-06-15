@@ -7,6 +7,7 @@
 #include "EnemyFSMControllerComponent.h"
 #include "EnemyFSMTypes.h"
 #include "EnemyBase.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "EnemyElite.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
@@ -15,6 +16,16 @@ void UDownStateComponent::OnStateEnter()
 	Super::OnStateEnter();
 
 	StopMove();
+	
+	OwnerCharacter->bUseControllerRotationYaw = false;
+
+	if (UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement())
+	{
+		Movement->bUseControllerDesiredRotation = false;
+		Movement->bOrientRotationToMovement = false;
+		Movement->StopMovementImmediately();
+	}
+	
 	OwnerCharacter->DownMontage();
 
 	UE_LOG(LogTemp, Log, TEXT("[FSM][Down] Enter"));
