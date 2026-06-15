@@ -40,19 +40,22 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 	const FCharacterStatRow* StatRow = InStatTable->FindRow<FCharacterStatRow>(InRowName, TEXT("InitializeStat"));
 	if (!StatRow) return;
 	
+
 	StatDT = InStatTable;
 	StatRowName = InRowName;
-	
+
 	MaxHP = StatRow->MaxHP;
 	CurrentHP = MaxHP;
-	
+
 	MaxST = StatRow->MaxST;
 	CurrentST = MaxST;
-	
+
 	MaxMP = StatRow->MaxMP;
 	CurrentMP = MaxMP;
-	
+
+	Attack = StatRow->Attack;
 	Defense = StatRow->Defense;
+	
 	MoveSpeed = StatRow->MoveSpeed;
 	GuardSpeed = StatRow->GuardSpeed;
 	RunSpeed = StatRow->RunSpeed;
@@ -65,6 +68,7 @@ void UBaseStatComponent::InitializeStat(UDataTable* InStatTable, FName InRowName
 
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 	OnSTChanged.Broadcast(CurrentST, MaxST);
+	OnMPChanged.Broadcast(CurrentMP, MaxMP);
 	OnStunChanged.Broadcast(CurrentStun, MaxStun);
 }
 //===============================================================================
@@ -310,6 +314,23 @@ void UBaseStatComponent::ClearAllSkillStats()
 void UBaseStatComponent::SetStatRowName(FName NewName)
 {
 	StatRowName = NewName;
+}
+
+void UBaseStatComponent::LoadCurrentStats(float InCurrentHP, float InCurrentST, float InCurrentMP)
+{
+	const float FinalMaxHP = GetMaxHP();
+	const float FinalMaxST = GetMaxST();
+	const float FinalMaxMP = GetMaxMP();
+
+	CurrentHP = FMath::Clamp(InCurrentHP, 0.f, FinalMaxHP);
+	CurrentST = FMath::Clamp(InCurrentST, 0.f, FinalMaxST);
+	CurrentMP = FMath::Clamp(InCurrentMP, 0.f, FinalMaxMP);
+
+	bIsDead = CurrentHP <= 0.f;
+
+	OnHPChanged.Broadcast(CurrentHP, FinalMaxHP);
+	OnSTChanged.Broadcast(CurrentST, FinalMaxST);
+	OnMPChanged.Broadcast(CurrentMP, FinalMaxMP);
 }
 
 // ========================================================

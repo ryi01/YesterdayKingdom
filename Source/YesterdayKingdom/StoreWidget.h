@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "StoreWidget.generated.h"
 
+class UInventoryComponent;
 class UItemSlotWidget;
 struct FInventorySlotViewData;
 class UButton;
@@ -14,6 +15,7 @@ class UImage;
 class UTextBlock;
 class UGridPanel;
 class UHorizontalBox;
+class UGoldComponent;
 UENUM(BlueprintType)
 enum class EStoreSelectionType : uint8
 {
