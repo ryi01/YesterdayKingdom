@@ -9,6 +9,7 @@
 #include "EnemyFSMControllerComponent.h"
 #include "EnemyPuppetMaster.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
 void UReviveStateComponent::OnStateEnter()
@@ -103,5 +104,10 @@ void UReviveStateComponent::OnStateExit()
 	if (AEnemyElite* Elite = Cast<AEnemyElite>(OwnerCharacter))
 	{
 		Elite->StopReviveEffect();
+	}
+	
+	if (UCapsuleComponent* Capsule = OwnerCharacter->GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	}
 }

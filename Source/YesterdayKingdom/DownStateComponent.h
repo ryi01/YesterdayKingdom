@@ -6,9 +6,8 @@
 #include "FSMStateComponent.h"
 #include "DownStateComponent.generated.h"
 
-/**
- * 
- */
+
+
 UCLASS()
 class YESTERDAYKINGDOM_API UDownStateComponent : public UFSMStateComponent
 {

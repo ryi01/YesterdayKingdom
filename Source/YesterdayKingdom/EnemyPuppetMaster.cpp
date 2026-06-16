@@ -25,11 +25,14 @@ AEnemyPuppetMaster::AEnemyPuppetMaster(const FObjectInitializer& ObjectInitializ
 void AEnemyPuppetMaster::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	SetEnemyHPWidgetVisible(false);
+	
 	GetWorldTimerManager().SetTimerForNextTick(
 		this,
 		&AEnemyPuppetMaster::FindAndRegisterPuppets
 	);
+	
 	GetWorldTimerManager().SetTimer(
 		HPWidgetCheckTimerHandle,
 		this,
@@ -37,7 +40,27 @@ void AEnemyPuppetMaster::BeginPlay()
 		HPWidgetCheckInterval,
 		true
 	);
+	
+	if (ReviveCastEffect && CoreMesh)
+	{
+		ActiveReviveEffect =
+			UNiagaraFunctionLibrary::SpawnSystemAttached(
+				ReviveCastEffect,
+				CoreMesh,
+				ReviveEffectSocketName,
+				FVector::ZeroVector,
+				FRotator::ZeroRotator,
+				EAttachLocation::SnapToTarget,
+				false,
+				false
+			);
+	}
 
+	if (ActiveReviveEffect)
+	{
+		ActiveReviveEffect->DeactivateImmediate();
+	}
+	
 	UpdateHPWidgetVisibility();
 }
 
@@ -50,41 +73,17 @@ void AEnemyPuppetMaster::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AEnemyPuppetMaster::PlayReviveEffect(AEnemyElite* TargetPuppet)
 {
-	if (!TargetPuppet || !ReviveCastEffect)
-	{
-		return;
-	}
-
-	USceneComponent* AttachComp = CoreMesh ? Cast<USceneComponent>(CoreMesh) : GetRootComponent();
-	if (!AttachComp)
-	{
-		return;
-	}
-	
 	if (ActiveReviveEffect)
 	{
-		ActiveReviveEffect->DestroyComponent();
-		ActiveReviveEffect = nullptr;
+		ActiveReviveEffect->Activate(true);
 	}
-	
-	ActiveReviveEffect =
-	UNiagaraFunctionLibrary::SpawnSystemAttached(
-		ReviveCastEffect,
-		AttachComp,
-		ReviveEffectSocketName,
-		FVector::ZeroVector,
-		FRotator::ZeroRotator,
-		EAttachLocation::SnapToTarget,
-		false
-	);
 }
 
 void AEnemyPuppetMaster::StopReviveEffect()
 {
 	if (ActiveReviveEffect)
 	{
-		ActiveReviveEffect->DestroyComponent();
-		ActiveReviveEffect = nullptr;
+		ActiveReviveEffect->Deactivate();
 	}
 }
 
