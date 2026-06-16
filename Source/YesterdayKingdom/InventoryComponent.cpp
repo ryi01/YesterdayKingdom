@@ -316,6 +316,9 @@ void UInventoryComponent::LoadInventoryData()
 		PlayerId,
 		LoadDataList.Num()
 	);
+	
+	TArray<FInventoryViewData> InventoryViewDataList;
+	GI->LoadInventoryViewData(PlayerId, InventoryViewDataList);
 }
 
 //===============================================================================================

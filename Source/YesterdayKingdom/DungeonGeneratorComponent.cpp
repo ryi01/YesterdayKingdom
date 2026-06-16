@@ -219,6 +219,7 @@ void UDungeonGeneratorComponent::DoMST()
 		float MinDist = TNumericLimits<float>::Max();
 		FDungeonEdge BestEdge;
 		int32 BestPointIndex = INDEX_NONE;
+		
 		for (const FVector2D& Reached : ReachedPoints)
 		{
 			for (int32 i = 0; i < UnreachedPoints.Num(); i++)
@@ -227,20 +228,46 @@ void UDungeonGeneratorComponent::DoMST()
 				for (const FDungeonEdge& Edge : AllEdges)
 				{
 					const bool bConnected = (Edge.U.Equals(Reached) && Edge.V.Equals(Unreached) ||(Edge.U.Equals(Unreached) && Edge.V.Equals(Reached)));
-					if (bConnected)
+					if (!bConnected) continue;
+					const float Dist = FVector2D::Distance(Reached, Unreached);
+					if (Dist < MinDist)
 					{
-						const float Dist = FVector2D::Distance(Reached, Unreached);
-						if (Dist < MinDist)
-						{
-							MinDist = Dist;
-							BestEdge = Edge;
-							BestPointIndex = i;
-						}
+						MinDist = Dist;
+						BestEdge = Edge;
+						BestPointIndex = i;
 					}
 				}
 			}
 		}
-		
+		// ========================================================
+		// Fallback: Delaunay Edge로 연결 실패하면 가장 가까운 점끼리 강제 연결
+		// ========================================================
+		if (BestPointIndex == INDEX_NONE)
+		{
+			MinDist = TNumericLimits<float>::Max();
+
+			for (const FVector2D& Reached : ReachedPoints)
+			{
+				for (int32 i = 0; i < UnreachedPoints.Num(); i++)
+				{
+					const FVector2D& Unreached = UnreachedPoints[i];
+					const float Dist = FVector2D::Distance(Reached, Unreached);
+
+					if (Dist < MinDist)
+					{
+						MinDist = Dist;
+						BestEdge = FDungeonEdge(Reached, Unreached);
+						BestPointIndex = i;
+					}
+				}
+			}
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[DoMST] Fallback Edge Used / Reached=%s / Unreached=%s"),
+				*BestEdge.U.ToString(),
+				*BestEdge.V.ToString()
+			);
+		}
 		if (BestPointIndex != INDEX_NONE)
 		{
 			MstEdges.Add(BestEdge);
@@ -480,7 +507,22 @@ void UDungeonGeneratorComponent::CreateMap()
 	}
 	
 	NormalizeBossRoomEntrance();
+	if (!CanReachStartToEndByMapData())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Dungeon] Map disconnected after NormalizeBossRoomEntrance"));
 
+		// 최소한 MST 복도를 다시 파서 복구
+		for (const FDungeonEdge& Edge : MstEdges)
+		{
+			MakeCorridorInData(Edge);
+		}
+
+		if (!CanReachStartToEndByMapData())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Dungeon] Still disconnected after MST repair"));
+		}
+	}
+	
 	SpawnFloorTiles();
 }
 
@@ -2001,14 +2043,7 @@ bool UDungeonGeneratorComponent::NormalizeRoomEntrance(const FDungeonRoomInfo& R
 
 		if (bKeep) continue;
 
-		if (Room.RoomType == EDungeonRoomType::Store)
-		{
-			TryCloseCorridorTileSafely(Contact.CorridorX, Contact.CorridorY);
-		}
-		else
-		{
-			SetTile(Contact.CorridorX, Contact.CorridorY, EDungeonTileType::Empty);
-		}
+		TryCloseCorridorTileSafely(Contact.CorridorX, Contact.CorridorY);
 	}
 	return true;
 }
