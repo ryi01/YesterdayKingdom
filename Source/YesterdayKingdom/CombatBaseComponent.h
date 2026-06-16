@@ -84,6 +84,8 @@ protected:
 	// 가드 
 	//===============================================================================
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
+	TObjectPtr<UAnimMontage> GuardHitMontage;
+	UPROPERTY(EditDefaultsOnly, Category="Combat|Guard")
 	TObjectPtr<UAnimMontage> ParrySuccessMontage;
 	
 	UPROPERTY(BlueprintReadOnly, Category="Combat|Guard")
@@ -160,6 +162,7 @@ protected:
 	virtual bool IsGuardDirectionValid(AActor* DamageCauser) const;
 
 	virtual void OnGuardStarted();
+	virtual void OnGuardHit(AActor* DamageCauser);
 	virtual void OnGuardEnded();
 	virtual void OnParrySuccess(AActor* DamageCauser);
 
@@ -176,6 +179,7 @@ protected:
 	//=====================================================================================================
 	virtual void ApplyAttackHit(AActor* HitActor, const FHitResult& HitResult);
 	void ApplyHitFeedback(const FHitFeedbackData& Feedback, AActor* HitActor);
+	void ApplyAttackCameraShake(const FHitFeedbackData& Feedback);
 	void ResetHitStop();
 	
 	FVector GetHitDirectionToTarget(AActor* HitActor) const;
@@ -245,6 +249,10 @@ public:
 	void SetAttackDataTable(UDataTable* NewTable);
 	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
 	bool JumpToNextAttackSection();
+	//=====================================================================================================
+	// 카메라 쉐이크
+	//=====================================================================================================
+	void PlayCurrentAttackCameraShake();
 	//=====================================================================================================
 	// Open Close
 	//=====================================================================================================

@@ -113,6 +113,9 @@ struct FItemData : public FTableRowBase
     // 아이템 텍스쳐
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common")
     TObjectPtr<UTexture2D> Icon = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Quest")
+	bool bAutoUseOnAcquire = false;
 
     // 슬롯 아이템 보유 갯수
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Common", meta = (ClampMin = "1"))

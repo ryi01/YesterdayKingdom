@@ -6,6 +6,7 @@
 #include "BaseCharacter.h"
 #include "EnemyBase.generated.h"
 
+class UWidgetComponent;
 class UEnemyDefinition;
 class UEnemyFSMControllerComponent;
 DECLARE_DELEGATE(FOnEnemyAttackCompleted);
@@ -62,6 +63,31 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
 	bool bIsPhaseChanging = false;
+	//===============================================================================================
+	// hp 바
+	//===============================================================================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<class UWidgetComponent> EnemyHPWidgetComponent;
+	UPROPERTY()
+	TObjectPtr<class UEnemyHPWidget> EnemyHPWidget;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hit")
+	bool bHit = false;
+	FTimerHandle HitTimerHandle;
+	//===============================================================================================
+	// 카메라 쉐이크
+	//===============================================================================================
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep")
+	TSubclassOf<UCameraShakeBase> FootstepCameraShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep",meta = (ClampMin = "0.0"))
+	float FootstepShakeScale = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep",meta = (ClampMin = "0.0"))
+	float FootstepInnerRadius = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera Shake|Footstep",meta = (ClampMin = "0.0"))
+	float FootstepOuterRadius = 1200.f;
 public:
 	AEnemyBase(const FObjectInitializer& ObjectInitializer);
 	
@@ -71,6 +97,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Enemy|Events")
 	FOnDoEnemyDied OnEnemyDied;
+
 protected:
 
 	virtual void InitializeFromDefinition();
@@ -156,6 +183,23 @@ public:
 	void FinishPhaseChange();
 	
 	//===============================================================================================
+	// hp 바
+	//===============================================================================================
+	
+	void InitializeEnemyHPWidget();
+	void RefreshEnemyHPWidget();
+
+	UFUNCTION()
+	void OnEnemyHPChanged(float CurrentHP, float MaxHP);
+	void SetEnemyHPWidgetVisible(bool bVisible);
+	
+	void SetHit();
+	//===============================================================================================
+	// 카메라 쉐이크
+	//===============================================================================================
+	void PlayFootstepCameraShake();
+	
+	//===============================================================================================
 	// Getter함수
 	//===============================================================================================
 	UEnemyDefinition* GetEnemyDefinition() const { return EnemyDefinition; }
@@ -179,4 +223,6 @@ public:
 	
 	void BlockPatternSelect(float Duration);
 	bool IsPatternSelectBlocked() const;
+	
+	bool GetIsHit() const;
 };

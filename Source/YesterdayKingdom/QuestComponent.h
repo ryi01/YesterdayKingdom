@@ -9,7 +9,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuestChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentQuestChanged, FName, QuestRowName, const FQuestDataRow&, QuestData);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnQuestCompleted, FName, QuestRowName);
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API UQuestComponent : public UActorComponent
 {
@@ -36,8 +36,11 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnCurrentQuestChanged OnCurrentQuestChanged;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Quest")
+	FOnQuestCompleted OnQuestCompleted;
 private:
-    void PrintCurrentQuestToScreen() const;
+
 protected:
 	const FQuestDataRow* GetQuestData(FName QuestRowName) const;
 

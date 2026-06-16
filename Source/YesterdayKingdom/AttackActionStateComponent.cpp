@@ -197,11 +197,7 @@ void UAttackActionStateComponent::OnStateUpdate(float X)
 	{
 		return;
 	}
-
-	if (!OwnerCharacter->IsAttacking())
-	{
-		FinishAttackAction();
-	}
+	
 }
 
 void UAttackActionStateComponent::OnStateExit()

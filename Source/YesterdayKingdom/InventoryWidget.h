@@ -21,7 +21,6 @@ class YESTERDAYKINGDOM_API UInventoryWidget : public UUserWidget
 	
 public:
 protected:
-		
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Slot")
 	int32 ColumnCount = 6;
 	UPROPERTY()
@@ -32,11 +31,11 @@ protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UButton> BTN_All;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> BTN_HP;
+	TObjectPtr<UButton> BTN_CB;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> BTN_MP;
+	TObjectPtr<UButton> BTN_Weapon;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-	TObjectPtr<UButton> BTN_ST;
+	TObjectPtr<UButton> BTN_Armor;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<UGridPanel> GP_Item;
 	//=======================================================================================
@@ -73,6 +72,8 @@ protected:
 	
 	UPROPERTY()
 	int32 SelectedSlotIndex = INDEX_NONE;
+	bool bShowAllItems = true;
+	EItemType CurrentFilterType = EItemType::None;
 
 protected:
 	virtual void NativeConstruct() override;
@@ -101,6 +102,18 @@ protected:
 	UFUNCTION()
 	void OnRemoveClicked();
 	void ClearSelectedItem();
+	//=======================================================================================
+	// 아이템 카테고리
+	//=======================================================================================
+	UFUNCTION()
+	void OnAllFilterClicked();
+	UFUNCTION()
+	void OnCBFilterClicked();
+	UFUNCTION()
+	void OnWBFilterClicked();
+	UFUNCTION()
+	void OnArmorFilterClicked();
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindInventory(class UInventoryComponent* InInventory);

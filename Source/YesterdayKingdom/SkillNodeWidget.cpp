@@ -35,6 +35,27 @@ void USkillNodeWidget::RefreshSkillNode(bool bIsUnlocked, bool bInCanUnlock)
 	{
 		BTN_Skill->SetIsEnabled(!bUnlocked && bCanUnlock);
 	}
+	if (bUnlocked)
+	{
+		// 해금 완료
+		BTN_Skill->SetBackgroundColor(
+			FLinearColor(0.2f, 0.8f, 0.3f, 1.f)
+		);
+	}
+	else if (bCanUnlock)
+	{
+		// 현재 해금 가능
+		BTN_Skill->SetBackgroundColor(
+			FLinearColor(0.9f, 0.65f, 0.15f, 1.f)
+		);
+	}
+	else
+	{
+		// 잠김
+		BTN_Skill->SetBackgroundColor(
+			FLinearColor(0.25f, 0.25f, 0.25f, 1.f)
+		);
+	}
 }
 
 void USkillNodeWidget::OnSkillClicked()

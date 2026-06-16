@@ -56,5 +56,5 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Store|Debug")
 	void DebugLogStoreItems() const;
-		
+
 };

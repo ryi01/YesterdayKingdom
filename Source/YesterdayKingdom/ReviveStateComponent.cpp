@@ -7,6 +7,7 @@
 #include "EnemyElite.h"
 #include "EnemyFSMTypes.h"
 #include "EnemyFSMControllerComponent.h"
+#include "EnemyPuppetMaster.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
@@ -20,6 +21,15 @@ void UReviveStateComponent::OnStateEnter()
 	}
 
 	StopMove();
+	
+	OwnerCharacter->bUseControllerRotationYaw = false;
+
+	if (UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement())
+	{
+		Movement->bUseControllerDesiredRotation = false;
+		Movement->bOrientRotationToMovement = false;
+		Movement->StopMovementImmediately();
+	}
 
 	if (UBaseStatComponent* StatComp = OwnerCharacter->GetStatComponent())
 	{
@@ -31,6 +41,11 @@ void UReviveStateComponent::OnStateEnter()
 		StatComp->GetCurrentHP(),
 		StatComp->GetMaxHP(),
 		StatComp->IsDead());
+	}
+	
+	if (AEnemyElite* Elite = Cast<AEnemyElite>(OwnerCharacter))
+	{
+		Elite->RequestReviveEffect();
 	}
 
 	OwnerCharacter->ReviveMontage();
@@ -68,6 +83,14 @@ void UReviveStateComponent::OnStateExit()
 	{
 		return;
 	}
+	
+	OwnerCharacter->bUseControllerRotationYaw = true;
+
+	if (UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement())
+	{
+		Movement->bUseControllerDesiredRotation = true;
+		Movement->bOrientRotationToMovement = false;
+	}
 
 	if (UBaseStatComponent* StatComp = OwnerCharacter->GetStatComponent())
 	{
@@ -75,5 +98,10 @@ void UReviveStateComponent::OnStateExit()
 			StatComp->GetMaxHP() * EnemyDefinition->ReviveHPPercent;
 
 		StatComp->SetCurrentHP(ReviveHP);
+	}
+	
+	if (AEnemyElite* Elite = Cast<AEnemyElite>(OwnerCharacter))
+	{
+		Elite->StopReviveEffect();
 	}
 }

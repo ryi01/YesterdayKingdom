@@ -19,8 +19,6 @@ public:
 	AEnemyNomal(const FObjectInitializer& ObjectInitializer);
 	
 	virtual void BeginPlay() override;
-	
-	bool bIsAttacking = false;
 
 	FOnMontageEnded OnAttackMontageEnded;
 	FOnEnemyAttackCompleted OnAttackCompleted;
@@ -39,6 +37,7 @@ public:
 
 protected:
 	virtual void Landed(const FHitResult& Hit) override;
+	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	virtual void HandleDeath_Implementation() override;
 
 protected:

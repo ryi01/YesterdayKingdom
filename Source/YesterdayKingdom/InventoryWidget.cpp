@@ -28,17 +28,33 @@ void UInventoryWidget::NativeConstruct()
 		BTN_Use->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnUseClicked);
 		BTN_Use->OnClicked.AddDynamic(this, &UInventoryWidget::OnUseClicked);
 	}
-
-	if (BTN_Sell)
-	{
-		BTN_Sell->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnSellClicked);
-		BTN_Sell->OnClicked.AddDynamic(this, &UInventoryWidget::OnSellClicked);
-	}
-
 	if (BTN_Remove)
 	{
 		BTN_Remove->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnRemoveClicked);
 		BTN_Remove->OnClicked.AddDynamic(this, &UInventoryWidget::OnRemoveClicked);
+	}
+	if (BTN_All)
+	{
+		BTN_All->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnAllFilterClicked);
+		BTN_All->OnClicked.AddDynamic(this, &UInventoryWidget::OnAllFilterClicked);
+	}
+
+	if (BTN_CB)
+	{
+		BTN_CB->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnCBFilterClicked);
+		BTN_CB->OnClicked.AddDynamic(this, &UInventoryWidget::OnCBFilterClicked);
+	}
+
+	if (BTN_Weapon)
+	{
+		BTN_Weapon->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnWBFilterClicked);
+		BTN_Weapon->OnClicked.AddDynamic(this, &UInventoryWidget::OnWBFilterClicked);
+	}
+
+	if (BTN_Armor)
+	{
+		BTN_Armor->OnClicked.RemoveDynamic(this, &UInventoryWidget::OnArmorFilterClicked);
+		BTN_Armor->OnClicked.AddDynamic(this, &UInventoryWidget::OnArmorFilterClicked);
 	}
 }
 
@@ -61,46 +77,36 @@ void UInventoryWidget::RefreshInventory()
 	const TArray<FInventorySlot>& InventorySlots = InventoryComponent->GetItemSlots();
 	if (!InventorySlots.IsValidIndex(SelectedSlotIndex) || InventorySlots[SelectedSlotIndex].IsEmpty())
 	{
-		SelectedSlotIndex = INDEX_NONE;
-		ClearItemDescription();
+		ClearSelectedItem();
 	}
 
-	const TArray<FInventorySlotViewData> ViewDataList = InventoryComponent->GetAllSlotViewData();
-
-	TMap<int32, FInventorySlotViewData> ViewDataMap;
+	TArray<FInventorySlotViewData> ViewDataList;
+	if (bShowAllItems)
+	{
+		ViewDataList = InventoryComponent->GetAllSlotViewData();
+	}
+	else
+	{
+		ViewDataList = InventoryComponent->GetSlotViewDataByType(CurrentFilterType);
+	}
+	
+	int32 DisplayIndex = 0;
 	
 	for (const FInventorySlotViewData& ViewData : ViewDataList)
 	{
-		ViewDataMap.Add(ViewData.SlotIndex, ViewData);
-	}
-	
-	for (int32 SlotIndex = 0; SlotIndex < InventorySlots.Num(); SlotIndex++)
-	{
 		UItemSlotWidget* SlotWidget = CreateWidget<UItemSlotWidget>(GetOwningPlayer(), ItemSlotWidgetClass);
-		if (!SlotWidget) continue;
-		
+		if (!SlotWidget) return;
 		SlotWidget->OnItemSlotClicked.AddDynamic(this, &UInventoryWidget::OnItemSlotClicked);
-		
-		if (const FInventorySlotViewData* FoundViewData = ViewDataMap.Find(SlotIndex))
-		{
-			SlotWidget->SetSlotData(*FoundViewData);
-		}
-		else
-		{
-			SlotWidget->SetEmptySlot(SlotIndex);
-		}
-
-		SlotWidget->SetSelected(SlotIndex == SelectedSlotIndex);
-		
-		const int32 Row = SlotIndex / ColumnCount;
-		const int32 Column = SlotIndex % ColumnCount;
-
-		UGridSlot* GridSlot = GP_Item->AddChildToGrid(SlotWidget, Row, Column);
-		if (GridSlot)
+		SlotWidget->SetSlotData(ViewData);
+		SlotWidget->SetSelected(ViewData.SlotIndex == SelectedSlotIndex);
+		const int32 Row = DisplayIndex / ColumnCount;
+		const int32 Column = DisplayIndex % ColumnCount;
+		if (UGridSlot* GridSlot = GP_Item->AddChildToGrid(SlotWidget, Row, Column))
 		{
 			GridSlot->SetPadding(FMargin(4.f));
 		}
 		SlotWidgets.Add(SlotWidget);
+		DisplayIndex++;
 	}
 }
 //=======================================================================================
@@ -332,3 +338,42 @@ void UInventoryWidget::ClearSelectedItem()
 	ClearItemDescription();
 	ResetUseButton();
 }
+//=======================================================================================
+// 아이템 카테고리
+//=======================================================================================
+void UInventoryWidget::OnAllFilterClicked()
+{
+	bShowAllItems = true;
+	CurrentFilterType = EItemType::None;
+
+	ClearSelectedItem();
+	RefreshInventory();
+}
+
+void UInventoryWidget::OnCBFilterClicked()
+{
+	bShowAllItems = false;
+	CurrentFilterType = EItemType::Consumable;
+
+	ClearSelectedItem();
+	RefreshInventory();
+}
+
+void UInventoryWidget::OnWBFilterClicked()
+{
+	bShowAllItems = false;
+	CurrentFilterType = EItemType::Weapon;
+
+	ClearSelectedItem();
+	RefreshInventory();
+}
+
+void UInventoryWidget::OnArmorFilterClicked()
+{
+	bShowAllItems = false;
+	CurrentFilterType = EItemType::Armor;
+
+	ClearSelectedItem();
+	RefreshInventory();
+}
+

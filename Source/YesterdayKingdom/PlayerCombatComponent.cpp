@@ -139,6 +139,15 @@ void UPlayerCombatComponent::OnGuardStarted()
 	OwnerCharacter->PlayParriedReaction();
 }
 
+void UPlayerCombatComponent::OnGuardHit(AActor* DamageCauser)
+{
+	Super::OnGuardHit(DamageCauser);
+	if (GuardHitMontage)
+	{
+		OwnerCharacter->PlayAnimMontage(GuardHitMontage);
+	}
+}
+
 void UPlayerCombatComponent::OnGuardEnded()
 {
 	Super::OnGuardEnded();

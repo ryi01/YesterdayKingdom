@@ -6,11 +6,16 @@
 #include "BaseStatComponent.h"
 #include "BossWidget.h"
 #include "EnemyBase.h"
+#include "EquipmentComponent.h"
 #include "InventoryComponent.h"
 #include "InventoryTabBtnWidget.h"
 #include "PlayerCharacter.h"
+#include "QuestComponent.h"
 #include "QuickSlotWidget.h"
+#include "StoreWidget.h"
+#include "Components/Image.h"
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
 
 
@@ -18,6 +23,8 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 {
 	OwnerPlayer = InPlayer;
 	if (!OwnerPlayer) return;
+	OwnerPlayer->OnPlayerDead.RemoveDynamic(this, &UPlayerHUDWidget::PlayerDeadWidget);
+	OwnerPlayer->OnPlayerDead.AddDynamic(this, &UPlayerHUDWidget::PlayerDeadWidget);
 	if (UBaseStatComponent* StatComponent = OwnerPlayer->GetStatComponent())
 	{
 		StatComponent->OnHPChanged.AddDynamic(this, &UPlayerHUDWidget::UpdateHP);
@@ -28,7 +35,7 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 		UpdateST(StatComponent->GetCurrentST(), StatComponent->GetMaxST());
 		UpdateMP(StatComponent->GetCurrentMP(), StatComponent->GetMaxMP());
 	}
-
+	
 	if (WBP_BossHP) SetVisibleBossHPBar(false);
 
 	if (WBP_InventoryTab)
@@ -38,6 +45,26 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 		WBP_InventoryTab->OnInventoryBackRequested.RemoveDynamic(this, &UPlayerHUDWidget::HandleInventoryBackRequested);
 		WBP_InventoryTab->OnInventoryBackRequested.AddDynamic(this, &UPlayerHUDWidget::HandleInventoryBackRequested);
 	}
+	if (WBP_Store)
+	{
+		WBP_Store->ClearSelectedItem();
+		WBP_Store->OnStoreCloseRequested.RemoveDynamic(this, &UPlayerHUDWidget::CloseStore);
+		WBP_Store->OnStoreCloseRequested.AddDynamic(this, &UPlayerHUDWidget::CloseStore);
+	}
+	if (UQuestComponent* QuestComponent = OwnerPlayer->GetQuestComponent())
+	{
+		BoundQuestComponent = QuestComponent;
+		BoundQuestComponent->OnQuestChanged.RemoveDynamic(this, &UPlayerHUDWidget::RefreshQuestDescription);
+		BoundQuestComponent->OnQuestChanged.AddDynamic(this, &UPlayerHUDWidget::RefreshQuestDescription);
+		RefreshQuestDescription();
+	}
+	if (UEquipmentComponent* EquipmentComponent = OwnerPlayer->GetEquipmentComponent())
+	{
+		EquipmentComponent->OnEquipmentChanged.RemoveDynamic(this, &UPlayerHUDWidget::RefreshEquipmentIcons);
+		EquipmentComponent->OnEquipmentChanged.AddDynamic(this, &UPlayerHUDWidget::RefreshEquipmentIcons);
+		RefreshEquipmentIcons();
+	}
+	
 	SetSwitcherIndex(0);
 }
 
@@ -89,8 +116,7 @@ void UPlayerHUDWidget::SetInventoryVisible(bool bVisible)
 {
 	FString InventoryOpen = bVisible ? TEXT("OPEN INVENTORY") :  TEXT("CLOSE INVENTORY") ;
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *InventoryOpen);
-	if (bVisible) SetSwitcherIndex(1);
-	else SetSwitcherIndex(0);
+	SetHUDPage(bVisible ? EHUDPage::Inventory : EHUDPage::Main);
 	
 }
 
@@ -98,16 +124,34 @@ void UPlayerHUDWidget::SetInventoryVisible(bool bVisible)
 void UPlayerHUDWidget::UpdateHP(float CurrentHP, float MaxHP)
 {
 	TargetHPPercent = MaxHP > 0.f ? CurrentHP / MaxHP : 0.f;
+	if (TB_HP)
+	{
+		const int32 CurrentValue = FMath::CeilToInt(CurrentHP);
+		const int32 MaxValue = FMath::CeilToInt(MaxHP);
+		TB_HP->SetText(FText::FromString(FString::Printf(TEXT("%d/%d"), CurrentValue, MaxValue)));
+	}
 }
 
 void UPlayerHUDWidget::UpdateST(float CurrentST, float MaxST)
 {
 	TargetSTPercent = MaxST > 0.f ? CurrentST / MaxST : 0.f;
+	if (TB_ST)
+	{
+		const int32 CurrentValue = FMath::CeilToInt(CurrentST);
+		const int32 MaxValue = FMath::CeilToInt(MaxST);
+		TB_ST->SetText(FText::FromString(FString::Printf(TEXT("%d/%d"), CurrentValue, MaxValue)));
+	}
 }
 
 void UPlayerHUDWidget::UpdateMP(float CurrentMP, float MaxMP)
 {
 	TargetMPPercent = MaxMP > 0.f ? CurrentMP / MaxMP : 0.f;
+	if (TB_MP)
+	{
+		const int32 CurrentValue = FMath::CeilToInt(CurrentMP);
+		const int32 MaxValue = FMath::CeilToInt(MaxMP);
+		TB_MP->SetText(FText::FromString(FString::Printf(TEXT("%d/%d"), CurrentValue, MaxValue)));
+	}
 }
 //=====================================================================================================
 // 보스 체력바 관련
@@ -221,5 +265,107 @@ void UPlayerHUDWidget::ClearAllQuickSlots()
 		if (!QuickSlot) continue;
 
 		QuickSlot->ClearQuickSlot();
+	}
+}
+//=====================================================================================================
+// 스토어
+//=====================================================================================================
+void UPlayerHUDWidget::OpenStore(UStoreComponent* InStoreComponent)
+{
+	if (!InStoreComponent || !WBP_Store) return;
+	UInventoryComponent* InventoryComponent = OwnerPlayer->GetInventoryComponent();
+	UGoldComponent* GoldComponent = OwnerPlayer->GetGoldComponent();
+	
+	WBP_Store->BindStore(InStoreComponent, InventoryComponent, GoldComponent);
+	SetHUDPage(EHUDPage::Store);
+}
+
+void UPlayerHUDWidget::CloseStore()
+{
+	if (!OwnerPlayer) return;
+	SetHUDPage(EHUDPage::Main);
+	OwnerPlayer->CloseStoreUI();
+}
+
+
+void UPlayerHUDWidget::SetHUDPage(EHUDPage Page)
+{
+	if (!WS_HUD) return;
+
+	switch (Page)
+	{
+	case EHUDPage::Main:
+		WS_HUD->SetActiveWidgetIndex(0);
+		break;
+
+	case EHUDPage::Inventory:
+		WS_HUD->SetActiveWidgetIndex(1);
+		break;
+
+	case EHUDPage::Store:
+		WS_HUD->SetActiveWidgetIndex(2);
+		break;
+	case EHUDPage::Dead:
+		WS_HUD->SetActiveWidgetIndex(3);
+		break;
+	}
+}
+//=====================================================================================================
+// 스토어
+//=====================================================================================================
+void UPlayerHUDWidget::RefreshQuestDescription()
+{
+	if (!TB_QuestDes || !BoundQuestComponent) return;
+	FQuestDataRow QuestDataRow;
+	if (!BoundQuestComponent->GetCurrentQuestData(QuestDataRow))
+	{
+		TB_QuestDes->SetText(FText::FromString(TEXT("모든 퀘스트 완료")));
+		return;
+	}
+	const FQuestInstance QuestInstance = BoundQuestComponent->GetCurrentQuestInstance();
+	const FText QuestText = FText::Format(FText::FromString(TEXT("{0}\n{1} / {2}")), QuestDataRow.Description,FText::AsNumber(QuestInstance.CurrentCount),FText::AsNumber(QuestInstance.TargetCount));
+	TB_QuestDes->SetText(QuestText);
+}
+
+//=====================================================================================================
+// 장비창
+//=====================================================================================================
+void UPlayerHUDWidget::RefreshEquipmentIcons()
+{
+	if (!OwnerPlayer) return;
+	UEquipmentComponent* EquipmentComponent = OwnerPlayer->GetEquipmentComponent();
+	if (!EquipmentComponent) return;
+	SetEquipmentIcon(Armor1, EquipmentComponent, EEquipmentSlotType::Helmet, DefaultHelmetIcon);
+	SetEquipmentIcon(Armor2, EquipmentComponent, EEquipmentSlotType::Armor, DefaultArmorIcon);
+	SetEquipmentIcon(Armor3, EquipmentComponent, EEquipmentSlotType::Boots, DefaultBootsIcon);
+}
+
+void UPlayerHUDWidget::SetEquipmentIcon(UImage* ImageWidget, UEquipmentComponent* EquipmentComponent, EEquipmentSlotType SlotType, UTexture2D* DefaultIcon)
+{
+	if (!ImageWidget || !EquipmentComponent) return;
+	const FName ItemRowName = EquipmentComponent->GetEquippedItem(SlotType);
+	
+	if (ItemRowName.IsNone())
+	{
+		ImageWidget->SetBrushFromTexture(DefaultIcon);
+		return;
+	}
+
+	const FItemData* ItemData = EquipmentComponent->GetItemData(ItemRowName);
+
+	if (!ItemData || !ItemData->Icon)
+	{
+		ImageWidget->SetBrushFromTexture(DefaultIcon);
+		return;
+	}
+
+	ImageWidget->SetBrushFromTexture(ItemData->Icon);
+}
+void UPlayerHUDWidget::PlayerDeadWidget()
+{
+	SetHUDPage(EHUDPage::Dead);
+	if (OwnerPlayer)
+	{
+		OwnerPlayer->SetUIMode(true);
 	}
 }

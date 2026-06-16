@@ -20,6 +20,7 @@
 #include "PlayerSkillComponent.h"
 #include "PlayerStatComponent.h"
 #include "QuestComponent.h"
+#include "YesterdayKingdomGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
@@ -53,8 +54,29 @@ void APlayerCharacter::BeginPlay()
 			Subsystem->AddMappingContext(InputMappingContext, 0);
 		}
 	}
+	
 	if (WeaponMesh) WeaponMesh->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocketName);
+	MoveComp = GetCharacterMovement();
 
+	QuickSlotItemRowNames.SetNum(5);
+
+	StatComponent->ResetSkillBonuses();
+	
+	LoadPlayerData();
+	
+	if (InventoryComponent)
+	{
+		InventoryComponent->LoadInventoryData();
+	}
+	if (EquipmentComponent)
+	{
+		EquipmentComponent->LoadEquipmentData();
+	}
+	if (SkillComponent)
+	{
+		SkillComponent->LoadSkillTreeData();
+	}
+	
 	MoveComp = GetCharacterMovement();
 	if (MoveComp)
 	{
@@ -64,12 +86,7 @@ void APlayerCharacter::BeginPlay()
 	
 	CreatePlayerHUD();
 	
-	QuickSlotItemRowNames.SetNum(5);
-	
-	if (GoldComponent)
-	{
-		GoldComponent->AddGold(1000);
-	}
+	SetUIMode(false);
 	// 인터렉션 대상 체크
 	GetWorld()->GetTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::UpdateInteractionTarget, 0.1f, true);
 }
@@ -82,6 +99,65 @@ void APlayerCharacter::Tick(float DeltaSeconds)
 	if (!PlayerStat || !PlayerStat->GetPlayerDefinition()) return;
 	const float Cost = PlayerStat->GetPlayerDefinition()->DashSTCostPerSecond * DeltaSeconds;
 	if (!GetStatComponent()->ConsumeST(Cost)) DoDashStop();
+}
+
+//===============================================================================================
+// 로드
+//===============================================================================================
+void APlayerCharacter::LoadPlayerData()
+{
+	UYesterdayKingdomGameInstance* GameInstance = GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GameInstance || !StatComponent || !GoldComponent) return;
+	const int32 PlayerId = GameInstance->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+	FPlayerSaveData LoadData;
+	if (GameInstance->LoadPlayerData(PlayerId, LoadData))
+	{
+		StatComponent->LoadCurrentStats(LoadData.CurrentHP, LoadData.CurrentST, LoadData.CurrentMP);
+		GoldComponent->LoadGold(LoadData.Gold);
+	}
+	
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[Player] 데이터 적용 완료 / ID=%d Nickname=%s"),
+		LoadData.PlayerId,
+		*LoadData.Nickname
+	);
+}
+
+void APlayerCharacter::SavePlayerData()
+{
+	UYesterdayKingdomGameInstance* GameInstance = GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GameInstance || !StatComponent || !GoldComponent) return;
+
+	const int32 PlayerId = GameInstance->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+
+	FPlayerSaveData SaveData;
+	SaveData.PlayerId = PlayerId;
+	SaveData.CurrentHP = StatComponent->GetCurrentHP();
+	SaveData.CurrentST = StatComponent->GetCurrentST();
+	SaveData.CurrentMP = StatComponent->GetCurrentMP();
+	SaveData.Gold = GoldComponent->GetGold();
+
+	GameInstance->SavePlayerData(SaveData);
+}
+void APlayerCharacter::SaveGamePlay()
+{
+	SavePlayerData();
+	if (InventoryComponent)
+	{
+		InventoryComponent->SaveInventoryData();
+	}
+	if (EquipmentComponent)
+	{
+		EquipmentComponent->SaveEquipmentData();
+	}
+	if (SkillComponent)
+	{
+		SkillComponent->SaveSkillTreeData();
+	}
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -243,6 +319,7 @@ void APlayerCharacter::CloseInventory()
 	SetUIMode(false);
 }
 
+
 //===============================================================================================
 // 이동관련
 //===============================================================================================
@@ -314,6 +391,8 @@ void APlayerCharacter::NotifyDamage_Implementation(const FVector& DamageLocation
 		}
 	}
 }
+
+
 void APlayerCharacter::PlayHitFlash()
 {
 	if (!HitOverlayMaterial) return;
@@ -522,21 +601,18 @@ void APlayerCharacter::HideBossHP()
 	PlayerHUDWidget->UnbindBoss();
 }
 
-
-
 void APlayerCharacter::OnDead()
 {
 	Super::OnDead();
+	OnPlayerDead.Broadcast();
 	bIsDashing = false;
 
 	if (MoveComp)
 	{
 		MoveComp->StopMovementImmediately();
 	}
-
-	SetUIMode(true);
+	
 }
-
 
 //===============================================================================================
 // 인터렉션 관련
@@ -596,8 +672,6 @@ void APlayerCharacter::TestUnlockSkill()
 			FString::Printf(TEXT("[SkillTest] FinalAttack: %.1f"), AttackAfter));
 	}
 }
-
-
 
 void APlayerCharacter::UpdateInteractionTarget()
 {
@@ -687,6 +761,21 @@ void APlayerCharacter::RefreshQuickSlotUI(int32 QuickSlotIndex)
 	if (!QuickSlotItemRowNames.IsValidIndex(QuickSlotIndex)) return;
 
 	PlayerHUDWidget->UpdateQuickSlot(QuickSlotIndex, QuickSlotItemRowNames[QuickSlotIndex]);
+}
+//===============================================================================================
+// 스토어
+//===============================================================================================
+void APlayerCharacter::OpenStoreUI(UStoreComponent* InStoreComponent)
+{
+	if (!PlayerHUDWidget || !InStoreComponent) return;
+
+	PlayerHUDWidget->OpenStore(InStoreComponent);
+	SetUIMode(true);
+}
+
+void APlayerCharacter::CloseStoreUI()
+{
+	SetUIMode(false);
 }
 
 //===============================================================================================

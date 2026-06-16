@@ -6,6 +6,7 @@
 #include "GoldComponent.h"
 #include "PlayerCharacter.h"
 #include "PlayerStatComponent.h"
+#include "YesterdayKingdomGameInstance.h"
 
 // Sets default values for this component's properties
 UPlayerSkillComponent::UPlayerSkillComponent()
@@ -142,6 +143,7 @@ void UPlayerSkillComponent::ApplySkillEffect(const FSkillDataRow& SkillData)
 	}
 	
 }
+
 const TSet<FName>& UPlayerSkillComponent::GetUnlockedSkillRowNames() const
 {
 	return UnlockedSkillRowNames;
@@ -161,4 +163,81 @@ bool UPlayerSkillComponent::CanUseBattleBuff() const
 {
 	return bCanUseBattleBuff;
 }
+
+void UPlayerSkillComponent::SaveSkillTreeData()
+{
+	UYesterdayKingdomGameInstance* GameInstance = GetWorld()->GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GameInstance) return;
+
+	const int32 PlayerId = GameInstance->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+
+	TArray<FSkillSaveData> SaveDataList;
+	for (const FName& SkillRowName : UnlockedSkillRowNames)
+	{
+		if (SkillRowName.IsNone()) continue;
+		FSkillSaveData SaveData;
+		SaveData.SkillRowName = SkillRowName;
+		SaveDataList.Add(SaveData);
+	}
+	
+	GameInstance->SaveSkillTreeData(PlayerId, SaveDataList);
+}
+
+void UPlayerSkillComponent::LoadSkillTreeData()
+{
+	UYesterdayKingdomGameInstance* GameInstance = GetWorld()->GetGameInstance<UYesterdayKingdomGameInstance>();
+	if (!GameInstance) return;
+
+	const int32 PlayerId = GameInstance->GetCurrentPlayerId();
+	if (PlayerId <= 0) return;
+	
+	TArray<FSkillSaveData> LoadDataList;
+	if (!GameInstance->LoadSkillTreeData(PlayerId, LoadDataList))
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("[PlayerSkillComponent] 불러올 스킬 데이터가 없음 / PlayerId=%d"),
+			PlayerId
+		);
+
+		return;
+	}
+	UnlockedSkillRowNames.Empty();
+
+	// 해금형 기능도 초기화
+	bCanUseChargeAttack = false;
+	bCanUseParry = false;
+	bCanUseBattleBuff = false;
+	for (const FSkillSaveData& LoadData : LoadDataList)
+	{
+		if (!LoadData.IsValid()) continue;
+		const FSkillDataRow* SkillSaveData = FindSkillData(LoadData.SkillRowName);
+		if (!SkillSaveData)
+		{
+			UE_LOG(
+				LogTemp,
+				Warning,
+				TEXT("[PlayerSkillComponent] 스킬 데이터 없음 / Skill=%s"),
+				*LoadData.SkillRowName.ToString()
+			);
+
+			continue;
+		}
+		
+		UnlockedSkillRowNames.Add(LoadData.SkillRowName);
+		ApplySkillEffect(*SkillSaveData);
+	}
+	OnSkillTreeChanged.Broadcast();
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[PlayerSkillComponent] 스킬트리 로드 완료 / PlayerId=%d / Count=%d"),
+		PlayerId,
+		UnlockedSkillRowNames.Num()
+	);
+}
+
 

@@ -28,6 +28,7 @@ private:
 protected:
 	virtual void OnChargeAttackStarted() override;
 	virtual void OnGuardStarted() override;
+	virtual void OnGuardHit(AActor* DamageCauser) override;
 	virtual void OnGuardEnded() override;
 	//===============================================================================================
 	// 공격 보정을 위한 함수

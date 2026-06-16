@@ -72,4 +72,12 @@ public:
 	bool CanUseParry() const;
 	UFUNCTION(BlueprintPure, Category="Skill|Unlock")
 	bool CanUseBattleBuff() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Skill|Save")
+	void SaveSkillTreeData();
+
+	UFUNCTION(BlueprintCallable, Category = "Skill|Save")
+	void LoadSkillTreeData();
+	
+
 };

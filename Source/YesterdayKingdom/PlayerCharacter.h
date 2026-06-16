@@ -16,7 +16,10 @@ class UPlayerInteractionComponent;
 class UEquipmentComponent;
 class UQuestComponent;
 struct FQuestInstance;
+class UStoreComponent;
 class UPlayerHUDWidget;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDead);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class YESTERDAYKINGDOM_API APlayerCharacter : public ABaseCharacter
@@ -161,6 +164,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="UI")
 	bool bIsInventoryOpen = false;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnPlayerDead OnPlayerDead;
 
 	//===============================================================================================
 	// 퀵슬롯
@@ -183,6 +189,14 @@ public:
 	TObjectPtr<class UInputAction> QuickSlot5Action;
 protected:
 	//===============================================================================================
+	// 로드 저장
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	void LoadPlayerData();
+
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	void SavePlayerData();
+	//===============================================================================================
 	// 피격 관련 함수
 	//===============================================================================================
 	void PlayHitFlash();
@@ -195,8 +209,6 @@ protected:
 	//===============================================================================================
 	// 위잿 관련 
 	//===============================================================================================
-	UFUNCTION(BlueprintCallable, Category="UI")
-	void SetUIMode(bool bEnableUI);
 	
 	void CreatePlayerHUD();
 	//===============================================================================================
@@ -291,6 +303,8 @@ public:
 	//===============================================================================================
 	void ShowBossHP(class AEnemyBase* Boss);
 	void HideBossHP();
+	UFUNCTION(BlueprintCallable, Category="UI")
+	void SetUIMode(bool bEnableUI);
 	
 	//===============================================================================================
 	// 퀵슬롯
@@ -301,6 +315,18 @@ public:
 	void RefreshQuickSlotByItem(FName ItemRowName);
 	
 	//===============================================================================================
+	// 스토어
+	//===============================================================================================
+	void OpenStoreUI(UStoreComponent* InStoreComponent);
+	void CloseStoreUI();
+	
+	//===============================================================================================
+	// 저장
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	void SaveGamePlay();
+	
+	//===============================================================================================
 	// Getter
 	//===============================================================================================
 	UGoldComponent* GetGoldComponent() const;
@@ -309,5 +335,6 @@ public:
 	UEquipmentComponent* GetEquipmentComponent() const;
 	UQuestComponent* GetQuestComponent() const;
 	UPlayerSkillComponent* GetSkillComponent() const;
+	UFUNCTION(BlueprintPure, Category = "Quest")
 	UPlayerHUDWidget* GetPlayerHUDWidget() const;
 };

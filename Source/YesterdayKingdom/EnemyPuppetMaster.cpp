@@ -4,21 +4,88 @@
 #include "EnemyPuppetMaster.h"
 #include "EnemyElite.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 
 AEnemyPuppetMaster::AEnemyPuppetMaster(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
+	
+	GetMesh()->SetHiddenInGame(true);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+	CoreMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CoreMesh"));
+	CoreMesh->SetupAttachment(GetRootComponent());
+	CoreMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
 void AEnemyPuppetMaster::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	SetEnemyHPWidgetVisible(false);
 	GetWorldTimerManager().SetTimerForNextTick(
 		this,
 		&AEnemyPuppetMaster::FindAndRegisterPuppets
 	);
+	GetWorldTimerManager().SetTimer(
+		HPWidgetCheckTimerHandle,
+		this,
+		&AEnemyPuppetMaster::UpdateHPWidgetVisibility,
+		HPWidgetCheckInterval,
+		true
+	);
+
+	UpdateHPWidgetVisibility();
+}
+
+void AEnemyPuppetMaster::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	GetWorldTimerManager().ClearTimer(
+	HPWidgetCheckTimerHandle);
+}
+
+void AEnemyPuppetMaster::PlayReviveEffect(AEnemyElite* TargetPuppet)
+{
+	if (!TargetPuppet || !ReviveCastEffect)
+	{
+		return;
+	}
+
+	USceneComponent* AttachComp = CoreMesh ? Cast<USceneComponent>(CoreMesh) : GetRootComponent();
+	if (!AttachComp)
+	{
+		return;
+	}
+	
+	if (ActiveReviveEffect)
+	{
+		ActiveReviveEffect->DestroyComponent();
+		ActiveReviveEffect = nullptr;
+	}
+	
+	ActiveReviveEffect =
+	UNiagaraFunctionLibrary::SpawnSystemAttached(
+		ReviveCastEffect,
+		AttachComp,
+		ReviveEffectSocketName,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		EAttachLocation::SnapToTarget,
+		false
+	);
+}
+
+void AEnemyPuppetMaster::StopReviveEffect()
+{
+	if (ActiveReviveEffect)
+	{
+		ActiveReviveEffect->DestroyComponent();
+		ActiveReviveEffect = nullptr;
+	}
 }
 
 void AEnemyPuppetMaster::RegisterPuppet(AEnemyElite* Puppet)
@@ -40,6 +107,9 @@ void AEnemyPuppetMaster::UnregisterPuppet(AEnemyElite* Puppet)
 
 void AEnemyPuppetMaster::HandleDeath_Implementation()
 {
+	GetWorldTimerManager().ClearTimer(
+	HPWidgetCheckTimerHandle
+);
 	for (AEnemyElite* Puppet : Puppets)
 	{
 		if (Puppet)
@@ -69,6 +139,29 @@ void AEnemyPuppetMaster::FindAndRegisterPuppets()
 
 		RegisterPuppet(Puppet);
 	}
+}
+
+void AEnemyPuppetMaster::UpdateHPWidgetVisibility()
+{
+	if (IsDead())
+	{
+		SetEnemyHPWidgetVisible(false);
+		return;
+	}
+
+	APawn* PlayerPawn =UGameplayStatics::GetPlayerPawn(this, 0);
+
+	if (!PlayerPawn)
+	{
+		SetEnemyHPWidgetVisible(false);
+		return;
+	}
+
+	const float DistanceSquared =FVector::DistSquared(GetActorLocation(),PlayerPawn->GetActorLocation());
+
+	const float VisibleDistanceSquared =FMath::Square(HPWidgetVisibleDistance);
+
+	SetEnemyHPWidgetVisible(DistanceSquared <= VisibleDistanceSquared);
 }
 
 

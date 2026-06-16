@@ -36,7 +36,7 @@ void AEnemyNomalAIController::OnPossess(APawn* InPawn)
 		UE_LOG(LogTemp, Error, TEXT("StateTree Missing"));
 		return;
 	}
-	
+	StateTreeAI->StopLogic(TEXT("Change StateTree"));
 	StateTreeAI->SetStateTree(EnemyDefinition->StateTree);
 	StateTreeAI->StartLogic();
 	

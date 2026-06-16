@@ -22,6 +22,7 @@ void UPatrolStateComponent::OnStateEnter()
 	{
 		OwnerCharacter->SetDefaultMoveSpeed();
 		UE_LOG(LogTemp, Log, TEXT("[FSM][Patrol] Enter : %s"), *OwnerCharacter->GetName());
+		OwnerCharacter->SetEnemyHPWidgetVisible(false);
 	}
 	RunPatrolEQS();
 }

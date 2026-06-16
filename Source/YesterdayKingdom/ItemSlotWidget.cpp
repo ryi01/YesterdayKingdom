@@ -25,7 +25,7 @@ void UItemSlotWidget::SetEmptySlot(int32 InSlotIndex)
 	SlotIndex = InSlotIndex;
 	bHasItem = false;
 	SlotData = FInventorySlotViewData();
-
+	SetSelected(false);
 	if (I_ItemIcon)
 	{
 		I_ItemIcon->SetBrushFromTexture(nullptr);

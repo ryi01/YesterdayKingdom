@@ -329,12 +329,16 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 		{
 			if (Neighbor.Equals(StartPoint)) continue;
 			if (Neighbor.Equals(EndPoint)) continue;
-
-			const bool bIsOnMainPath = MainPath.ContainsByPredicate([&Neighbor](const FVector2D& MainPathPoint)
+			bool bIsOnMainPath = false;
+			
+			for (const FVector2D& MainPathPoint : MainPath)
 			{
-				return MainPathPoint.Equals(Neighbor);
-			});
-
+				if (MainPathPoint.Equals(Neighbor))
+				{
+					bIsOnMainPath = true;
+					break;
+				}
+			}
 			if (bIsOnMainPath) continue;
 
 			SelectedStorePoint = Neighbor;
@@ -351,7 +355,43 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 		GuaranteedElitePathIndex = MainPath.Num() - 2;
 	}
 	
-	// 모든 방을 순회하며
+	// 3. 사이드룸이 없으면 메인 경로에서 fallback
+	if (!bHasSelectedStorePoint)
+	{
+		TArray<int32> StoreCandidateIndices;
+
+		for (int32 PathIndex = 1;PathIndex < MainPath.Num() - 1;PathIndex++)
+		{
+			if (PathIndex == GuaranteedElitePathIndex) continue;
+
+			StoreCandidateIndices.Add(PathIndex);
+		}
+
+		if (StoreCandidateIndices.Num() > 0)
+		{
+			const int32 RandomIndex =FMath::RandRange(0,StoreCandidateIndices.Num() - 1);
+
+			const int32 StorePathIndex =StoreCandidateIndices[RandomIndex];
+
+			SelectedStorePoint = MainPath[StorePathIndex];
+
+			bHasSelectedStorePoint = true;
+		}
+		else if (MainPath.Num() >= 3)
+		{
+			// 중간방이 하나뿐이라면 상점을 우선 보장
+			const int32 StorePathIndex = 1;
+
+			SelectedStorePoint = MainPath[StorePathIndex];
+			bHasSelectedStorePoint = true;
+
+			// 상점과 엘리트가 겹치지 않도록 엘리트 보장 해제
+			if (GuaranteedElitePathIndex == StorePathIndex)
+			{
+				GuaranteedElitePathIndex = INDEX_NONE;
+			}
+		}
+	}
 	for (const FVector2D& Point : Points)
 	{
 		FDungeonRoomInfo RoomInfo;
@@ -376,22 +416,27 @@ void UDungeonGeneratorComponent::AssignRoomTypes()
 		}
 		else
 		{
-			const int32 PathIndex = MainPath.IndexOfByPredicate([&Point](const FVector2D& PathPoint)
-			{
-				return PathPoint.Equals(Point);
-			});
+			int32 PathIndex = INDEX_NONE;
 
-			if (PathIndex != INDEX_NONE && PathIndex == GuaranteedElitePathIndex)
+			for (int32 Index = 0; Index < MainPath.Num(); Index++)
+			{
+				if (MainPath[Index].Equals(Point))
+				{
+					PathIndex = Index;
+					break;
+				}
+			}
+
+			if (PathIndex != INDEX_NONE &&
+				PathIndex == GuaranteedElitePathIndex)
 			{
 				RoomInfo.RoomType = EDungeonRoomType::Elite;
-				RoomInfo.DecorationTheme = EDungeonDecorationTheme::WeaponRoom;
+				RoomInfo.DecorationTheme =EDungeonDecorationTheme::WeaponRoom;
 			}
 			else
 			{
 				RoomInfo.RoomType = EDungeonRoomType::Normal;
-				RoomInfo.DecorationTheme = FMath::RandBool()
-					? EDungeonDecorationTheme::Basic
-					: EDungeonDecorationTheme::Broken;
+				RoomInfo.DecorationTheme =FMath::RandBool()? EDungeonDecorationTheme::Basic: EDungeonDecorationTheme::Broken;
 			}
 		}
 
@@ -479,6 +524,7 @@ void UDungeonGeneratorComponent::SpawnFloorTiles()
 
 void UDungeonGeneratorComponent::CreateWalls()
 {
+	TSet<FIntPoint> SpawnedCornerKeys;
 	for (int32 X = 0; X < MapWidth; X++)
 	{
 		for (int32 Y = 0; Y < MapHeight; Y++)
@@ -497,7 +543,14 @@ void UDungeonGeneratorComponent::CreateWalls()
 			// 북동 코너
 			if (bN && bE)
 			{
-				SpawnCornerWallOnTile(X, Y, FIntPoint(0, 1), FIntPoint(1, 0));
+				const FIntPoint DirA(0, 1);
+				const FIntPoint DirB(1, 0);
+				const FIntPoint CornerKey = MakeCornerKey(X, Y, DirA, DirB);
+				if (!SpawnedCornerKeys.Contains(CornerKey))
+				{
+					SpawnCornerWallOnTile(X, Y, DirA, DirB);
+					SpawnedCornerKeys.Add(CornerKey);
+				}
 				bUsedN = true;
 				bUsedE = true;
 			}
@@ -505,7 +558,14 @@ void UDungeonGeneratorComponent::CreateWalls()
 			// 남동 코너
 			if (bE && bS)
 			{
-				SpawnCornerWallOnTile(X, Y, FIntPoint(1, 0), FIntPoint(0, -1));
+				const FIntPoint DirA(1, 0);
+				const FIntPoint DirB(0, -1);
+				const FIntPoint CornerKey = MakeCornerKey(X, Y, DirA, DirB);
+				if (!SpawnedCornerKeys.Contains(CornerKey))
+				{
+					SpawnCornerWallOnTile(X, Y, DirA, DirB);
+					SpawnedCornerKeys.Add(CornerKey);
+				}
 				bUsedE = true;
 				bUsedS = true;
 			}
@@ -513,7 +573,14 @@ void UDungeonGeneratorComponent::CreateWalls()
 			// 남서 코너
 			if (bS && bW)
 			{
-				SpawnCornerWallOnTile(X, Y, FIntPoint(0, -1), FIntPoint(-1, 0));
+				const FIntPoint DirA(0, -1);
+				const FIntPoint DirB(-1, 0);
+				const FIntPoint CornerKey = MakeCornerKey(X, Y, DirA, DirB);
+				if (!SpawnedCornerKeys.Contains(CornerKey))
+				{
+					SpawnCornerWallOnTile(X, Y, DirA, DirB);
+					SpawnedCornerKeys.Add(CornerKey);
+				}
 				bUsedS = true;
 				bUsedW = true;
 			}
@@ -521,7 +588,14 @@ void UDungeonGeneratorComponent::CreateWalls()
 			// 북서 코너
 			if (bW && bN)
 			{
-				SpawnCornerWallOnTile(X, Y, FIntPoint(-1, 0), FIntPoint(0, 1));
+				const FIntPoint DirA(-1, 0);
+				const FIntPoint DirB(0, 1);
+				const FIntPoint CornerKey = MakeCornerKey(X, Y, DirA, DirB);
+				if (!SpawnedCornerKeys.Contains(CornerKey))
+				{
+					SpawnCornerWallOnTile(X, Y, DirA, DirB);
+					SpawnedCornerKeys.Add(CornerKey);
+				}
 				bUsedW = true;
 				bUsedN = true;
 			}
@@ -726,6 +800,10 @@ FRotator UDungeonGeneratorComponent::DirectionToRotation(const FIntPoint& Dir) c
 	}
 
 	return FRotator::ZeroRotator;
+}
+FIntPoint UDungeonGeneratorComponent::MakeCornerKey(int32 X, int32 Y, const FIntPoint& DirA,const FIntPoint& DirB) const
+{
+	return FIntPoint(X * 2 + DirA.X + DirB.X, Y * 2 + DirA.Y + DirB.Y);
 }
 
 AActor* UDungeonGeneratorComponent::SpawnTileActor(TSubclassOf<AActor> ActorClass, int32 X, int32 Y,

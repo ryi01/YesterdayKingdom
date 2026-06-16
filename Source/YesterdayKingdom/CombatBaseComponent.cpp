@@ -250,6 +250,27 @@ bool UCombatBaseComponent::JumpToNextAttackSection()
 
 	return true;
 }
+
+void UCombatBaseComponent::PlayCurrentAttackCameraShake()
+{
+	const FAttackNodeData* NodeData = GetCurrentAttackNodeData();
+	if (!NodeData) return;
+
+	const FHitFeedbackData& Feedback = NodeData->HitFeedback;
+	if (!Feedback.CameraShake) return;
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PlayerController) return;
+
+	PlayerController->ClientStartCameraShake(Feedback.CameraShake,Feedback.ShakeScale);
+
+	UE_LOG(LogTemp, Warning,
+		TEXT("[Combat][BaseCameraShake] Row=%s / Index=%d / Scale=%.2f"),
+		*CurrentAttackRowName.ToString(),
+		CurrentAttackNodeIndex,
+		Feedback.ShakeScale);
+}
+
 //=====================================================================================================
 // Open Close
 //=====================================================================================================
@@ -516,6 +537,10 @@ void UCombatBaseComponent::OnGuardStarted()
 {
 }
 
+void UCombatBaseComponent::OnGuardHit(AActor* DamageCauser)
+{
+}
+
 void UCombatBaseComponent::OnGuardEnded()
 {
 }
@@ -563,6 +588,8 @@ bool UCombatBaseComponent::TryHandleGuardOrParry(float& InOutDamage, AActor* Dam
 
 	InOutDamage *= GuardDamageRate;
 
+	OnGuardHit(DamageCauser);
+	
 	return true;
 }
 
@@ -736,9 +763,16 @@ void UCombatBaseComponent::ApplyAttackHit(AActor* HitActor, const FHitResult& Hi
 	DamageImpulse.Size());
 	IDamagable::Execute_ApplyDamage(HitActor, Damage, OwnerCharacter.Get(), HitResult.ImpactPoint, DamageImpulse, HitReactionType);
 	
-	if (NodeData && OwnerCharacter->IsPlayerControlled())
+	if (NodeData)
 	{
-		ApplyHitFeedback(NodeData->HitFeedback, HitActor);
+		if (OwnerCharacter->IsPlayerControlled())
+		{
+			ApplyHitFeedback(NodeData->HitFeedback, HitActor);
+		}
+		else
+		{
+			ApplyAttackCameraShake(NodeData->HitFeedback);
+		}
 	}
 }
 //=====================================================================================================
@@ -770,6 +804,15 @@ void UCombatBaseComponent::ApplyHitFeedback(const FHitFeedbackData& Feedback, AA
 		World->GetTimerManager().SetTimer(HitStopTimerHandle, this, &UCombatBaseComponent::ResetHitStop, Feedback.HitStopDuration, false);
 	}
 }
+
+void UCombatBaseComponent::ApplyAttackCameraShake(const FHitFeedbackData& Feedback)
+{
+	if (!Feedback.CameraShake) return;
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (!PlayerController) return;
+	PlayerController->ClientStartCameraShake(Feedback.CameraShake, Feedback.ShakeScale);
+}
+
 void UCombatBaseComponent::ResetHitStop()
 {
 	if (UWorld* World = GetWorld())

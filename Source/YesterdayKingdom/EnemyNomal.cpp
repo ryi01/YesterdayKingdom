@@ -89,6 +89,16 @@ void AEnemyNomal::Landed(const FHitResult& Hit)
 	OnEnemyLanded.ExecuteIfBound();
 }
 
+void AEnemyNomal::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
+{
+	// enemy hit state에서 발생
+	if (EnemyDefinition && EnemyDefinition->HitMontage)
+	{
+		PlayAnimMontage(EnemyDefinition->HitMontage);
+	}
+	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
+}
+
 void AEnemyNomal::HandleDeath_Implementation()
 {
 	Super::HandleDeath_Implementation();

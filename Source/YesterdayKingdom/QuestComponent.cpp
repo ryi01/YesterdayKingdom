@@ -59,8 +59,7 @@ bool UQuestComponent::StartQuestByRowName(FName QuestRowName)
 	OnCurrentQuestChanged.Broadcast(QuestRowName, *QuestDataRow);
 	OnQuestChanged.Broadcast();
 	
-	PrintCurrentQuestToScreen();
-	
+
 	return true;
 }
 
@@ -80,7 +79,7 @@ bool UQuestComponent::AddProgress(EQuestObjectiveType ObjectiveType, FName Targe
 		CurrentQuestInstance.CurrentCount,
 		CurrentQuestInstance.TargetCount
 	);
-	PrintCurrentQuestToScreen();
+
 	if (CurrentQuestInstance.CurrentCount >= CurrentQuestInstance.TargetCount)
 	{
 		CurrentQuestInstance.State = EQuestState::ObjectiveDone;
@@ -105,11 +104,11 @@ bool UQuestComponent::CompleteCurrentQuest()
 	);
 
 	GiveReward(*QuestDataRow);
-	
+	OnQuestCompleted.Broadcast( CurrentQuestInstance.QuestRowName);
 	OnQuestChanged.Broadcast();
 	
 	StartNextQuest();
-	PrintCurrentQuestToScreen();
+
 	return true;
 }
 
@@ -189,45 +188,3 @@ FQuestInstance UQuestComponent::GetCurrentQuestInstance() const
 	return CurrentQuestInstance;
 }
 
-void UQuestComponent::PrintCurrentQuestToScreen() const
-{
-	if (!GEngine) return;
-
-	if (!CurrentQuestInstance.IsValid())
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			3.f,
-			FColor::Yellow,
-			TEXT("[Quest] No Current Quest")
-		);
-		return;
-	}
-
-	const FQuestDataRow* QuestDataRow = GetQuestData(CurrentQuestInstance.QuestRowName);
-	if (!QuestDataRow)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			3.f,
-			FColor::Red,
-			TEXT("[Quest] Quest Data Missing")
-		);
-		return;
-	}
-
-	const FString Message = FString::Printf(
-		TEXT("[Quest] %s | %d / %d | State: %s"),
-		*CurrentQuestInstance.QuestRowName.ToString(),
-		CurrentQuestInstance.CurrentCount,
-		CurrentQuestInstance.TargetCount,
-		*StaticEnum<EQuestState>()->GetNameStringByValue(static_cast<int64>(CurrentQuestInstance.State))
-	);
-
-	GEngine->AddOnScreenDebugMessage(
-		-1,
-		5.f,
-		FColor::Cyan,
-		Message
-	);
-}
