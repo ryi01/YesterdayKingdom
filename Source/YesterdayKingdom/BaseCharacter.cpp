@@ -137,6 +137,7 @@ void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCaus
 
 void ABaseCharacter::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
+	PlayHitFlash();
 	IDamagable::NotifyDamage_Implementation(DamageLocation, DamageSource);
 }
 
@@ -161,6 +162,51 @@ void ABaseCharacter::HandleDeath_Implementation()
 		const float FinalDestroyDelay = GetDeathDestroyDelay();
 		GetWorld()->GetTimerManager().ClearTimer(DestroyTimerHandle);
 		GetWorld()->GetTimerManager().SetTimer(DestroyTimerHandle, this, &ABaseCharacter::DestroyAfterDeath, FinalDestroyDelay, false);
+	}
+}
+
+void ABaseCharacter::PlayHitFlash()
+{
+	if (!GetMesh()) return;
+	if (!HitOverlayMaterial) return;
+
+	SetHitOverlayMaterial(HitOverlayMaterial);
+
+	GetWorld()->GetTimerManager().ClearTimer(HitFlashTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(
+		HitFlashTimerHandle,
+		this,
+		&ABaseCharacter::EndHitFlash,
+		HitFlashDuration,
+		false
+	);
+}
+
+void ABaseCharacter::EndHitFlash()
+{
+	if (!GetMesh()) return;
+
+	SetHitOverlayMaterial(nullptr);
+}
+
+void ABaseCharacter::SetHitOverlayMaterial(UMaterialInterface* OverlayMaterial)
+{
+	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
+	GetComponents<USkeletalMeshComponent>(SkeletalMeshComponents);
+
+	for (USkeletalMeshComponent* MeshComp : SkeletalMeshComponents)
+	{
+		if (!MeshComp) continue;
+		MeshComp->SetOverlayMaterial(OverlayMaterial);
+	}
+
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+
+	for (UStaticMeshComponent* MeshComp : StaticMeshComponents)
+	{
+		if (!MeshComp) continue;
+		MeshComp->SetOverlayMaterial(OverlayMaterial);
 	}
 }
 

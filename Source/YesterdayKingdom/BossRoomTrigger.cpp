@@ -4,11 +4,18 @@
 #include "BossRoomTrigger.h"
 
 #include "BossRoomEntrance.h"
+#include "EnemyBase.h"
+#include "GameSoundManager.h"
 #include "PlayerCharacter.h"
 #include "PlayerHUDWidget.h"
 #include "Components/BoxComponent.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/SkyLightComponent.h"
+#include "Engine/DirectionalLight.h"
+#include "Engine/SkyLight.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/LightComponent.h"
 
-class UPlayerHUDWidget;
 // Sets default values
 ABossRoomTrigger::ABossRoomTrigger()
 {
@@ -32,6 +39,20 @@ void ABossRoomTrigger::BeginPlay()
 		TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &ABossRoomTrigger::OnTriggerBeginOverlap);
 	}
 }
+void ABossRoomTrigger::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (Boss)
+	{
+		Boss->OnEnemyDied.RemoveDynamic(this, &ABossRoomTrigger::OnBossDied);
+	}
+
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(ClearUITimerHandle);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
 void ABossRoomTrigger::SetTriggerExtent(const FVector& NewExtent)
 {
 	if (!TriggerBox) return;
@@ -46,7 +67,19 @@ void ABossRoomTrigger::SetBossRoomEntrance(ABossRoomEntrance* EntranceActor)
 
 void ABossRoomTrigger::SetBoss(AEnemyBase* InBoss)
 {
+	if (Boss)
+	{
+		Boss->OnEnemyDied.RemoveDynamic(this, &ABossRoomTrigger::OnBossDied);
+	}
+
 	Boss = InBoss;
+
+	if (Boss)
+	{
+		Boss->OnEnemyDied.AddDynamic(this, &ABossRoomTrigger::OnBossDied);
+
+		UE_LOG(LogTemp, Warning, TEXT("[BossRoomTrigger] Boss Registered : %s"), *Boss->GetName());
+	}
 }
 
 void ABossRoomTrigger::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -65,7 +98,58 @@ void ABossRoomTrigger::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComp
 	{
 		BossRoomEntrance->RequestCloseEntrance();
 	}
+	FindSoundManager();
+
+	if (SoundManager)
+	{
+		SoundManager->PlayBossBGM();
+	}
 	UE_LOG(LogTemp, Warning, TEXT("[BossRoomTrigger] Player Entered Boss Room"));
 }
 
+void ABossRoomTrigger::OnBossDied()
+{
+	FindSoundManager();
+
+	if (SoundManager)
+	{
+		SoundManager->PlayClearBrightBGM();
+	}
+
+	GetWorld()->GetTimerManager().ClearTimer(ClearUITimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(ClearUITimerHandle,this,&ABossRoomTrigger::ShowClearUI, ClearUIDelay,false);
+}
+
+void ABossRoomTrigger::ShowClearUI()
+{
+	if (!ClearWidgetClass) return;
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (!PC) return;
+
+	UUserWidget* ClearWidget = CreateWidget<UUserWidget>(PC, ClearWidgetClass);
+	if (ClearWidget)
+	{
+		ClearWidget->AddToViewport(100);
+	}
+
+	PC->bShowMouseCursor = true;
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PC->SetInputMode(InputMode);
+
+}
+
+void ABossRoomTrigger::FindSoundManager()
+{
+	if (SoundManager) return;
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass(this, AGameSoundManager::StaticClass(), FoundActors);
+	if (FoundActors.Num() > 0)
+	{
+		SoundManager = Cast<AGameSoundManager>(FoundActors[0]);
+	}
+}
 

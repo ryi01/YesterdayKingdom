@@ -78,6 +78,10 @@ bool UInventoryComponent::AddItem(FName ItemRowName, int32 Amount, bool bNotifyQ
 					AddedAmount,
 					Amount
 				);
+		if (bNotifyQuest)
+		{
+			NotifyQuestItemCollected(ItemRowName, AddedAmount);
+		}
 		if (APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetOwner()))
 		{
 			PlayerCharacter->TryAutoRegisterQuickSlot(ItemRowName);
@@ -375,7 +379,10 @@ bool UInventoryComponent::MakeSlotViewData(int32 SlotIndex, FInventorySlotViewDa
 bool UInventoryComponent::TryAutoUseItem(FName ItemRowName, int32 Amount, const FItemData& ItemData, bool bNotifyQuest)
 {
 	if (!ItemData.bAutoUseOnAcquire) return false;
-	const bool bQuestProgressed = NotifyQuestItemCollected(ItemRowName, Amount);
+	const bool bQuestProgressed = bNotifyQuest
+	? NotifyQuestItemCollected(ItemRowName, Amount)
+	: true;
+
 	if (!bQuestProgressed)
 	{
 		UE_LOG(LogTemp, Warning,

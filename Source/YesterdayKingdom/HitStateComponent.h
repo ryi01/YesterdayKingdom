@@ -25,6 +25,7 @@ protected:
 	float HitReactionLockTime = 0.25f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FSM|Idle")
 	EEnemyFSMStateType NextState = EEnemyFSMStateType::Cooldown;
+	
 protected:
 	void HandleHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void DecideNextState();

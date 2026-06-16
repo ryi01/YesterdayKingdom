@@ -251,6 +251,12 @@ bool UCombatBaseComponent::JumpToNextAttackSection()
 	return true;
 }
 
+void UCombatBaseComponent::ForceResetCombatState()
+{
+	ResetAttackState();
+	OnAttackEnded.Broadcast();
+}
+
 void UCombatBaseComponent::PlayCurrentAttackCameraShake()
 {
 	const FAttackNodeData* NodeData = GetCurrentAttackNodeData();

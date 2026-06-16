@@ -29,6 +29,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Battle Buff",meta = (AllowPrivateAccess = "true"))
 	bool bIsCastingBattleBuff = false;
 	
+	FString NickName;
 public:
 	APlayerCharacter(const FObjectInitializer& ObjectInitializer);
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -106,14 +107,6 @@ public:
 	//===============================================================================================
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hit|Feedback")
 	TSubclassOf<class UCameraShakeBase> PlayerHitCameraShake;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hit|Feedback")
-	TObjectPtr<class UMaterialInterface> HitOverlayMaterial;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hit|Feedback")
-	float HitFlashDuration = 0.12f;
-
-	FTimerHandle HitFlashTimerHandle;
-	
 	//===============================================================================================
 	// 버프 관련
 	//===============================================================================================
@@ -147,6 +140,16 @@ public:
 	FTimerHandle BattleBuffCooldownTimerHandle;
 	FTimerHandle BattleBuffTimerHandle;
 
+	UPROPERTY(EditDefaultsOnly, Category="FX|Buff")
+	TObjectPtr<class UNiagaraSystem> BattleBuffFX;
+
+	UPROPERTY()
+	TObjectPtr<class UNiagaraComponent> BattleBuffFXComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category="FX|Buff")
+	FName BattleBuffFXSocketName = TEXT("None");
+	
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 	TObjectPtr<class UInputAction> TestSkillAction;
 
@@ -187,6 +190,35 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|QuickSlot")
 	TObjectPtr<class UInputAction> QuickSlot5Action;
+	
+	// ========================================================
+	// Wave Knockback
+	// ========================================================
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Knockback|Wave")
+	TObjectPtr<UAnimMontage> WaveKnockbackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Knockback|Wave")
+	FName WaveKnockbackStartSection = TEXT("Start");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Knockback|Wave")
+	FName WaveKnockbackEndSection = TEXT("Weak");
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Knockback|Wave")
+	float WaveKnockbackDuration = 0.22f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Knockback|Wave")
+	float WaveKnockbackDistance = 350.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Knockback|Wave")
+	float WaveKnockbackUpPower = 180.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Knockback|Wave")
+	bool bIsWaveKnockback = false;
+
+	FTimerHandle WaveKnockbackTimerHandle;
+
+	FVector WaveKnockbackDirection = FVector::ZeroVector;
+	float WaveKnockbackElapsedTime = 0.f;
 protected:
 	//===============================================================================================
 	// 로드 저장
@@ -196,11 +228,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Save")
 	void SavePlayerData();
-	//===============================================================================================
-	// 피격 관련 함수
-	//===============================================================================================
-	void PlayHitFlash();
-	void EndHitFlash();
+
 	//===============================================================================================
 	// 인터렉션 관련 
 	//===============================================================================================
@@ -224,6 +252,12 @@ protected:
 	// 사망처리
 	//===============================================================================================
 	virtual void OnDead() override;
+	
+	// ========================================================
+	// Wave Knockback
+	// ========================================================
+	void UpdateWaveKnockback();
+	void FinishWaveKnockback();
 	
 public:
 	virtual void BeginPlay() override;
@@ -283,6 +317,10 @@ public:
 	void EndBattleBuff();
 	UFUNCTION()
 	void EndBattleBuffCooldown();
+	
+	void StartBattleBuffFX();
+    void StopBattleBuffFX();
+	
 	UFUNCTION(BlueprintCallable, Category="Buff")
 	bool CanUseBattleBuff() const;
 	UFUNCTION(BlueprintPure, Category = "Battle Buff")
@@ -325,7 +363,12 @@ public:
 	//===============================================================================================
 	UFUNCTION(BlueprintCallable, Category = "Save")
 	void SaveGamePlay();
-	
+	// ========================================================
+	// Wave Knockback
+	// ========================================================
+	void ApplyWaveKnockbackFromLocation(const FVector& SourceLocation);
+	UFUNCTION(BlueprintCallable)
+	void FinishWaveKnockbackAnimation();
 	//===============================================================================================
 	// Getter
 	//===============================================================================================
@@ -337,4 +380,5 @@ public:
 	UPlayerSkillComponent* GetSkillComponent() const;
 	UFUNCTION(BlueprintPure, Category = "Quest")
 	UPlayerHUDWidget* GetPlayerHUDWidget() const;
+	FString GetNickName() const;
 };

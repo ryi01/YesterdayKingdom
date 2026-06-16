@@ -26,13 +26,14 @@ void UHitStateComponent::OnStateEnter()
 		}
 
 		SetFocusToPlayer();
-		
-		if (EnemyDefinition && EnemyDefinition->HitMontage)
+		UAnimMontage* HitMontageToPlay = OwnerCharacter->GetHitMontage();
+		if (EnemyDefinition && HitMontageToPlay)
 		{
 			if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh()->GetAnimInstance())
 			{
-				AnimInstance->Montage_Stop(0.03f, EnemyDefinition->HitMontage);
-				OwnerCharacter->PlayAnimMontage(EnemyDefinition->HitMontage);
+				
+				AnimInstance->Montage_Stop(0.03f);
+				OwnerCharacter->PlayAnimMontage(HitMontageToPlay);
 			}
 		}
 	}
