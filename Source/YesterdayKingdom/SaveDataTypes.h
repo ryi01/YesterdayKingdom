@@ -111,3 +111,38 @@ struct FEquipmentSaveData
 		return EquipmentSlot != EEquipmentSlotType::None && !ItemRowName.IsNone();
 	}
 };
+
+USTRUCT(BlueprintType)
+struct FInventoryViewData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 SlotIndex = INDEX_NONE;
+
+	UPROPERTY(BlueprintReadOnly)
+	FName ItemRowName = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString ItemName;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString ItemType;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Count = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 BuyPrice = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 SellPrice = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	FString Description;
+
+	bool IsValid() const
+	{
+		return SlotIndex != INDEX_NONE && !ItemRowName.IsNone() && Count > 0;
+	}
+};

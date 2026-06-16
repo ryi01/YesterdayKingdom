@@ -11,6 +11,7 @@ void UYesterdayKingdomGameInstance::Init()
 	if (OpenDatabase())
 	{
 		CreateTablesIfNeeded();
+		SeedItemMasterDataFromTable();
 	}
 }
 
@@ -104,6 +105,16 @@ void UYesterdayKingdomGameInstance::CreateTablesIfNeeded()
 		"REFERENCES PlayerData(PlayerId) "
 		"ON DELETE CASCADE"
 		");";
+	
+	const char* CreateItemMasterSQL = 
+		"CREATE TABLE IF NOT EXISTS ItemMaster ("
+		"ItemRowName TEXT PRIMARY KEY, "
+		"ItemName TEXT NOT NULL, "
+		"ItemType TEXT NOT NULL, "
+		"BuyPrice INTEGER DEFAULT 0,"
+		"SellPrice INTEGER DEFAULT 0,"
+		"Description TEXT);";
+	
 	char* ErrorMessage = nullptr;
 	
 	int32 Result = sqlite3_exec(Database, CreatePlayerTableSQL, nullptr, nullptr, &ErrorMessage);
@@ -145,6 +156,17 @@ void UYesterdayKingdomGameInstance::CreateTablesIfNeeded()
 	if (Result != SQLITE_OK)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[SQLite] Equipment 생성 실패: %s"),
+			ErrorMessage ? UTF8_TO_TCHAR(ErrorMessage) : TEXT("Unknown"));
+		if (ErrorMessage)
+		{
+			sqlite3_free(ErrorMessage);
+			ErrorMessage = nullptr;
+		}
+	}
+	Result = sqlite3_exec(Database, CreateItemMasterSQL, nullptr, nullptr, &ErrorMessage);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[SQLite] ItemMaster 테이블 생성 실패 : %s"),
 			ErrorMessage ? UTF8_TO_TCHAR(ErrorMessage) : TEXT("Unknown"));
 		if (ErrorMessage)
 		{
@@ -1188,6 +1210,195 @@ bool UYesterdayKingdomGameInstance::LoadEquipmentData(int32 PlayerId, TArray<FEq
 		PlayerId,
 		EquipmentSaveDatas.Num()
 	);
+
+	return true;
+}
+
+
+bool UYesterdayKingdomGameInstance::SeedItemMasterDataFromTable()
+{
+	if (!Database || !ItemDataTable) return false;
+	const char* InsertSQL = 
+		"INSERT OR REPLACE INTO ItemMaster "
+		"(ItemRowName, ItemName, ItemType, BuyPrice, SellPrice, Description) "
+		"VALUES (?, ?, ?, ?, ?, ?);";
+	
+	sqlite3_stmt* Statement = nullptr;
+	int32 Result = sqlite3_prepare_v2(Database, InsertSQL, -1, &Statement, nullptr);
+	if (Result != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] ItemMaster Seed Prepare 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		return false;
+	}
+	
+	TArray<FName> RowNames = ItemDataTable->GetRowNames();
+	int32 SavedCount = 0;
+	for (const FName& RowName : RowNames)
+	{
+		const FItemData* ItemRow = ItemDataTable->FindRow<FItemData>(RowName,TEXT("SeedItemMasterDataFromTable"));
+		if (!ItemRow) continue;
+		const FString ItemRowNameString = RowName.ToString();
+		const FString ItemNameString = ItemRow->ItemName.ToString();
+		const FString ItemTypeString = StaticEnum<EItemType>() ? StaticEnum<EItemType>()->GetNameStringByValue(static_cast<int64>(ItemRow->ItemType)) : TEXT("NONE");
+		const int32 BuyPrice = ItemRow->BuyPrice;
+		const int32 SellPrice = ItemRow->SellPrice;
+		const FString DescriptionString = ItemRow->ItemDescription.ToString();
+		
+		const FTCHARToUTF8 RowNameUTF8(*ItemRowNameString);
+		const FTCHARToUTF8 ItemNameUTF8(*ItemNameString);
+		const FTCHARToUTF8 ItemTypeUTF8(*ItemTypeString);
+		const FTCHARToUTF8 DescriptionUTF8(*DescriptionString);
+
+		sqlite3_bind_text(Statement, 1, RowNameUTF8.Get(), RowNameUTF8.Length(), SQLITE_TRANSIENT);
+		sqlite3_bind_text(Statement, 2, ItemNameUTF8.Get(), ItemNameUTF8.Length(), SQLITE_TRANSIENT);
+		sqlite3_bind_text(Statement, 3, ItemTypeUTF8.Get(), ItemTypeUTF8.Length(), SQLITE_TRANSIENT);
+		sqlite3_bind_int(Statement, 4, BuyPrice);
+		sqlite3_bind_int(Statement, 5, SellPrice);
+		sqlite3_bind_text(Statement, 6, DescriptionUTF8.Get(), DescriptionUTF8.Length(), SQLITE_TRANSIENT);
+
+		Result = sqlite3_step(Statement);
+		
+		if (Result != SQLITE_DONE)
+		{
+			UE_LOG(
+				LogTemp,
+				Error,
+				TEXT("[SQLite] ItemMaster 저장 실패 / Row=%s / Error=%s"),
+				*ItemRowNameString,
+				UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+			);
+
+			sqlite3_finalize(Statement);
+			return false;
+		}
+		++SavedCount;
+
+		sqlite3_reset(Statement);
+		sqlite3_clear_bindings(Statement);
+		
+	}
+	sqlite3_finalize(Statement);
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[SQLite] ItemMaster DataTable 동기화 완료 / Count=%d"),
+		SavedCount
+	);
+
+	return true;
+}
+
+bool UYesterdayKingdomGameInstance::LoadInventoryViewData(int32 PlayerId,TArray<FInventoryViewData>& OutInventoryViewDataList)
+{
+	OutInventoryViewDataList.Empty();
+	if (!Database || PlayerId <= 0) return false;
+	const char* LoadSQL = 
+		"SELECT I.SlotIndex, I.ItemRowName, M.ItemName, M.ItemType, I.Count, M.BuyPrice, M.SellPrice, M.Description "
+		"FROM Inventory AS I JOIN ItemMaster AS M "
+		"ON I.ItemRowName = M.ItemRowName "
+		"WHERE I.PlayerId = ? "
+		"ORDER BY I.SlotIndex ASC;";
+	sqlite3_stmt* Statement = nullptr;
+	const int32 PrepareResult = sqlite3_prepare_v2(Database, LoadSQL, -1, &Statement, nullptr);
+	if (PrepareResult != SQLITE_OK)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 인벤토리 JOIN 로드 쿼리 준비 실패: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		return false;
+	}
+	sqlite3_bind_int(Statement, 1, PlayerId);
+
+	int32 StepResult = SQLITE_OK;
+	while ((StepResult = sqlite3_step(Statement)) == SQLITE_ROW)
+	{
+		FInventoryViewData ViewData;
+		ViewData.SlotIndex = sqlite3_column_int(Statement, 0);
+		const unsigned char* ItemRowNameText = sqlite3_column_text(Statement, 1);
+		const unsigned char* ItemNameText = sqlite3_column_text(Statement, 2);
+		const unsigned char* ItemTypeText = sqlite3_column_text(Statement, 3);
+		const unsigned char* DescriptionText = sqlite3_column_text(Statement, 7);
+		if (ItemRowNameText)
+		{
+			const FString ItemRowNameString = UTF8_TO_TCHAR(reinterpret_cast<const char*>(ItemRowNameText));
+			ViewData.ItemRowName = FName(*ItemRowNameString);
+		}
+
+		if (ItemNameText)
+		{
+			ViewData.ItemName = UTF8_TO_TCHAR(reinterpret_cast<const char*>(ItemNameText));
+		}
+
+		if (ItemTypeText)
+		{
+			ViewData.ItemType = UTF8_TO_TCHAR(reinterpret_cast<const char*>(ItemTypeText));
+		}
+
+		ViewData.Count = sqlite3_column_int(Statement, 4);
+		ViewData.BuyPrice = sqlite3_column_int(Statement, 5);
+		ViewData.SellPrice = sqlite3_column_int(Statement, 6);
+
+		if (DescriptionText)
+		{
+			ViewData.Description = UTF8_TO_TCHAR(reinterpret_cast<const char*>(DescriptionText));
+		}
+
+		if (ViewData.IsValid())
+		{
+			OutInventoryViewDataList.Add(ViewData);
+		}
+	}
+	if (StepResult != SQLITE_DONE)
+	{
+		UE_LOG(
+			LogTemp,
+			Error,
+			TEXT("[SQLite] 인벤토리 JOIN 조회 중 오류 발생: %s"),
+			UTF8_TO_TCHAR(sqlite3_errmsg(Database))
+		);
+
+		sqlite3_finalize(Statement);
+		OutInventoryViewDataList.Empty();
+
+		return false;
+	}
+	sqlite3_finalize(Statement);
+
+	UE_LOG(
+		LogTemp,
+		Log,
+		TEXT("[SQLite] 인벤토리 JOIN 로드 완료 / PlayerId=%d / ViewDataCount=%d"),
+		PlayerId,
+		OutInventoryViewDataList.Num()
+	);
+	for (const FInventoryViewData& ViewData : OutInventoryViewDataList)
+	{
+		
+		UE_LOG(
+				LogTemp,
+				Log,
+				TEXT("[SQLite][JOIN] Slot=%d Row=%s Name=%s Type=%s Count=%d Buy=%d Sell=%d Desc=%s"),
+				ViewData.SlotIndex,
+				*ViewData.ItemRowName.ToString(),
+				*ViewData.ItemName,
+				*ViewData.ItemType,
+				ViewData.Count,
+				ViewData.BuyPrice,
+				ViewData.SellPrice,
+				*ViewData.Description
+			);
+	}
 
 	return true;
 }
