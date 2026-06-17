@@ -6,6 +6,8 @@
 #include "NPCBaseActor.h"
 #include "StoreNPCActor.generated.h"
 
+class UStoreComponent;
+
 UCLASS()
 class YESTERDAYKINGDOM_API AStoreNPCActor : public ANPCBaseActor
 {
@@ -17,6 +19,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Store")
 	TObjectPtr<UStoreComponent> StoreComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<class USoundBase> StoreOpenSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	float StoreOpenSoundVolume = 1.2f;
 public:
 	virtual void Interact_Implementation(AActor* Interactor) override;
 

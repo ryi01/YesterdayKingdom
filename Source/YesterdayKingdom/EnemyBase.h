@@ -118,6 +118,7 @@ public:
 	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse, EHitReactionType HitReactionType) override;
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	virtual void HandleDeath_Implementation() override;
+	virtual UAnimMontage* GetHitMontage() const;
 	
 	//===============================================================================================
 	// 죽는 상태
@@ -180,7 +181,7 @@ public:
 
 	bool TryStartNextPhase();
 
-	void FinishPhaseChange();
+	virtual void FinishPhaseChange();
 	
 	//===============================================================================================
 	// hp 바

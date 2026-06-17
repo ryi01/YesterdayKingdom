@@ -25,6 +25,21 @@ protected:
 	
 	UPROPERTY()
 	TObjectPtr<class AEnemyBase> Boss;
+	
+	UPROPERTY(EditAnywhere, Category="Sound")
+	TObjectPtr<class AGameSoundManager> SoundManager;
+	
+	// ========================================================
+	// Clear UI
+	// ========================================================
+	UPROPERTY(EditAnywhere, Category="Clear|UI")
+	TSubclassOf<class UUserWidget> ClearWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category="Clear|UI")
+	float ClearUIDelay = 0.3f;
+
+	FTimerHandle ClearUITimerHandle;
+
 public:	
 	// Sets default values for this actor's properties
 	ABossRoomTrigger();
@@ -32,8 +47,14 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	UFUNCTION()
 	void OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,UPrimitiveComponent* OtherComp,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult);
+	UFUNCTION()
+	void OnBossDied();
+
+	void ShowClearUI();
+	void FindSoundManager();
 public:
 	void SetTriggerExtent(const FVector& NewExtent);
 	void SetBossRoomEntrance(class ABossRoomEntrance* EntranceActor);

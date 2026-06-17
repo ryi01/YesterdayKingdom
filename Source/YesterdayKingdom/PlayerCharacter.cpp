@@ -13,6 +13,8 @@
 #include "GoldComponent.h"
 #include "InputActionValue.h"
 #include "InventoryComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "PlayerCombatComponent.h"
 #include "PlayerDefinition.h"
 #include "PlayerHUDWidget.h"
@@ -87,6 +89,24 @@ void APlayerCharacter::BeginPlay()
 	CreatePlayerHUD();
 	
 	SetUIMode(false);
+	if (BattleBuffFX && GetMesh())
+	{
+		BattleBuffFXComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			BattleBuffFX,
+			GetMesh(),
+			BattleBuffFXSocketName,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			false
+		);
+
+		if (BattleBuffFXComponent)
+		{
+			BattleBuffFXComponent->DeactivateImmediate();
+		}
+	}
+	
 	// 인터렉션 대상 체크
 	GetWorld()->GetTimerManager().SetTimer(InteractionCheckTimerHandle, this, &APlayerCharacter::UpdateInteractionTarget, 0.1f, true);
 }
@@ -115,6 +135,7 @@ void APlayerCharacter::LoadPlayerData()
 	{
 		StatComponent->LoadCurrentStats(LoadData.CurrentHP, LoadData.CurrentST, LoadData.CurrentMP);
 		GoldComponent->LoadGold(LoadData.Gold);
+		NickName = LoadData.Nickname;
 	}
 	
 	UE_LOG(
@@ -276,6 +297,10 @@ void APlayerCharacter::SetUIMode(bool bEnableUI)
 void APlayerCharacter::Move(const FInputActionValue& Value)
 {
 	if (bIsCastingBattleBuff) return;
+	if (bIsWaveKnockback)
+	{
+		return;
+	}
 	FVector2D MovementVector = Value.Get<FVector2D>();
 	
 	const FRotator Rotation = GetController()->GetControlRotation();
@@ -303,6 +328,14 @@ void APlayerCharacter::ToggleInventory()
 {
 	if (!PlayerHUDWidget) return;
 	bIsInventoryOpen = !bIsInventoryOpen;
+	if (bIsInventoryOpen)
+	{
+		if (InventoryOpenSound) UGameplayStatics::PlaySound2D(this, InventoryOpenSound, InventorySoundVolume, 1.f, 0.f, nullptr, nullptr, true);
+	}
+	else
+	{
+		if (InventoryCloseSound) UGameplayStatics::PlaySound2D(this, InventoryCloseSound, InventorySoundVolume, 1.f, 0.f, nullptr, nullptr, true);
+	}
 	PlayerHUDWidget->SetInventoryVisible(bIsInventoryOpen);
 	SetUIMode(bIsInventoryOpen);
 }
@@ -310,6 +343,7 @@ void APlayerCharacter::ToggleInventory()
 void APlayerCharacter::CloseInventory()
 {
 	bIsInventoryOpen = false;
+	if (InventoryCloseSound) UGameplayStatics::PlaySound2D(this, InventoryCloseSound, InventorySoundVolume, 1.f, 0.f, nullptr, nullptr, true);
 
 	if (PlayerHUDWidget)
 	{
@@ -390,21 +424,6 @@ void APlayerCharacter::NotifyDamage_Implementation(const FVector& DamageLocation
 			PC->ClientStartCameraShake(PlayerHitCameraShake);
 		}
 	}
-}
-
-
-void APlayerCharacter::PlayHitFlash()
-{
-	if (!HitOverlayMaterial) return;
-	GetMesh()->SetOverlayMaterial(HitOverlayMaterial);
-	
-	GetWorld()->GetTimerManager().ClearTimer(HitFlashTimerHandle);
-	GetWorld()->GetTimerManager().SetTimer(HitFlashTimerHandle, this, &APlayerCharacter::EndHitFlash, HitFlashDuration, false);
-}
-
-void APlayerCharacter::EndHitFlash()
-{
-	GetMesh()->SetOverlayMaterial(nullptr);
 }
 
 //===============================================================================================
@@ -515,7 +534,9 @@ void APlayerCharacter::EndBattleBuff()
 	if (!bIsBattleBuffActive) return;
 
 	bIsBattleBuffActive = false;
-
+	
+	StopBattleBuffFX();
+	
 	if (StatComponent)
 	{
 		StatComponent->ClearAllBuffStats();
@@ -530,6 +551,20 @@ void APlayerCharacter::EndBattleBuffCooldown()
 {
 	bIsBattleBuffOnCooldown = false;
 	UE_LOG(LogTemp, Warning, TEXT("BuffCoolDown End"));
+}
+
+void APlayerCharacter::StartBattleBuffFX()
+{
+	if (!BattleBuffFXComponent) return;
+
+	BattleBuffFXComponent->Activate(true);
+}
+
+void APlayerCharacter::StopBattleBuffFX()
+{
+	if (!BattleBuffFXComponent) return;
+
+	BattleBuffFXComponent->Deactivate();
 }
 
 bool APlayerCharacter::CanUseBattleBuff() const
@@ -606,7 +641,7 @@ void APlayerCharacter::OnDead()
 	Super::OnDead();
 	OnPlayerDead.Broadcast();
 	bIsDashing = false;
-
+	StopBattleBuffFX();
 	if (MoveComp)
 	{
 		MoveComp->StopMovementImmediately();
@@ -777,7 +812,98 @@ void APlayerCharacter::CloseStoreUI()
 {
 	SetUIMode(false);
 }
+// ========================================================
+// Wave Knockback
+// ========================================================
+void APlayerCharacter::ApplyWaveKnockbackFromLocation(const FVector& SourceLocation)
+{
+	FVector Direction = GetActorLocation() - SourceLocation;
+	Direction.Z = 0.f;
+	if (Direction.IsNearlyZero())
+	{
+		Direction = -GetActorForwardVector();
+	}
 
+	Direction.Normalize();
+
+	WaveKnockbackDirection = Direction;
+	WaveKnockbackElapsedTime = 0.f;
+	bIsWaveKnockback = true;
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		AnimInstance->Montage_Stop(0.08f);
+
+		if (WaveKnockbackMontage)
+		{
+			AnimInstance->Montage_Play(WaveKnockbackMontage);
+			AnimInstance->Montage_JumpToSection(WaveKnockbackStartSection, WaveKnockbackMontage);
+		}
+	}
+
+	MoveComp->StopMovementImmediately();
+	MoveComp->SetMovementMode(MOVE_Falling);
+
+	// 위로 살짝 뜨는 느낌
+	LaunchCharacter(FVector::UpVector * WaveKnockbackUpPower, false, true);
+	GetWorld()->GetTimerManager().ClearTimer(WaveKnockbackTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(WaveKnockbackTimerHandle, this, &APlayerCharacter::UpdateWaveKnockback, 0.016f, true);
+	UE_LOG(LogTemp, Warning,
+	TEXT("[Player] WaveKnockback Start / Dir=%s"),
+	*WaveKnockbackDirection.ToString()
+);
+}
+
+void APlayerCharacter::UpdateWaveKnockback()
+{
+	if (!GetWorld())
+	{
+		FinishWaveKnockback();
+		return;
+	}
+	const float DeltaTime = 0.016f;
+	WaveKnockbackElapsedTime += DeltaTime;
+
+	const float Alpha = FMath::Clamp(WaveKnockbackElapsedTime / WaveKnockbackDuration, 0.f, 1.f);
+	const float EaseOut = 1.f - Alpha;
+	const FVector FrameOffset = WaveKnockbackDirection *(WaveKnockbackDistance / WaveKnockbackDuration) * EaseOut * DeltaTime;
+	FHitResult Hit;
+	AddActorWorldOffset(FrameOffset, true, &Hit, ETeleportType::None);
+	if (Alpha >= 1.f || Hit.bBlockingHit)
+	{
+		FinishWaveKnockback();
+	}
+}
+
+void APlayerCharacter::FinishWaveKnockback()
+{
+	GetWorld()->GetTimerManager().ClearTimer(WaveKnockbackTimerHandle);
+	
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		if (WaveKnockbackMontage && AnimInstance->Montage_IsPlaying(WaveKnockbackMontage))
+		{
+			AnimInstance->Montage_JumpToSection(WaveKnockbackEndSection, WaveKnockbackMontage);
+		}
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[Player] WaveKnockback End"));
+}
+
+void APlayerCharacter::FinishWaveKnockbackAnimation()
+{
+	bIsWaveKnockback = false;
+	WaveKnockbackElapsedTime = 0.f;
+	WaveKnockbackDirection = FVector::ZeroVector;
+
+	if (MoveComp->MovementMode == MOVE_Falling && MoveComp->IsMovingOnGround())
+	{
+		MoveComp->SetMovementMode(MOVE_Walking);
+	} 
+	if (CombatBaseComponent)
+	{
+		CombatBaseComponent->ForceResetCombatState();
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[Player] WaveKnockback Animation End"));
+}
 //===============================================================================================
 // 컴포넌트 Getter
 //===============================================================================================
@@ -813,5 +939,10 @@ UPlayerSkillComponent* APlayerCharacter::GetSkillComponent() const
 UPlayerHUDWidget* APlayerCharacter::GetPlayerHUDWidget() const
 {
 	return PlayerHUDWidget;
+}
+
+FString APlayerCharacter::GetNickName() const
+{
+	return NickName;
 }
 

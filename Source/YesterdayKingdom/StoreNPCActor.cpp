@@ -6,6 +6,7 @@
 #include "BaseCharacter.h"
 #include "PlayerCharacter.h"
 #include "StoreComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AStoreNPCActor::AStoreNPCActor()
 {
@@ -30,6 +31,7 @@ void AStoreNPCActor::Interact_Implementation(AActor* Interactor)
 	
 	if (APlayerCharacter* Character = Cast<APlayerCharacter>(Interactor))
 	{
+		if (StoreOpenSound) UGameplayStatics::PlaySound2D(this, StoreOpenSound, StoreOpenSoundVolume);
 		StoreComponent->DebugLogStoreItems();
 		Character->OpenStoreUI(StoreComponent);
 	}

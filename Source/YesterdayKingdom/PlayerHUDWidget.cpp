@@ -35,7 +35,7 @@ void UPlayerHUDWidget::BindPlayer(class APlayerCharacter* InPlayer)
 		UpdateST(StatComponent->GetCurrentST(), StatComponent->GetMaxST());
 		UpdateMP(StatComponent->GetCurrentMP(), StatComponent->GetMaxMP());
 	}
-	
+	if (PlayerName) PlayerName->SetText(FText::FromString(OwnerPlayer->GetNickName()));
 	if (WBP_BossHP) SetVisibleBossHPBar(false);
 
 	if (WBP_InventoryTab)

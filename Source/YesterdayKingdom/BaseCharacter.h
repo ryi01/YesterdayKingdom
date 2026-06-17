@@ -42,6 +42,16 @@ protected:
 	// ========================================================
 	UPROPERTY(EditDefaultsOnly, Category="Combat|Reaction")
 	TObjectPtr<UAnimMontage> ParriedMontage;
+	// ========================================================
+	// 데미지
+	// ========================================================
+	UPROPERTY(EditDefaultsOnly, Category="FX|Hit")
+	TObjectPtr<class UMaterialInterface> HitOverlayMaterial;
+
+	UPROPERTY(EditDefaultsOnly, Category="FX|Hit")
+	float HitFlashDuration = 0.08f;
+
+	FTimerHandle HitFlashTimerHandle;
 	
 	// ========================================================
 	// 죽기
@@ -86,7 +96,9 @@ public:
 	virtual void ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation, const FVector& DamageImpulse, EHitReactionType HitReactionType) override;
 	virtual void NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource) override;
 	virtual void HandleDeath_Implementation() override;
-	
+	virtual void PlayHitFlash();
+	virtual void EndHitFlash();
+	void SetHitOverlayMaterial(UMaterialInterface* OverlayMaterial);
 	// ========================================================
 	// Attacker Interface
 	// ========================================================

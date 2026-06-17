@@ -13,11 +13,15 @@
 #include "HitStateComponent.h"
 #include "IdleStatComponent.h"
 #include "JumpAttackStateComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "PatrolStateComponent.h"
 #include "PatternSelectStateComponent.h"
 #include "PhaseChangeStateComponent.h"
 #include "ReturnStateComponent.h"
 #include "RotationAttackStateComponent.h"
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -41,6 +45,8 @@ ABossEnemy::ABossEnemy(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	HitState = CreateDefaultSubobject<UHitStateComponent>(TEXT("HitState"));
 	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
 }
+
+
 
 void ABossEnemy::BeginPlay()
 {
@@ -117,5 +123,93 @@ void ABossEnemy::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	if (FSMController) FSMController->TickFSM(DeltaSeconds);
+}
+//===============================================================================================
+// 보스 페이즈 2 이펙트 
+//===============================================================================================
+void ABossEnemy::FinishPhaseChange()
+{
+	Super::FinishPhaseChange();
+	
+	if (GetCurrentPhase() >= 2)
+	{
+		StartPhase2PersistentEffect();
+	}
+}
+
+void ABossEnemy::HandleDeath_Implementation()
+{
+	StopPhase2PersistentEffect();
+
+	Super::HandleDeath_Implementation();
+}
+
+void ABossEnemy::StartPhase2PersistentEffect()
+{
+	if (!GetMesh()) return;
+	// ========================================================
+	// Aura FX
+	// ========================================================
+	if (!Phase2AuraFXComponent && Phase2AuraFX)
+	{
+		Phase2AuraFXComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(Phase2AuraFX,GetMesh(),Phase2AuraFXSocketName,Phase2AuraFXOffset,FRotator::ZeroRotator,EAttachLocation::KeepRelativeOffset,false);
+
+		if (Phase2AuraFXComponent)
+		{
+			Phase2AuraFXComponent->SetRelativeScale3D(Phase2AuraFXScale);
+			Phase2AuraFXComponent->Activate(true);
+		}
+	}
+	// ========================================================
+	// Crackle FX
+	// ========================================================
+	if (!Phase2CrackleFXComponent && Phase2CrackleFX)
+	{
+		Phase2CrackleFXComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(Phase2CrackleFX,GetMesh(),Phase2CrackleFXSocketName,Phase2CrackleFXOffset,FRotator::ZeroRotator,EAttachLocation::KeepRelativeOffset,false);
+
+		if (Phase2CrackleFXComponent)
+		{
+			Phase2CrackleFXComponent->SetRelativeScale3D(Phase2CrackleFXScale);
+			Phase2CrackleFXComponent->Activate(true);
+		}
+	}
+	// ========================================================
+	// Loop Sound
+	// ========================================================
+	if (!Phase2LoopAudioComponent && Phase2LoopSound)
+	{
+		Phase2LoopAudioComponent = UGameplayStatics::SpawnSoundAttached(Phase2LoopSound,GetMesh(),NAME_None,FVector::ZeroVector,FRotator::ZeroRotator,EAttachLocation::KeepRelativeOffset,false,Phase2LoopSoundVolume);
+
+		if (Phase2LoopAudioComponent)
+		{
+			Phase2LoopAudioComponent->bAutoDestroy = false;
+			Phase2LoopAudioComponent->FadeIn(Phase2LoopSoundFadeInTime,Phase2LoopSoundVolume);
+		}
+	}
+}
+
+void ABossEnemy::StopPhase2PersistentEffect()
+{
+	if (Phase2AuraFXComponent)
+	{
+		Phase2AuraFXComponent->Deactivate();
+		Phase2AuraFXComponent = nullptr;
+	}
+
+	if (Phase2CrackleFXComponent)
+	{
+		Phase2CrackleFXComponent->Deactivate();
+		Phase2CrackleFXComponent = nullptr;
+	}
+
+	if (Phase2LoopAudioComponent)
+	{
+		Phase2LoopAudioComponent->FadeOut(
+			Phase2LoopSoundFadeOutTime,
+			0.f
+		);
+
+		Phase2LoopAudioComponent = nullptr;
+	}
 }
 

@@ -6,6 +6,8 @@
 #include "SkillTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "SkillNodeWidget.generated.h"
+class UImage;
+class UTexture2D;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillNodeClicked, FName, SkillRowName);
 UCLASS()
 class YESTERDAYKINGDOM_API USkillNodeWidget : public UUserWidget
@@ -14,7 +16,12 @@ class YESTERDAYKINGDOM_API USkillNodeWidget : public UUserWidget
 	
 	UPROPERTY()
 	FName SkillRowName = NAME_None;
-
+	
+	UPROPERTY()
+	TObjectPtr<UTexture2D> CachedInactiveSkillIcon;
+	UPROPERTY()
+	TObjectPtr<UTexture2D> CachedActiveSkillIcon;
+	
 	bool bUnlocked = false;
 	bool bCanUnlock = false;
 protected:
@@ -26,6 +33,16 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<class UTextBlock> TB_Gold;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> I_StateImage;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> I_SkillIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Style")
+	TObjectPtr<UTexture2D> CanUnlockFrameTexture;
+	
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Skill")
 	FOnSkillNodeClicked OnSkillNodeClicked;

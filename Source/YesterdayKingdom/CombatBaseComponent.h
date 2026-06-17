@@ -249,6 +249,7 @@ public:
 	void SetAttackDataTable(UDataTable* NewTable);
 	const FAttackDataRow* GetAttackDataByRow(FName AttackRowName) const;
 	bool JumpToNextAttackSection();
+	void ForceResetCombatState();
 	//=====================================================================================================
 	// 카메라 쉐이크
 	//=====================================================================================================

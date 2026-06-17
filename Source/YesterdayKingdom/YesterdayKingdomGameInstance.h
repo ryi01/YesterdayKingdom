@@ -15,11 +15,16 @@ class YESTERDAYKINGDOM_API UYesterdayKingdomGameInstance : public UGameInstance
 	GENERATED_BODY()
 private:
 	int32 CurrentPlayerId = 0;
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="SQLite|Item")
+	TObjectPtr<UDataTable> ItemDataTable;
 public:
 	static sqlite3* Database;
 private:
 	bool OpenDatabase();
 	void CreateTablesIfNeeded();
+	UFUNCTION(BlueprintCallable, Category="SQLite|Item")
+	bool SeedItemMasterDataFromTable();
 	FString GetDatabasePath() const;
 public:
 	virtual void Init() override;
@@ -49,4 +54,9 @@ public:
 	//===============================================================================================
 	bool SaveEquipmentData(int32 PlayerId, const TArray<FEquipmentSaveData>& EquipmentSaveDatas);
 	bool LoadEquipmentData(int32 PlayerId, TArray<FEquipmentSaveData>& EquipmentSaveDatas);
+	//===============================================================================================
+	// 아이템 데이터
+	//===============================================================================================
+	UFUNCTION(BlueprintCallable, Category="SQLite|Inventory")
+	bool LoadInventoryViewData(int32 PlayerId, TArray<FInventoryViewData>& OutInventoryViewDataList);
 };

@@ -129,11 +129,7 @@ void AEnemyBase::NotifyDamage_Implementation(const FVector& DamageLocation, AAct
 		LastDangerLocation = DamageLocation;
 		LastDangerTime = GetWorld()->GetTimeSeconds();
 	}
-	// enemy hit state에서 발생
-	/*if (EnemyDefinition && EnemyDefinition->HitMontage)
-	{
-		PlayAnimMontage(EnemyDefinition->HitMontage);
-	}*/
+
 	if (FSMController)
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Hit);
@@ -164,6 +160,16 @@ void AEnemyBase::HandleDeath_Implementation()
 	{
 		FSMController->ChangeState(EEnemyFSMStateType::Dead);
 	}
+}
+
+UAnimMontage* AEnemyBase::GetHitMontage() const
+{
+	if (!EnemyDefinition)
+	{
+		return nullptr;
+	}
+
+	return EnemyDefinition->HitMontage;
 }
 
 float AEnemyBase::GetDeathDestroyDelay() const
@@ -355,6 +361,7 @@ bool AEnemyBase::IsAnyMontagePlaying() const
 
 	return false;
 }
+
 
 bool AEnemyBase::TryStartNextPhase()
 {
