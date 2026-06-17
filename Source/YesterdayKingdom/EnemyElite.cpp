@@ -40,6 +40,39 @@ AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	DownState = CreateDefaultSubobject<UDownStateComponent>(TEXT("DownState"));
 	ReviveState = CreateDefaultSubobject<UReviveStateComponent>(TEXT("ReviveState"));
 	DeadState = CreateDefaultSubobject<UDeadStateComponent>(TEXT("DeadState"));
+	
+	PuppetLoopAudioComp = CreateDefaultSubobject<UAudioComponent>(TEXT("PuppetLoopAudioComp"));
+	PuppetLoopAudioComp->SetupAttachment(GetMesh());
+	PuppetLoopAudioComp->bAutoActivate = false;
+}
+
+void AEnemyElite::StatePuppetLoopSound(USoundBase* Sound)
+{
+	if (!Sound || !PuppetLoopAudioComp)
+	{
+		return;
+	}
+	
+	if (PuppetLoopAudioComp->IsPlaying())
+	{
+		PuppetLoopAudioComp->Stop();
+	}
+	
+	PuppetLoopAudioComp->SetSound(Sound);
+	PuppetLoopAudioComp->Play();
+}
+
+void AEnemyElite::StopPuppetLoopSound(float FadeOutTime)
+{
+	if (!PuppetLoopAudioComp)
+	{
+		return;
+	}
+	
+	if (PuppetLoopAudioComp->IsPlaying())
+	{
+		PuppetLoopAudioComp->FadeOut(FadeOutTime, 0.0f);
+	}
 }
 
 bool AEnemyElite::IsPuppetMasterDead() const
