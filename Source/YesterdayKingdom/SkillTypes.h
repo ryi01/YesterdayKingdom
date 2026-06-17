@@ -58,4 +58,11 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
 	FName RequiredSkillRowName = NAME_None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
+	TObjectPtr<class UTexture2D> InactiveSkillIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill")
+	TObjectPtr<class UTexture2D> ActiveSkillIcon;
+	
 };

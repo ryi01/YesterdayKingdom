@@ -219,6 +219,17 @@ public:
 
 	FVector WaveKnockbackDirection = FVector::ZeroVector;
 	float WaveKnockbackElapsedTime = 0.f;
+	//===============================================================================================
+	// Sound
+	//===============================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
+	TObjectPtr<class USoundBase> InventoryOpenSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
+	TObjectPtr<class USoundBase> InventoryCloseSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
+	float InventorySoundVolume = 1.0f;
 protected:
 	//===============================================================================================
 	// 로드 저장

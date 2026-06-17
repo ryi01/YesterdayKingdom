@@ -2082,6 +2082,10 @@ bool UDungeonGeneratorComponent::CanReachStartToEndByMapData() const
 	{
 		FIntPoint Current;
 		Queue.Dequeue(Current);
+		if (Current == End)
+		{
+			return true;
+		}
 		
 		for (const FIntPoint& Dir : Directions)
 		{

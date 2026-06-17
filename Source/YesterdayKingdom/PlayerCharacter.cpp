@@ -328,6 +328,14 @@ void APlayerCharacter::ToggleInventory()
 {
 	if (!PlayerHUDWidget) return;
 	bIsInventoryOpen = !bIsInventoryOpen;
+	if (bIsInventoryOpen)
+	{
+		if (InventoryOpenSound) UGameplayStatics::PlaySound2D(this, InventoryOpenSound, InventorySoundVolume, 1.f, 0.f, nullptr, nullptr, true);
+	}
+	else
+	{
+		if (InventoryCloseSound) UGameplayStatics::PlaySound2D(this, InventoryCloseSound, InventorySoundVolume, 1.f, 0.f, nullptr, nullptr, true);
+	}
 	PlayerHUDWidget->SetInventoryVisible(bIsInventoryOpen);
 	SetUIMode(bIsInventoryOpen);
 }
@@ -335,6 +343,7 @@ void APlayerCharacter::ToggleInventory()
 void APlayerCharacter::CloseInventory()
 {
 	bIsInventoryOpen = false;
+	if (InventoryCloseSound) UGameplayStatics::PlaySound2D(this, InventoryCloseSound, InventorySoundVolume, 1.f, 0.f, nullptr, nullptr, true);
 
 	if (PlayerHUDWidget)
 	{

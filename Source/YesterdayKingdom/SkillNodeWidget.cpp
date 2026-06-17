@@ -4,6 +4,7 @@
 #include "SkillNodeWidget.h"
 
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 
 void USkillNodeWidget::NativeConstruct()
@@ -13,54 +14,105 @@ void USkillNodeWidget::NativeConstruct()
 	{
 		BTN_Skill->OnClicked.RemoveDynamic(this, &USkillNodeWidget::OnSkillClicked);
 		BTN_Skill->OnClicked.AddDynamic(this, &USkillNodeWidget::OnSkillClicked);
+		BTN_Skill->SetBackgroundColor(FLinearColor::Transparent);
+	}
+	if (I_StateImage)
+	{
+		I_StateImage->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	if (I_SkillIcon)
+	{
+		I_SkillIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 void USkillNodeWidget::InitializeSkillNode(FName InSkillRowName, const FSkillDataRow& InSkillName)
 {
 	SkillRowName = InSkillRowName;
-
+	
+	CachedInactiveSkillIcon = InSkillName.InactiveSkillIcon;
+	CachedActiveSkillIcon = InSkillName.ActiveSkillIcon;
+	
 	if (TB_SkillName)
 	{
 		TB_SkillName->SetText(InSkillName.SkillName);
 	}
 	if (TB_Gold) TB_Gold->SetText(FText::AsNumber(InSkillName.GoldCost));
+	if (I_StateImage)
+	{
+		if (CanUnlockFrameTexture)
+		{
+			I_StateImage->SetBrushFromTexture(CanUnlockFrameTexture);
+		}
+
+		I_StateImage->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	if (I_SkillIcon)
+	{
+		if (CachedInactiveSkillIcon)
+		{
+			I_SkillIcon->SetBrushFromTexture(CachedInactiveSkillIcon);
+		}
+
+		I_SkillIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
 }
 
 void USkillNodeWidget::RefreshSkillNode(bool bIsUnlocked, bool bInCanUnlock)
 {
 	bUnlocked = bIsUnlocked;
 	bCanUnlock = bInCanUnlock;
-
+	
+	const bool bCanClick = !bUnlocked && bCanUnlock;
+	const bool bUseActiveIcon = bUnlocked || bCanUnlock;
+	
 	if (BTN_Skill)
 	{
 		BTN_Skill->SetIsEnabled(!bUnlocked && bCanUnlock);
 	}
-	if (bUnlocked)
+	if (I_SkillIcon)
 	{
-		// 해금 완료
-		BTN_Skill->SetBackgroundColor(
-			FLinearColor(0.2f, 0.8f, 0.3f, 1.f)
-		);
+		if (bUseActiveIcon)
+		{
+			if (CachedActiveSkillIcon)
+			{
+				I_SkillIcon->SetBrushFromTexture(CachedActiveSkillIcon);
+			}
+		}
+		else
+		{
+			if (CachedInactiveSkillIcon)
+			{
+				I_SkillIcon->SetBrushFromTexture(CachedInactiveSkillIcon);
+			}
+		}
+
+		I_SkillIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		I_SkillIcon->SetColorAndOpacity(FLinearColor::White);
 	}
-	else if (bCanUnlock)
+	if (I_StateImage)
 	{
-		// 현재 해금 가능
-		BTN_Skill->SetBackgroundColor(
-			FLinearColor(0.9f, 0.65f, 0.15f, 1.f)
-		);
-	}
-	else
-	{
-		// 잠김
-		BTN_Skill->SetBackgroundColor(
-			FLinearColor(0.25f, 0.25f, 0.25f, 1.f)
-		);
+		if (bCanClick)
+		{
+			if (CanUnlockFrameTexture)
+			{
+				I_StateImage->SetBrushFromTexture(CanUnlockFrameTexture);
+			}
+
+			I_StateImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			I_StateImage->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
 }
 
 void USkillNodeWidget::OnSkillClicked()
 {
 	if (bUnlocked) return;
+	if (!bCanUnlock) return;
 	if (SkillRowName.IsNone()) return;
 
 	OnSkillNodeClicked.Broadcast(SkillRowName);
