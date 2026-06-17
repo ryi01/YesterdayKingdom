@@ -8,6 +8,7 @@
 #include "SkillNodeWidget.generated.h"
 class UImage;
 class UTexture2D;
+class USoundCue;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillNodeClicked, FName, SkillRowName);
 UCLASS()
 class YESTERDAYKINGDOM_API USkillNodeWidget : public UUserWidget

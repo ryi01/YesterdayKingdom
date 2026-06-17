@@ -17,6 +17,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 void UInventoryWidget::NativeConstruct()
 {
@@ -269,7 +270,7 @@ void UInventoryWidget::OnUseClicked()
 
 			const bool bEquipped = EquipmentComponent->EquipItem(UsedItemRowName);
 			if (!bEquipped) return;
-
+			if (UseEquipmentSound)UGameplayStatics::PlaySound2D(this, UseEquipmentSound, UseItemSoundVolume, 1,0, nullptr, nullptr, true);
 			ClearSelectedItem();
 			break;
 		}

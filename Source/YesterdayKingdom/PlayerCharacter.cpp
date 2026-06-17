@@ -405,6 +405,7 @@ bool APlayerCharacter::UseConsumableItem(const FItemData& ItemData)
 		bAppliedEffect = true;
 	}
 
+	if (UseItemSound) UGameplayStatics::PlaySound2D(this, UseItemSound, UseItemSoundVolume, 1.f, 0.f, nullptr, nullptr, true);
 	return bAppliedEffect;
 	
 }

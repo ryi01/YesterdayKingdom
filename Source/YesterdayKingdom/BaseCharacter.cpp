@@ -8,6 +8,7 @@
 #include "CombatBaseComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ABaseCharacter::ABaseCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -138,6 +139,7 @@ void ABaseCharacter::ApplyDamage_Implementation(float Damage, AActor* DamageCaus
 void ABaseCharacter::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
 	PlayHitFlash();
+	if (DamageHitSound) UGameplayStatics::PlaySound2D(this, DamageHitSound, DamageHitSoundVolume, 1, 0, nullptr, nullptr, true);
 	IDamagable::NotifyDamage_Implementation(DamageLocation, DamageSource);
 }
 

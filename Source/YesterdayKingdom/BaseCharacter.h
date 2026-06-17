@@ -66,7 +66,15 @@ protected:
 	float DestroyDelay = 3.0f;
 
 	FTimerHandle DestroyTimerHandle;
-
+	// ========================================================
+	// SFX
+	// ========================================================
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|Skill")
+	TObjectPtr<USoundBase> DamageHitSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|Skill")
+	float DamageHitSoundVolume = 1.0f;
+	
 protected:
 	// ========================================================
 	// 무기 세팅 초기화 함수

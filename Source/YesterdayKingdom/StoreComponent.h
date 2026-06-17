@@ -18,6 +18,13 @@ protected:
 	// 이 상점이 사용할 판매 목록 DA
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Store|Data")
 	TObjectPtr<UStoreDataAsset> StoreData;
+	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	TObjectPtr<class USoundBase> SellBuySound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
+	float SellBuyVolume = 1.f;
 public:	
 	// Sets default values for this component's properties
 	UStoreComponent();
