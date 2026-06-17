@@ -21,6 +21,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Puppet")
 	TObjectPtr<UStaticMeshComponent> CoreMesh;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet|Effect")
+	TObjectPtr<UNiagaraSystem> CoreAuraEffect;
+
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> ActiveCoreAuraEffect;
+	
 	UPROPERTY()
 	TObjectPtr<UNiagaraComponent> ActiveReviveEffect;
 	

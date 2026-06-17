@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "EnemyBase.h"
-#include "Components/AudioComponent.h"
-#include "Sound/SoundBase.h"
 #include "EnemyElite.generated.h"
 
 class UPatrolStateComponent;
@@ -30,15 +28,6 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Puppet")
 	TObjectPtr<AEnemyPuppetMaster> PuppetMaster;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Audio")
-	TObjectPtr<UAudioComponent> PuppetLoopAudioComp;
-	
-	UFUNCTION(BlueprintCallable, Category = "Audio")
-	void StatePuppetLoopSound(USoundBase* Sound);
-	
-	UFUNCTION(BlueprintCallable, Category = "Audio")
-	void StopPuppetLoopSound(float FadeOutTime = 0.15f);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="Enemy|Puppet")
 	bool IsPuppetMasterDead() const;

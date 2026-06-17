@@ -61,6 +61,21 @@ void AEnemyPuppetMaster::BeginPlay()
 		ActiveReviveEffect->DeactivateImmediate();
 	}
 	
+	if (CoreAuraEffect && CoreMesh)
+	{
+		ActiveCoreAuraEffect =
+			UNiagaraFunctionLibrary::SpawnSystemAttached(
+				CoreAuraEffect,
+				CoreMesh,
+				NAME_None,
+				FVector::ZeroVector,
+				FRotator::ZeroRotator,
+				EAttachLocation::SnapToTarget,
+				false,
+				false
+			);
+	}
+	
 	UpdateHPWidgetVisibility();
 }
 
@@ -115,6 +130,12 @@ void AEnemyPuppetMaster::HandleDeath_Implementation()
 		{
 			Puppet->ForceTrueDeath();
 		}
+	}
+	
+	if (ActiveCoreAuraEffect)
+	{
+		ActiveCoreAuraEffect->DestroyComponent();
+		ActiveCoreAuraEffect = nullptr;
 	}
 	
 	Puppets.Empty();
