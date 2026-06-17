@@ -12,9 +12,9 @@ void USkillNodeWidget::NativeConstruct()
 	Super::NativeConstruct();
 	if (BTN_Skill)
 	{
+		BTN_Skill->SetIsEnabled(true);
 		BTN_Skill->OnClicked.RemoveDynamic(this, &USkillNodeWidget::OnSkillClicked);
 		BTN_Skill->OnClicked.AddDynamic(this, &USkillNodeWidget::OnSkillClicked);
-		BTN_Skill->SetBackgroundColor(FLinearColor::Transparent);
 	}
 	if (I_StateImage)
 	{
@@ -24,6 +24,11 @@ void USkillNodeWidget::NativeConstruct()
 	if (I_SkillIcon)
 	{
 		I_SkillIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	if (I_SkillIcon)
+	{
+		I_SkillIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		I_SkillIcon->SetColorAndOpacity(FLinearColor::White);
 	}
 }
 void USkillNodeWidget::InitializeSkillNode(FName InSkillRowName, const FSkillDataRow& InSkillName)
@@ -69,7 +74,7 @@ void USkillNodeWidget::RefreshSkillNode(bool bIsUnlocked, bool bInCanUnlock)
 	
 	if (BTN_Skill)
 	{
-		BTN_Skill->SetIsEnabled(!bUnlocked && bCanUnlock);
+		BTN_Skill->SetIsEnabled(true);
 	}
 	if (I_SkillIcon)
 	{
