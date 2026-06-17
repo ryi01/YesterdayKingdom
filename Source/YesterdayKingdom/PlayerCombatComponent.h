@@ -19,6 +19,22 @@ protected:
 	TMap<EAttackType, FName> PlayerAttackRows;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Guard", meta = (ClampMin = "0.0"))
 	float GuardMoveSpeedMultiplier = 0.5f;
+	
+	UPROPERTY(EditAnywhere, Category="SFX|Charge")
+	USoundBase* ChargeStartSound;
+	UPROPERTY(EditAnywhere, Category="SFX|Charge")
+	USoundBase* ChargeLoopSound;
+	UPROPERTY(EditAnywhere, Category="SFX|Charge")
+	USoundBase* ChargeReleaseSound;
+	
+	UPROPERTY()
+	UAudioComponent* ChargeStartAudioComponent;
+	UPROPERTY()
+	UAudioComponent* ChargeLoopAudioComponent;
+	
+	UPROPERTY(EditAnywhere, Category="SFX|Charge")
+	float ChargeLoopStartDelay = 0.2f;
+	FTimerHandle ChargeLoopStartTimerHandle;
 
 public:
 	UPlayerCombatComponent();
@@ -27,15 +43,28 @@ private:
 	bool TryGetAttackRowName(EAttackType AttackType, FName& OutRowName) const;
 protected:
 	virtual void OnChargeAttackStarted() override;
+	virtual void OnChargeAttackReleased() override;
+	virtual void OnChargeAttackCanceled() override;
+	
 	virtual void OnGuardStarted() override;
 	virtual void OnGuardHit(AActor* DamageCauser) override;
 	virtual void OnGuardEnded() override;
+	
 	//===============================================================================================
 	// 공격 보정을 위한 함수
 	//===============================================================================================
 	void FaceBestTarget();
 	UFUNCTION()
 	AActor* FindBestTarget() const;
+	
+	void PlayChargeStartSound();
+	void StartChargeLoopSound();
+	void StopChargeStartSound();
+	void StopChargeLoopSound();
+	void StopAllChargeSounds();
+	void PlayChargeReleaseSound();
+
+	void StartChargeLoopSoundDelayed();
 public:
 	virtual void BeginAttackTrace() override;
 

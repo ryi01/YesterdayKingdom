@@ -7,8 +7,11 @@
 #include "BaseStatComponent.h"
 #include "PlayerCharacter.h"
 #include "PlayerSkillComponent.h"
+#include "Components/AudioComponent.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+
 UPlayerCombatComponent::UPlayerCombatComponent()
 {
 	bUseComboInputWindow = true;
@@ -79,6 +82,8 @@ AActor* UPlayerCombatComponent::FindBestTarget() const
 }
 
 
+
+
 //===============================================================================================
 // 위치 보정을 위해 override
 //===============================================================================================
@@ -125,8 +130,25 @@ void UPlayerCombatComponent::RequestAttack(EAttackType AttackType)
 void UPlayerCombatComponent::OnChargeAttackStarted()
 {
 	FaceBestTarget();
+	
+	PlayChargeStartSound();
+	GetWorld()->GetTimerManager().ClearTimer(ChargeLoopStartTimerHandle);
+	GetWorld()->GetTimerManager().SetTimer(ChargeLoopStartTimerHandle, this, &UPlayerCombatComponent::StartChargeLoopSoundDelayed, ChargeLoopStartDelay, false);
+}
+void UPlayerCombatComponent::OnChargeAttackReleased()
+{
+	Super::OnChargeAttackReleased();
+
+	StopAllChargeSounds();
+	PlayChargeReleaseSound();
 }
 
+void UPlayerCombatComponent::OnChargeAttackCanceled()
+{
+	Super::OnChargeAttackCanceled();
+
+	StopAllChargeSounds();
+}
 void UPlayerCombatComponent::OnGuardStarted()
 {
 	Super::OnGuardStarted();
@@ -181,5 +203,60 @@ bool UPlayerCombatComponent::TryGetAttackRowName(EAttackType AttackType, FName& 
 	OutRowName = PlayerAttackRows[AttackType];
 
 	return !OutRowName.IsNone();
+}
+
+void UPlayerCombatComponent::PlayChargeStartSound()
+{
+	if (!OwnerCharacter|| !ChargeStartSound) return;
+	if (ChargeStartAudioComponent)
+	{
+		ChargeStartAudioComponent->Stop();
+		ChargeStartAudioComponent = nullptr;
+	}
+	ChargeStartAudioComponent = UGameplayStatics::SpawnSoundAttached(ChargeStartSound, OwnerCharacter->GetRootComponent(), NAME_None, FVector::ZeroVector, EAttachLocation::KeepRelativeOffset, true);
+}
+
+void UPlayerCombatComponent::StartChargeLoopSound()
+{
+	if (!OwnerCharacter || !ChargeLoopSound) return;
+
+	StopChargeLoopSound();
+	
+	ChargeLoopAudioComponent = UGameplayStatics::SpawnSoundAttached(ChargeLoopSound, OwnerCharacter->GetRootComponent(), NAME_None, FVector::ZeroVector, EAttachLocation::KeepRelativeOffset, true);
+}
+
+void UPlayerCombatComponent::StopChargeStartSound()
+{
+	if (!ChargeStartAudioComponent) return;
+
+	ChargeStartAudioComponent->FadeOut(0.08f, 0.f);
+	ChargeStartAudioComponent = nullptr;
+}
+
+void UPlayerCombatComponent::StopChargeLoopSound()
+{
+	if (!ChargeLoopAudioComponent) return;
+
+	ChargeLoopAudioComponent->FadeOut(0.08f, 0.f);
+	ChargeLoopAudioComponent = nullptr;
+}
+
+void UPlayerCombatComponent::StopAllChargeSounds()
+{
+	GetWorld()->GetTimerManager().ClearTimer(ChargeLoopStartTimerHandle);
+	StopChargeStartSound();
+	StopChargeLoopSound();
+}
+
+void UPlayerCombatComponent::PlayChargeReleaseSound()
+{
+	if (!OwnerCharacter || !ChargeReleaseSound) return;
+	UGameplayStatics::PlaySoundAtLocation(this, ChargeReleaseSound, OwnerCharacter->GetActorLocation());
+}
+
+void UPlayerCombatComponent::StartChargeLoopSoundDelayed()
+{
+	if (!IsCharging()) return;
+	StartChargeLoopSound();
 }
 
