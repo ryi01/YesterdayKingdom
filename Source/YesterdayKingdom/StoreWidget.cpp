@@ -133,9 +133,7 @@ void UStoreWidget::ClearSelectedItem()
 
 	if (T_ItemName)
 	{
-		T_ItemName->SetText(
-		FText::GetEmpty()
-		);
+		T_ItemName->SetText(FText::GetEmpty());
 	}
 
 	if (TB_ItemDescription)

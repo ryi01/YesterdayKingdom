@@ -60,5 +60,9 @@ public:
 	void RefreshSkillNode(bool bIsUnlocked, bool bInCanUnlock);
 	FName GetSkillRowName() const;
 	
+	UFUNCTION()
+	void SetGoldVisible(bool bVisible) const;
+	
+	
 	
 };

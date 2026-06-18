@@ -159,7 +159,7 @@ void USkillTreeWidget::RefreshSkillNode(USkillNodeWidget* SkillNode)
 	const bool bCanUnlock  = SkillComponent->CanUnlockSkill(SkillRowName);
 	
 	SkillNode->RefreshSkillNode(bIsUnlocked, bCanUnlock);
-	
+	SkillNode->SetGoldVisible(!bIsUnlocked && bCanUnlock);
 }
 
 void USkillTreeWidget::OnSkillNodeClicked(FName SkillRowName)
@@ -169,6 +169,7 @@ void USkillTreeWidget::OnSkillNodeClicked(FName SkillRowName)
 	if (bUnlocked)
 	{
 		if (SkillUnlockSound) UGameplayStatics::PlaySound2D(this, SkillUnlockSound, SkillUnlockSoundVolume, 1.f, 0.f, nullptr, nullptr, true);
+		
 	}
 	else
 	{

@@ -859,7 +859,9 @@ AActor* UDungeonGeneratorComponent::SpawnTileActor(TSubclassOf<AActor> ActorClas
 	if (Spawned)
 	{
 		SpawnedDungeonActors.Add(Spawned);
+#if WITH_EDITOR
 		Spawned->SetActorLabel(FString::Printf(TEXT("%s_%d_%d"), *NamePrefix, X, Y));
+#endif
 	}
 	return Spawned;
 }

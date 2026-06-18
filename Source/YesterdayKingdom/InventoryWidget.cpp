@@ -140,23 +140,23 @@ void UInventoryWidget::UpdateUseButtonByItemType(const FInventorySlotViewData& S
 	switch (ItemData->ItemType)
 	{
 	case EItemType::Consumable:
-		TB_Use->SetText(FText::FromString(TEXT("Use")));
+		TB_Use->SetText(FText::FromString(TEXT("사용")));
 		BTN_Use->SetIsEnabled(true);
 		break;
 
 	case EItemType::Weapon:
 	case EItemType::Armor:
-		TB_Use->SetText(FText::FromString(TEXT("Equip")));
+		TB_Use->SetText(FText::FromString(TEXT("장착")));
 		BTN_Use->SetIsEnabled(true);
 		break;
 
 	case EItemType::Quest:
-		TB_Use->SetText(FText::FromString(TEXT("Cannot Use")));
+		TB_Use->SetText(FText::FromString(TEXT("사용 불가")));
 		BTN_Use->SetIsEnabled(false);
 		break;
 
 	default:
-		TB_Use->SetText(FText::FromString(TEXT("Use")));
+		TB_Use->SetText(FText::FromString(TEXT("사용")));
 		BTN_Use->SetIsEnabled(false);
 		break;
 	}
@@ -166,7 +166,7 @@ void UInventoryWidget::ResetUseButton()
 {
 	if (TB_Use)
 	{
-		TB_Use->SetText(FText::FromString(TEXT("Use")));
+		TB_Use->SetText(FText::FromString(TEXT("사용")));
 	}
 
 	if (BTN_Use)

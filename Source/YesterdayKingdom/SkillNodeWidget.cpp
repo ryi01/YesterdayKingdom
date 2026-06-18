@@ -127,3 +127,10 @@ FName USkillNodeWidget::GetSkillRowName() const
 {
 	return SkillRowName;
 }
+
+void USkillNodeWidget::SetGoldVisible(bool bVisible) const
+{
+	if (!TB_Gold) return;
+
+	TB_Gold->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+}

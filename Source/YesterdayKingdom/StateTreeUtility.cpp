@@ -75,11 +75,12 @@ bool FStateTreeIsInDangerCondition::TestCondition(FStateTreeExecutionContext& Co
 
 	return false;
 }
-
+#if WITH_EDITOR
 FText FStateTreeIsInDangerCondition::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Is Character In Danger</b>");
 }
+#endif
 
 // 현재 공격 테스크 시작 이벤트 (다른 상태로 전환되어 종료됨)
 // - 콤보 공격 시작 + 종료 콜백 처리
@@ -119,11 +120,12 @@ void FStateTreeComboAttackTask::ExitState(FStateTreeExecutionContext& context, c
 		InstanceData.Character->OnAttackCompleted.Unbind();
 	}
 }
-
+#if WITH_EDITOR
 FText FStateTreeComboAttackTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Do Combo Attack</b>");
 }
+#endif
 
 // 현재 차지 공격 테스크 시작 이벤트 (다른 상태로 전환되어 종료됨)
 // - 차지 공격 시작 + 종료 콜백 처리
@@ -164,12 +166,13 @@ void FStateTreeChargedAttackTask::ExitState(FStateTreeExecutionContext& context,
 		InstanceData.Character->OnAttackCompleted.Unbind();
 	}
 }
-
+#if WITH_EDITOR
 FText FStateTreeChargedAttackTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
 	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Do Charged Attack</b>");
 }
+#endif
 
 // 피격에 의한 넉백 테스크 시작 이벤트
 EStateTreeRunStatus FStateTreeWaitForLandingTask::EnterState(FStateTreeExecutionContext& context, const FStateTreeTransitionResult& Transition) const
@@ -202,11 +205,12 @@ void FStateTreeWaitForLandingTask::ExitState(FStateTreeExecutionContext& context
 		InstanceData.Character->OnEnemyLanded.Unbind();
 	}
 }
-
+#if WITH_EDITOR
 FText FStateTreeWaitForLandingTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Wait for Landing</b>");
 }
+#endif
 
 // 플레이어 시선(감시) 처리 테스크 종료 이벤트
 EStateTreeRunStatus FStateTreeFaceActorTask::EnterState(FStateTreeExecutionContext& context,
@@ -237,12 +241,13 @@ void FStateTreeFaceActorTask::ExitState(FStateTreeExecutionContext& context,
 		InstanceData.Controller->ClearFocus(EAIFocusPriority::Gameplay);
 	}
 }
-
+#if WITH_EDITOR
 FText FStateTreeFaceActorTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
 	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Face Towards Actor</b>");
 }
+#endif
 
 // 위치를 향한 시선(감시) 처리 테스크 시작 이벤트
 EStateTreeRunStatus FStateTreeFaceLocationTask::EnterState(FStateTreeExecutionContext& context,
@@ -274,11 +279,12 @@ void FStateTreeFaceLocationTask::ExitState(FStateTreeExecutionContext& context,
 		InstanceData.Controller->ClearFocus(EAIFocusPriority::Gameplay);
 	}
 }
-
+#if WITH_EDITOR
 FText FStateTreeFaceLocationTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Face Towards Location</b>");
 }
+#endif
 
 // AI 캐릭터 속도 설정 테스크 시작 이벤트
 EStateTreeRunStatus FStateTreeSetCharacterSpeedTask::EnterState(FStateTreeExecutionContext& context, const FStateTreeTransitionResult& Transition) const
@@ -294,11 +300,12 @@ EStateTreeRunStatus FStateTreeSetCharacterSpeedTask::EnterState(FStateTreeExecut
 
 	return EStateTreeRunStatus::Running;
 }
-
+#if WITH_EDITOR
 FText FStateTreeSetCharacterSpeedTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Set Character Speed</b>");
 }
+#endif
 
 EStateTreeRunStatus FStateTreeGetPlayerInfoTask::EnterState(FStateTreeExecutionContext& Context,
 	const FStateTreeTransitionResult& Transition) const
@@ -359,11 +366,12 @@ EStateTreeRunStatus FStateTreeGetPlayerInfoTask::Tick(FStateTreeExecutionContext
 
 	return EStateTreeRunStatus::Running;
 }
-
+#if WITH_EDITOR
 FText FStateTreeGetPlayerInfoTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView, const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Get Player Info</b>");
 }
+#endif
 
 EStateTreeRunStatus FStateTreeWidgetTask::EnterState(FStateTreeExecutionContext& Context,
 	const FStateTreeTransitionResult& Transition) const
@@ -377,9 +385,10 @@ EStateTreeRunStatus FStateTreeWidgetTask::EnterState(FStateTreeExecutionContext&
 	return EStateTreeRunStatus::Succeeded;
 }
 
-
+#if WITH_EDITOR
 FText FStateTreeWidgetTask::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
 	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString("<b>Enemy HP Widget Visible</b>");
 }
+#endif

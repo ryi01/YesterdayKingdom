@@ -661,28 +661,6 @@ void UCombatBaseComponent::DoAttackTrace()
 	Params.AddIgnoredActor(OwnerCharacter.Get());
 	// 플레이어 기준으로 sphere를 만들어 피격 대상 확인
 	const bool bHit = GetWorld()->SweepMultiByChannel(HitResults, Start, End, FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(TraceRadius), Params);
-#if ENABLE_DRAW_DEBUG
-	DrawDebugLine(
-		GetWorld(),
-		Start,
-		End,
-		bHit ? FColor::Red : FColor::Green,
-		false,
-		0.1f,
-		0,
-		1.f
-	);
-
-	DrawDebugSphere(
-	GetWorld(),
-		End,
-		TraceRadius,
-		12,
-		bHit ? FColor::Red : FColor::Green,
-		false,
-		0.1f
-	);
-#endif
 	
 	if (!bHit) return;
 	HitResults.Sort([&Start](const FHitResult& A, const FHitResult& B)
