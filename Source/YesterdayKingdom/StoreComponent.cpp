@@ -7,6 +7,7 @@
 #include "InventoryComponent.h"
 #include "ItemData.h"
 #include "StoreDataAsset.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
 UStoreComponent::UStoreComponent()
@@ -71,7 +72,7 @@ bool UStoreComponent::BuyItem(UInventoryComponent* BuyerInventory, UGoldComponen
 		}
 		return false;
 	}
-
+	if (SellBuySound) UGameplayStatics::PlaySound2D(this, SellBuySound, SellBuyVolume, 1.f, 0.f, nullptr, nullptr, true);
 	OnStoreChanged.Broadcast();
 	return true;
 }
@@ -95,6 +96,7 @@ bool UStoreComponent::SellItem(UInventoryComponent* SellerInventory, UGoldCompon
 	if (!SellerInventory->RemoveItem(ItemRowName, Count)) return false;
 	SellerGold->AddGold(TotalPrice);
 	
+	if (SellBuySound) UGameplayStatics::PlaySound2D(this, SellBuySound, SellBuyVolume, 1.f, 0.f, nullptr, nullptr, true);
 	OnStoreChanged.Broadcast();
 	UE_LOG(
 		LogTemp,

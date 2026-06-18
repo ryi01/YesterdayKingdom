@@ -7,9 +7,7 @@
 #include "SkillTreeWidget.generated.h"
 
 class UGoldComponent;
-/**
- * 
- */
+class USoundCue;
 UCLASS()
 class YESTERDAYKINGDOM_API USkillTreeWidget : public UUserWidget
 {
@@ -101,6 +99,13 @@ protected:
 	
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	TObjectPtr<class UTextBlock> TB_Gold;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|Skill")
+	TObjectPtr<USoundBase> SkillUnlockSound;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|Skill")
+	float SkillUnlockSoundVolume = 1.0f;
+	
 private:
 	void InitializeSkillTree();
 	void InitializeSkillNode(USkillNodeWidget* SkillNodeWidget, FName SkillRowName);

@@ -299,8 +299,13 @@ void UCombatBaseComponent::OnChargeAttackStarted()
 {
 }
 
+void UCombatBaseComponent::OnChargeAttackCanceled()
+{
+}
+
 void UCombatBaseComponent::OnChargeAttackReleased()
 {
+	
 }
 bool UCombatBaseComponent::StartChargeAttackByRow(FName AttackRowName)
 {
@@ -367,8 +372,9 @@ void UCombatBaseComponent::CancelChargeAttack()
 	CurrentChargeRowName = NAME_None;
 	
 	StopChargeHoldFeedback();
-	SetComponentTickEnabled(false);
+	OnChargeAttackCanceled();
 	
+	SetComponentTickEnabled(false);
 	ResetAttackState();
 	
 }

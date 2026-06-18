@@ -230,6 +230,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
 	float InventorySoundVolume = 1.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
+	TObjectPtr<class USoundBase> UseItemSound;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
+	float UseItemSoundVolume = 1.0f;
+	
 protected:
 	//===============================================================================================
 	// 로드 저장

@@ -8,6 +8,7 @@
 #include "PlayerCharacter.h"
 #include "SkillNodeWidget.h"
 #include "Components/TextBlock.h"
+#include "Kismet/GameplayStatics.h"
 
 void USkillTreeWidget::NativeConstruct()
 {
@@ -165,7 +166,14 @@ void USkillTreeWidget::OnSkillNodeClicked(FName SkillRowName)
 {
 	if (!SkillComponent) return;
 	const bool bUnlocked = SkillComponent->TryUnlockSkill(SkillRowName);
-	if (!bUnlocked) RefreshSkillTree();
+	if (bUnlocked)
+	{
+		if (SkillUnlockSound) UGameplayStatics::PlaySound2D(this, SkillUnlockSound, SkillUnlockSoundVolume, 1.f, 0.f, nullptr, nullptr, true);
+	}
+	else
+	{
+		RefreshSkillTree();
+	}
 }
 
 void USkillTreeWidget::OnSkillTreeChanged()

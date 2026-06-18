@@ -113,7 +113,14 @@ protected:
 	void OnWBFilterClicked();
 	UFUNCTION()
 	void OnArmorFilterClicked();
-
+	//=======================================================================================
+	// 사운드
+	//=======================================================================================
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
+	TObjectPtr<class USoundBase> UseEquipmentSound;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound|UI")
+	float UseItemSoundVolume = 1.0f;
+	
 public:
 	UFUNCTION(BlueprintCallable)
 	void BindInventory(class UInventoryComponent* InInventory);

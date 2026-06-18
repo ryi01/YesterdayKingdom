@@ -144,6 +144,7 @@ protected:
 	// 차지 공격
 	//=====================================================================================================
 	virtual void OnChargeAttackStarted();
+	virtual void OnChargeAttackCanceled();
 	virtual void OnChargeAttackReleased();
 	
 	void UpdateCharge(float DeltaTime);

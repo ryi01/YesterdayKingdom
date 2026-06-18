@@ -23,6 +23,7 @@
 #include "PatrolStateComponent.h"
 #include "PatternSelectStateComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AEnemyElite::AEnemyElite(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -139,7 +140,7 @@ void AEnemyElite::StopReviveEffect()
 void AEnemyElite::NotifyDamage_Implementation(const FVector& DamageLocation, AActor* DamageSource)
 {
 	Super::NotifyDamage_Implementation(DamageLocation, DamageSource);
-}
+} 
 
 void AEnemyElite::ApplyDamage_Implementation(float Damage, AActor* DamageCauser, const FVector& DamageLocation,
 	const FVector& DamageImpulse, EHitReactionType HitReactionType)
@@ -156,7 +157,8 @@ void AEnemyElite::ApplyDamage_Implementation(float Damage, AActor* DamageCauser,
 	}
 
 	StatComp->ApplyDamage(Damage);
-
+	Super::NotifyDamage_Implementation(DamageLocation, DamageCauser);
+	
 	if (StatComp->IsDead())
 	{
 		if (bTrueDead)
@@ -173,6 +175,6 @@ void AEnemyElite::ApplyDamage_Implementation(float Damage, AActor* DamageCauser,
 		return;
 	}
 
-	Super::NotifyDamage_Implementation(DamageLocation, DamageCauser);
+
 }
 
