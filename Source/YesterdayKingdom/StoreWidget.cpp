@@ -134,7 +134,7 @@ void UStoreWidget::ClearSelectedItem()
 	if (T_ItemName)
 	{
 		T_ItemName->SetText(
-			FText::FromString(TEXT("아이템을 선택해주세요"))
+		FText::GetEmpty()
 		);
 	}
 
