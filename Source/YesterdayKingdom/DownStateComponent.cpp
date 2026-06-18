@@ -8,12 +8,21 @@
 #include "EnemyFSMTypes.h"
 #include "EnemyBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "EnemyElite.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
 void UDownStateComponent::OnStateEnter()
 {
 	Super::OnStateEnter();
+	
+	if (OwnerCharacter)
+	{
+		if (UCapsuleComponent* Capsule = OwnerCharacter->GetCapsuleComponent())
+		{
+			Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+	}
 
 	StopMove();
 	
