@@ -1,5 +1,3 @@
-<img width="893" height="503" alt="image" src="https://github.com/user-attachments/assets/3c1a1a4e-70bb-457a-83af-037ce1c6e52c" /># 어제는 왕국 멀쩡했음
-
 절차적으로 생성되는 던전을 탐험하며 전투와 성장을 반복하는  
 **Unreal Engine 5 기반 3D 액션 RPG 팀 프로젝트**입니다.
 
