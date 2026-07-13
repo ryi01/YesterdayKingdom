@@ -1,4 +1,4 @@
-# 어제는 왕국 멀쩡했음
+<img width="893" height="503" alt="image" src="https://github.com/user-attachments/assets/3c1a1a4e-70bb-457a-83af-037ce1c6e52c" /># 어제는 왕국 멀쩡했음
 
 절차적으로 생성되는 던전을 탐험하며 전투와 성장을 반복하는  
 **Unreal Engine 5 기반 3D 액션 RPG 팀 프로젝트**입니다.
@@ -23,7 +23,8 @@
 
 ## 시연 영상
 
-[![시연 영상](https://via.placeholder.com/1200x675?text=Gameplay+Video)](https://drive.google.com/file/d/1jk0sM3enjO3qKLUQpDXSVBdlS0Zr8ad5/view?usp=drive_link)
+[![시연 영상](<img width="893" height="503" alt="image" src="https://github.com/user-attachments/assets/b476c2b4-2699-4f1c-bc6d-483c76edb495" />
+)](https://drive.google.com/file/d/1jk0sM3enjO3qKLUQpDXSVBdlS0Zr8ad5/view?usp=drive_link)
 
 ---
 
