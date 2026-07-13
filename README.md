@@ -23,8 +23,7 @@
 
 ## 시연 영상
 
-[![시연 영상](<img width="893" height="503" alt="image" src="https://github.com/user-attachments/assets/b476c2b4-2699-4f1c-bc6d-483c76edb495" />
-)](https://drive.google.com/file/d/1jk0sM3enjO3qKLUQpDXSVBdlS0Zr8ad5/view?usp=drive_link)
+[![시연 영상](https://github.com/user-attachments/assets/b476c2b4-2699-4f1c-bc6d-483c76edb495)](https://drive.google.com/file/d/1jk0sM3enjO3qKLUQpDXSVBdlS0Zr8ad5/view?usp=drive_link)
 
 ---
 
