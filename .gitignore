@@ -73,3 +73,6 @@ Plugins/**/Intermediate/*
 # Cache files for the editor to use
 DerivedDataCache/*
 Content/HeavyHammer/Demo/HeavyHammer.mp4
+
+# Unreal Content assets
+Content/*
