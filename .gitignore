@@ -74,3 +74,5 @@ Plugins/**/Intermediate/*
 DerivedDataCache/*
 Content/HeavyHammer/Demo/HeavyHammer.mp4
 
+# Unreal Content assets
+Content/
