@@ -23,7 +23,7 @@
 
 ## 시연 영상
 
-[![시연 영상](https://drive.google.com/file/d/1jk0sM3enjO3qKLUQpDXSVBdlS0Zr8ad5/view?usp=drive_link)
+[![시연 영상](https://via.placeholder.com/1200x675?text=Gameplay+Video)](https://drive.google.com/file/d/1jk0sM3enjO3qKLUQpDXSVBdlS0Zr8ad5/view?usp=drive_link)
 
 ---
 
